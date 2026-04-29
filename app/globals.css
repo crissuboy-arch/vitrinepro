@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+:root {
+  --navy-deep: #0F172A;
+  --gold: #C8A96B;
+  --gold-light: #D4BB82;
+  --gold-dark: #A88B4F;
+  --warm-white: #FAF7F2;
+  --graphite: #1F2937;
+  --neutral-gray: #E5E7EB;
+  --slate-900: #0f172a;
+  --slate-800: #1e293b;
+  --slate-50: #f8fafc;
+  --white: #ffffff;
+}
+
+@theme inline {
+  --color-navy-deep: var(--navy-deep);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-gold-dark: var(--gold-dark);
+  --color-warm-white: var(--warm-white);
+  --color-graphite: var(--graphite);
+  --color-neutral-gray: var(--neutral-gray);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-playfair);
+}
+
+body {
+  background: var(--warm-white);
+  color: var(--navy-deep);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+@layer utilities {
+  .text-gold {
+    color: var(--gold);
+  }
+  .bg-gold {
+    background-color: var(--gold);
+  }
+  .bg-gold-light {
+    background-color: var(--gold-light);
+  }
+  .border-gold {
+    border-color: var(--gold);
+  }
+  .shadow-gold\/25 {
+    --tw-shadow: 0 25px 50px -12px rgba(200, 169, 107, 0.25);
+  }
+  .hover\:shadow-gold\/25:hover {
+    --tw-shadow: 0 25px 50px -12px rgba(200, 169, 107, 0.25);
+  }
+}
+
+.btn-primary {
+  background-color: var(--gold);
+  color: var(--navy-deep);
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1.125rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary:hover {
+  background-color: var(--gold-light);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px -5px rgba(200, 169, 107, 0.4);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--gold);
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1.125rem;
+  border: 2px solid var(--gold);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(200, 169, 107, 0.1);
+}
+
+.card-premium {
+  background: white;
+  border-radius: 1rem;
+  border: 1px solid var(--neutral-gray);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.card-premium:hover {
+  border-color: var(--gold);
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.15);
+  transform: translateY(-4px);
+}
+
+.badge-premium {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: var(--navy-deep);
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.025em;
+}
+
+.bg-navy {
+  background-color: var(--navy-deep);
+}
+
+.bg-graphite {
+  background-color: var(--graphite);
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
