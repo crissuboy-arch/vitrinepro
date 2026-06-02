@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from "@/app/lib/supabase";
 import { generateSlug } from "./utils";
 

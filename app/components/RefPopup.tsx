@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { X } from "lucide-react";
 import { useAuth } from "../context/SupabaseAuthContext";
 
@@ -88,13 +89,13 @@ function RefPopupContent() {
             Criar minha vitrine grátis →
           </button>
           
-          <a
+          <Link
             href="/#como-funciona"
             onClick={handleClose}
             className="w-full border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white font-medium py-2.5 px-4 rounded-xl transition-all duration-200 text-sm block text-center cursor-pointer"
           >
             Ver como funciona
-          </a>
+          </Link>
         </div>
       </div>
     </div>

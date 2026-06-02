@@ -242,10 +242,34 @@ export default function VitrineClient({ slug }: { slug: string }) {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Show engagement popup 3s after business loads (once per session)
+  useEffect(() => {
+    if (!business?.id) return;
+    const key = `vp_popup_${slug}`;
+    if (typeof window !== "undefined" && sessionStorage.getItem(key)) return;
+    const t = setTimeout(() => setShowPopup(true), 3000);
+    return () => clearTimeout(t);
+  }, [business?.id, slug]);
+
+  const closePopup = () => {
+    setShowPopup(false);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(`vp_popup_${slug}`, "1");
+    }
+  };
+
+  const scrollToProducts = () => {
+    closePopup();
+    setTimeout(() => {
+      document.getElementById("vitrine-produtos")?.scrollIntoView({ behavior: "smooth" });
+    }, 150);
+  };
 
   // Track page view silently after business loads
   useEffect(() => {
@@ -580,6 +604,122 @@ export default function VitrineClient({ slug }: { slug: string }) {
         </div>
       )}
 
+      {/* ── Engagement Popup ── */}
+      {showPopup && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          style={{ background: "rgba(5,8,22,0.75)", backdropFilter: "blur(4px)" }}
+          onClick={closePopup}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
+            style={{
+              background: "#0F172A",
+              border: "1.5px solid rgba(200,169,107,0.45)",
+              boxShadow: "0 0 60px rgba(200,169,107,0.12)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header stripe */}
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{ background: "linear-gradient(90deg,#1E293B,#0F172A)", borderBottom: "1px solid rgba(200,169,107,0.15)" }}
+            >
+              <div className="flex items-center gap-2">
+                {business.logo && business.logo.startsWith("http") ? (
+                  <img src={business.logo} alt="" className="w-9 h-9 rounded-xl object-cover" />
+                ) : (
+                  <span className="text-2xl">{business.logo || "🏪"}</span>
+                )}
+                <div>
+                  <p className="text-white font-bold text-sm leading-none">{business.name}</p>
+                  <p className="text-slate-400 text-xs mt-0.5">📍 {business.city}</p>
+                </div>
+              </div>
+              <button
+                onClick={closePopup}
+                aria-label="Fechar popup"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-5 py-5 space-y-4">
+              <div className="space-y-1.5">
+                <h3 className="font-display font-bold text-white text-xl leading-tight">
+                  Gostou desta vitrine?
+                </h3>
+                <p className="text-slate-400 text-sm leading-relaxed font-light">
+                  Fale diretamente com este negócio pelo WhatsApp, veja produtos, serviços e ofertas disponíveis.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2.5 pt-1">
+                {/* WhatsApp */}
+                {business.whatsApp && (
+                  <a
+                    href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Vi a vossa vitrine no VitrinePro e gostaria de saber mais.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={closePopup}
+                    className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
+                    style={{ background: "#25D366", color: "#fff" }}
+                  >
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.572.13-.756.149-.174.297-.347.446-.521.151-.174.198-.298.297-.496.099-.198.05-.371-.025-.52-.075-.149-.66-1.43-.9-1.957-.239-.527-.478-.545-.66-.558-.149-.015-.322-.024-.492-.024-.17 0-.471.074-.717.371-.245.297-.836.99-.836 1.712 0 .722.836 1.958 1.958 2.096.37.1.721.149 1.025.173.473.037.905.03 1.274-.02.297-.04.69-.173.99-.371.099-.074.571-.347.648-.695.075-.348.075-.647.05-.723-.074-.149-.272-.347-.446-.521z"/>
+                      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.535 5.858L0 24l6.335-1.523A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.897 0-3.677-.502-5.215-1.381l-.374-.216-3.876.932.976-3.762-.239-.387A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                    </svg>
+                    Falar no WhatsApp
+                  </a>
+                )}
+
+                {/* Ver produtos */}
+                {products.length > 0 && (
+                  <button
+                    onClick={scrollToProducts}
+                    className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-95"
+                    style={{ background: "rgba(200,169,107,0.12)", color: "#C8A96B", border: "1px solid rgba(200,169,107,0.3)" }}
+                  >
+                    📦 Ver produtos
+                  </button>
+                )}
+
+                {/* Fechar */}
+                <button
+                  onClick={closePopup}
+                  className="w-full py-2.5 text-slate-500 hover:text-slate-300 text-sm transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Floating Help Badge ── */}
+      {!showPopup && (
+        <button
+          onClick={() => setShowPopup(true)}
+          aria-label="Precisa de ajuda?"
+          className="fixed z-40 flex items-center gap-2 font-semibold text-xs transition-all active:scale-95 hover:scale-105"
+          style={{
+            bottom: "96px",
+            right: "16px",
+            background: "#1E293B",
+            border: "1.5px solid rgba(200,169,107,0.4)",
+            color: "#C8A96B",
+            borderRadius: "9999px",
+            padding: "8px 14px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+          }}
+        >
+          💬 Precisa de ajuda?
+        </button>
+      )}
+
       {/* Floating green WhatsApp Button */}
       {business.whatsApp && (
         <a
@@ -714,7 +854,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
 
             {/* Products Showcase */}
             {products.length > 0 && (
-              <div className="space-y-6">
+              <div id="vitrine-produtos" className="space-y-6">
                 <h2 className="text-2xl font-bold font-display text-white border-b border-slate-800 pb-3 flex items-center gap-2">
                   <span>📦</span> Produtos & Serviços
                 </h2>

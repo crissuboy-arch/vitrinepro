@@ -60,16 +60,12 @@ export default function PlansSection({ onSelectPlan }: PlansSectionProps) {
               </ul>
             </div>
 
-            <a
-              href="/login?mode=signup"
-              onClick={(e) => {
-                e.preventDefault();
-                onSelectPlan("free");
-              }}
+            <button
+              onClick={() => onSelectPlan("free")}
               className="w-full py-3.5 bg-transparent hover:bg-white/5 border border-[#C8A96B] hover:border-[#D4BB82] text-white hover:text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-98 cursor-pointer block text-center"
             >
               Começar grátis
-            </a>
+            </button>
           </div>
 
           {/* Card Pro (DESTACADO) */}
@@ -128,16 +124,12 @@ export default function PlansSection({ onSelectPlan }: PlansSectionProps) {
               </ul>
             </div>
 
-            <a
-              href="/login?mode=signup&plan=premium"
-              onClick={(e) => {
-                e.preventDefault();
-                onSelectPlan("premium");
-              }}
+            <button
+              onClick={() => onSelectPlan("premium")}
               className="w-full py-4 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-[#C8A96B]/10 hover:shadow-[#C8A96B]/25 active:scale-98 transition-all cursor-pointer block text-center"
             >
               Activar Premium — €12/mês →
-            </a>
+            </button>
           </div>
 
           {/* Card Business */}
@@ -179,16 +171,12 @@ export default function PlansSection({ onSelectPlan }: PlansSectionProps) {
               </ul>
             </div>
 
-            <a
-              href="/login?mode=signup&plan=business"
-              onClick={(e) => {
-                e.preventDefault();
-                onSelectPlan("business");
-              }}
+            <button
+              onClick={() => onSelectPlan("business")}
               className="w-full py-3.5 bg-transparent hover:bg-white/5 border border-[#C8A96B] hover:border-[#D4BB82] text-white hover:text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-98 cursor-pointer block text-center"
             >
               Começar com Business
-            </a>
+            </button>
           </div>
 
         </div>
