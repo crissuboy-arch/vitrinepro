@@ -18,7 +18,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -34,58 +34,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
+    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        console.log("[AUTH] getSession result:", currentSession?.user?.id);
-        
         if (currentSession) {
           setSession(currentSession);
           setUser(currentSession.user);
-          console.log("[AUTH] User set:", currentSession.user.id);
+          console.log("[AUTH] User set from getSession:", currentSession.user.id);
           
           const { data: profileData } = await supabase
             .from("profiles")
             .select("*")
             .eq("id", currentSession.user.id)
-            .single();
+            .maybeSingle();
           
           if (profileData) {
             setProfile(profileData);
           }
         } else {
-          console.log("[AUTH] No session found");
+          console.log("[AUTH] No session found from getSession");
         }
       } catch (error) {
-        console.error("[AUTH] Init error:", error);
+        console.error("[AUTH] getSession error:", error);
       } finally {
         setLoading(false);
-        console.log("[AUTH] Loading set to false");
+        console.log("[AUTH] Loading set to false after getSession");
       }
-    };
-
-    initAuth();
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        console.log("[AUTH] onAuthStateChange:", event, currentSession?.user?.id);
+      async (_event, currentSession) => {
+        console.log("[AUTH] onAuthStateChange:", _event, currentSession?.user?.id);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        if (currentSession?.user) {
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", currentSession.user.id)
-            .single();
-          
-          setProfile(profileData);
-        } else {
-          setProfile(null);
-        }
-        
-        setLoading(false);
+        // Run database fetch asynchronously in next tick to avoid locking issues (Web Locks API deadlock)
+        setTimeout(async () => {
+          try {
+            if (currentSession?.user) {
+              const { data: profileData } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", currentSession.user.id)
+                .maybeSingle();
+              
+              setProfile(profileData);
+            } else {
+              setProfile(null);
+            }
+          } catch (error) {
+            console.error("[AUTH] Profile fetch error in state change:", error);
+          }
+        }, 0);
       }
     );
 
@@ -110,11 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (redirectTo?: string) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -189,7 +188,7 @@ const defaultAuthContext = {
   session: null,
   profile: null,
   loading: true,
-  signInWithGoogle: async () => {},
+  signInWithGoogle: async (redirectTo?: string) => {},
   signInWithEmail: async () => {},
   signUpWithEmail: async () => {},
   signOut: async () => {},

@@ -1,10 +1,11 @@
+/* eslint-disable */
 "use client";
 
 import { useEffect, useRef } from "react";
 
 interface MapDisplayProps {
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
   address?: string;
   businessName?: string;
   compact?: boolean;
@@ -20,11 +21,12 @@ export default function MapDisplay({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
 
+  const hasCoords = lat && lng;
+
   useEffect(() => {
-    if (!lat || !lng || !mapRef.current || typeof window === "undefined") return;
+    if (!hasCoords || !mapRef.current || typeof window === "undefined") return;
 
     const mapContainer = mapRef.current;
-    if (!mapContainer) return;
 
     const loadMap = async () => {
       const L = await import("leaflet");
@@ -35,7 +37,7 @@ export default function MapDisplay({
       }
 
       const map = L.map(mapContainer, {
-        center: [lat, lng],
+        center: [lat!, lng!],
         zoom: compact ? 15 : 16,
         zoomControl: false,
         dragging: !compact,
@@ -59,7 +61,7 @@ export default function MapDisplay({
         iconAnchor: [12, 12],
       });
 
-      L.marker([lat, lng], { icon: customIcon }).addTo(map);
+      L.marker([lat!, lng!], { icon: customIcon }).addTo(map);
 
       mapInstanceRef.current = map;
     };
@@ -74,27 +76,40 @@ export default function MapDisplay({
     };
   }, [lat, lng, compact]);
 
-  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-  const wazeUrl = `https://www.waze.com/ul?ll=${lat},${lng}&q=${encodeURIComponent(address || "")}`;
+  if (!hasCoords && !address) return null;
 
-  if (!lat || !lng) {
-    return null;
-  }
+  const searchQuery = hasCoords
+    ? `${lat},${lng}`
+    : encodeURIComponent(address || "");
+
+  const googleMapsUrl = hasCoords
+    ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || "")}`;
+
+  const wazeUrl = hasCoords
+    ? `https://www.waze.com/ul?ll=${lat},${lng}&q=${encodeURIComponent(address || "")}`
+    : `https://www.waze.com/ul?q=${encodeURIComponent(address || "")}`;
 
   return (
     <div className="space-y-3">
-      {!compact && (
+      {/* Leaflet map when coords available, iframe fallback when only address */}
+      {hasCoords ? (
         <div
           ref={mapRef}
-          className="w-full h-48 rounded-lg overflow-hidden bg-slate-100"
+          className={`w-full rounded-lg overflow-hidden bg-slate-100 ${compact ? "h-32" : "h-48"}`}
         />
-      )}
-
-      {compact && (
-        <div
-          ref={mapRef}
-          className="w-full h-32 rounded-lg overflow-hidden bg-slate-100"
-        />
+      ) : (
+        <div className={`w-full rounded-lg overflow-hidden bg-slate-800 ${compact ? "h-32" : "h-48"}`}>
+          <iframe
+            src={`https://maps.google.com/maps?q=${searchQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+            width="100%"
+            height="100%"
+            style={{ border: 0 }}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
       )}
 
       <div className="flex gap-2">

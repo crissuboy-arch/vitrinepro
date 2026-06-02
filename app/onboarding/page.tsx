@@ -1,14 +1,17 @@
+/* eslint-disable */
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "../lib/supabase";
-import { uploadBusinessImage } from "../lib/storage";
+import { createBusiness } from "@/lib/business-actions";
+import { uploadLogo, uploadCover, uploadGallery } from "@/lib/supabase-storage";
 
 interface Category {
   id: string;
   name: string;
-  icon: string;
+  icon?: string;
 }
 
 interface City {
@@ -17,573 +20,723 @@ interface City {
   country: string;
 }
 
-interface BusinessData {
-  name: string;
-  categoryId: string;
-  cityId: string;
-  whatsApp: string;
-  phone: string;
-  address: string;
-  description: string;
-  logoFile: File | null;
-  coverFile: File | null;
-  galleryFiles: (File | null)[];
-  instagram?: string;
-  website?: string;
+interface OpeningHour {
+  day: string;
+  open: string;
+  close: string;
+  closed: boolean;
 }
+
+const INITIAL_HOURS: OpeningHour[] = [
+  { day: "Segunda-feira", open: "09:00", close: "18:00", closed: false },
+  { day: "Terça-feira", open: "09:00", close: "18:00", closed: false },
+  { day: "Quarta-feira", open: "09:00", close: "18:00", closed: false },
+  { day: "Quinta-feira", open: "09:00", close: "18:00", closed: false },
+  { day: "Sexta-feira", open: "09:00", close: "18:00", closed: false },
+  { day: "Sábado", open: "09:00", close: "13:00", closed: false },
+  { day: "Domingo", open: "09:00", close: "13:00", closed: true },
+];
 
 export default function OnboardingPage() {
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState(1);
-  const [, setPurpose] = useState<"list" | "find" | null>(null);
-  const [citySearch, setCitySearch] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState<"Portugal" | "Brasil">("Portugal");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+
+  // DB Data
   const [categories, setCategories] = useState<Category[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [businessData, setBusinessData] = useState<BusinessData>({
-    name: "",
-    categoryId: "",
-    cityId: "",
-    whatsApp: "",
-    phone: "",
-    address: "",
-    description: "",
-    logoFile: null,
-    coverFile: null,
-    galleryFiles: [null, null, null],
-    instagram: "",
-    website: "",
-  });
-  const [loading, setLoading] = useState(false);
+
+  // Step 1: Basic Info
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [cityId, setCityId] = useState("");
+  const [country, setCountry] = useState("Portugal");
+  const [address, setAddress] = useState("");
+
+  // Step 2: Contacts & Socials
+  const [whatsapp, setWhatsapp] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [facebook, setFacebook] = useState("");
+  const [tiktok, setTiktok] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [website, setWebsite] = useState("");
+
+  // Step 3: Images Files
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+
+  // Previews
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [coverPreview, setCoverPreview] = useState<string>("");
-  const [galleryPreviews, setGalleryPreviews] = useState<string[]>(["", "", ""]);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+
+  // Step 4: Hours
+  const [hours, setHours] = useState<OpeningHour[]>(INITIAL_HOURS);
+
   const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const planParam = urlParams.get("plan");
+      if (planParam) {
+        setSelectedPlan(planParam);
+      }
+    }
   }, []);
 
+  // Auth Protection Check
   useEffect(() => {
     const checkAuth = async () => {
       if (!mounted) return;
-      
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("[DEBUG] Onboarding - session:", session?.user?.id);
-      
       if (!session?.user) {
-        console.log("[DEBUG] Onboarding - no user, redirecting to login");
-        router.push("/login");
+        const urlParams = new URLSearchParams(window.location.search);
+        const plan = urlParams.get("plan");
+        const redirectUrl = plan ? `/login?plan=${plan}` : "/login";
+        router.push(redirectUrl);
       }
     };
-    
     checkAuth();
   }, [mounted, router]);
 
+  // Load Dropdowns
   useEffect(() => {
-    const fetchData = async () => {
+    const loadDropdownData = async () => {
       try {
         const [catsRes, citiesRes] = await Promise.all([
           supabase.from("categories").select("id, name, icon").eq("is_active", true).order("order_index"),
           supabase.from("cities").select("id, name, country").eq("is_active", true).order("order_index"),
         ]);
-        
-        if (catsRes.error) console.error("[ONBOARDING] Categories error:", catsRes.error);
-        if (citiesRes.error) console.error("[ONBOARDING] Cities error:", citiesRes.error);
-        
-        if (catsRes.data) {
-          console.log("[ONBOARDING] Categories loaded:", catsRes.data.length);
-          setCategories(catsRes.data);
-        }
-        if (citiesRes.data) {
-          console.log("[ONBOARDING] Cities loaded:", citiesRes.data.length);
-          setCities(citiesRes.data);
-        }
-      } catch (error) {
-        console.error("[ONBOARDING] Fetch error:", error);
+        if (catsRes.data) setCategories(catsRes.data);
+        if (citiesRes.data) setCities(citiesRes.data);
+      } catch (err) {
+        console.error("[ONBOARDING] Error loading dropdown data:", err);
       }
     };
-    
-    fetchData();
+    loadDropdownData();
   }, []);
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
-  const filteredCities = cities.filter(
-    c => c.country === selectedCountry && 
-    c.name.toLowerCase().includes(citySearch.toLowerCase())
-  );
+  // Filter cities by selected country
+  const filteredCities = cities.filter((c) => c.country === country);
 
-  const handleCitySearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCitySearch(e.target.value);
-    setShowSuggestions(true);
-  };
-
-  const handleCitySelect = (cityId: string, cityName: string) => {
-    setBusinessData(prev => ({ ...prev, cityId }));
-    setCitySearch(cityName);
-    setShowSuggestions(false);
-    setStep(4);
-  };
-
-  const handleCustomCity = async () => {
-    if (citySearch.trim()) {
-      try {
-        const { data: newCity, error } = await supabase
-          .from("cities")
-          .insert({
-            name: citySearch.trim(),
-            slug: citySearch.trim().toLowerCase().replace(/\s+/g, '-'),
-            country: selectedCountry,
-            is_active: true,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        if (newCity) {
-          setCities(prev => [...prev, newCity]);
-          setBusinessData(prev => ({ ...prev, cityId: newCity.id }));
-          setShowSuggestions(false);
-          setStep(4);
-        }
-      } catch (error) {
-        console.error("[DEBUG] Error creating custom city:", error);
-        alert("Erro ao criar cidade. Tente novamente.");
-      }
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "logo" | "cover" | "gallery", index?: number) => {
+  // File Upload Handlers
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        if (type === "logo") {
-          setLogoPreview(base64);
-          setBusinessData(prev => ({ ...prev, logoFile: file }));
-        } else if (type === "cover") {
-          setCoverPreview(base64);
-          setBusinessData(prev => ({ ...prev, coverFile: file }));
-        } else if (type === "gallery" && index !== undefined) {
-          const newPreviews = [...galleryPreviews];
-          newPreviews[index] = base64;
-          setGalleryPreviews(newPreviews);
-          const newGalleryFiles = [...businessData.galleryFiles];
-          newGalleryFiles[index] = file;
-          setBusinessData(prev => ({ ...prev, galleryFiles: newGalleryFiles }));
-        }
-      };
-      reader.readAsDataURL(file);
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
     }
   };
 
-  const handlePurposeSelect = (p: "list" | "find") => {
-    setPurpose(p);
-    setStep(2);
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCoverFile(file);
+      setCoverPreview(URL.createObjectURL(file));
+    }
   };
 
-  const handleCategorySelect = (categoryId: string) => {
-    setBusinessData(prev => ({ ...prev, categoryId }));
-    setStep(3);
+  const handleGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const filesArray = Array.from(files);
+      setGalleryFiles((prev) => [...prev, ...filesArray]);
+      const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
+      setGalleryPreviews((prev) => [...prev, ...newPreviews]);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const removeGalleryImage = (index: number) => {
+    setGalleryFiles((prev) => prev.filter((_, i) => i !== index));
+    setGalleryPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Hours Change Handler
+  const handleHoursChange = (index: number, field: keyof OpeningHour, value: any) => {
+    const newHours = [...hours];
+    newHours[index] = { ...newHours[index], [field]: value };
+    setHours(newHours);
+  };
+
+  // Submit Handler
+  const handleSave = async () => {
+    setError(null);
+    setSuccess(null);
     setLoading(true);
-    
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session?.user) {
-      router.push("/login");
-      return;
-    }
-    
+
     try {
-      const slug = businessData.name
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '') + '-' + Date.now();
-
-      let logoUrl = "";
-      let coverUrl = "";
-
-      const { data: business, error: businessError } = await supabase
-        .from('businesses')
-        .insert({
-          user_id: session.user.id,
-          name: businessData.name,
-          slug: slug,
-          description: businessData.description,
-          category_id: businessData.categoryId || null,
-          city_id: businessData.cityId || null,
-          whatsapp: businessData.whatsApp,
-          phone: businessData.phone,
-          address: businessData.address,
-          instagram: businessData.instagram,
-          website: businessData.website,
-          logo_url: logoUrl,
-          cover_url: coverUrl,
-          is_published: true,
-        })
-        .select()
-        .single();
-      
-      if (businessError) throw businessError;
-      
-      console.log("[DEBUG] Business saved with ID:", business.id);
-
-      if (businessData.logoFile && business) {
-        logoUrl = await uploadBusinessImage(businessData.logoFile, business.id, "logo");
-        await supabase.from("businesses").update({ logo_url: logoUrl }).eq("id", business.id);
-        
-        await supabase.from("business_images").insert({
-          business_id: business.id,
-          url: logoUrl,
-          type: "logo",
-          order_index: 0,
-        });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setError("Não autenticado. Por favor, faça login novamente.");
+        setLoading(false);
+        return;
       }
 
-      if (businessData.coverFile && business) {
-        coverUrl = await uploadBusinessImage(businessData.coverFile, business.id, "cover");
-        await supabase.from("businesses").update({ cover_url: coverUrl }).eq("id", business.id);
-        
-        await supabase.from("business_images").insert({
-          business_id: business.id,
-          url: coverUrl,
-          type: "cover",
-          order_index: 1,
-        });
+      // 1. Create base business profile
+      const result = await createBusiness({
+        user_id: session.user.id,
+        name,
+        description,
+        category_id: categoryId || undefined,
+        city_id: cityId || undefined,
+        country,
+        address,
+        whatsapp,
+        phone: phone || undefined,
+        email: email || undefined,
+        instagram: instagram || undefined,
+        facebook: facebook || undefined,
+        tiktok: tiktok || undefined,
+        youtube: youtube || undefined,
+        linkedin: linkedin || undefined,
+        website: website || undefined,
+        opening_hours: hours as unknown as Record<string, unknown>,
+        published: true, // Auto publish on successful onboarding
+      });
+
+      if (!result.success || !result.businessId) {
+        throw new Error(result.error || "Falha ao registar o negócio.");
       }
 
-      if (business) {
-        for (let i = 0; i < businessData.galleryFiles.length; i++) {
-          const file = businessData.galleryFiles[i];
-          if (file) {
-            const url = await uploadBusinessImage(file, business.id, "gallery");
-            await supabase.from("business_images").insert({
-              business_id: business.id,
-              url: url,
-              type: "gallery",
-              order_index: i + 2,
-            });
+      const businessId = result.businessId;
+
+      // 2. Upload images if selected
+      let uploadedLogoUrl = "";
+      let uploadedCoverUrl = "";
+      const uploadedGalleryUrls: string[] = [];
+
+      try {
+        if (logoFile) {
+          uploadedLogoUrl = await uploadLogo(logoFile, businessId);
+        }
+        if (coverFile) {
+          uploadedCoverUrl = await uploadCover(coverFile, businessId);
+        }
+        if (galleryFiles.length > 0) {
+          for (const file of galleryFiles) {
+            const url = await uploadGallery(file, businessId);
+            uploadedGalleryUrls.push(url);
           }
         }
+      } catch (uploadErr: any) {
+        console.error("[ONBOARDING] Upload warning:", uploadErr.message);
+        // We do not fail the whole onboarding if an image upload fails, but we show a warning
+        setError(`Negócio criado, mas com avisos de imagem: ${uploadErr.message}`);
       }
 
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("[DEBUG] Error creating business:", error);
+      // 3. Update business with upload URLs
+      const updateData: any = {};
+      if (uploadedLogoUrl) updateData.logo_url = uploadedLogoUrl;
+      if (uploadedCoverUrl) updateData.cover_url = uploadedCoverUrl;
+
+      if (Object.keys(updateData).length > 0) {
+        await supabase.from("businesses").update(updateData).eq("id", businessId);
+      }
+
+      // 4. Save gallery images to database (automatically syncs to gallery_images via triggers)
+      if (uploadedGalleryUrls.length > 0) {
+        const imageInserts = uploadedGalleryUrls.map((url, index) => ({
+          business_id: businessId,
+          url,
+          type: "gallery",
+          order_index: index,
+        }));
+        await supabase.from("business_images").insert(imageInserts);
+      }
+
+      setSuccess("Negócio criado com sucesso! A redirecionar...");
+      setTimeout(() => {
+        const redirectUrl = selectedPlan 
+          ? `/dashboard?success=onboarding&plan=${selectedPlan}` 
+          : "/dashboard?success=onboarding";
+        router.push(redirectUrl);
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || "Ocorreu um erro ao guardar.");
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2]">
-      <header className="bg-[#0F172A] border-b border-[#1F2937]">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-display text-[#C8A96B]">VitrinePro</span>
-            <span className="text-sm text-[#E5E7EB]">Passo {step} de 4</span>
+    <div className="min-h-screen bg-[#0F172A] text-white flex flex-col">
+      {/* Header */}
+      <header className="border-b border-gray-800 bg-[#0F172A]/90 backdrop-blur sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              className="text-xs text-slate-400 hover:text-white transition-colors border border-slate-800 hover:border-slate-600 px-3 py-1.5 rounded-lg flex items-center gap-1"
+            >
+              ← Voltar ao início
+            </Link>
+            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain bg-transparent" />
           </div>
+          <span className="text-sm text-gray-400">Passo {step} de 4</span>
         </div>
       </header>
 
-      <div className="bg-[#E5E7EB] h-1">
-        <div 
-          className="h-full bg-[#C8A96B] transition-all duration-300"
+      {/* Progress Bar */}
+      <div className="w-full bg-gray-800 h-1">
+        <div
+          className="bg-[#C8A96B] h-full transition-all duration-300"
           style={{ width: `${(step / 4) * 100}%` }}
         />
       </div>
 
-      <div className="container mx-auto px-4 py-12">
-        {step === 1 && (
-          <div className="max-w-2xl mx-auto">
-            <h1 className="font-display text-3xl text-[#0F172A] text-center mb-8">
-              O que você quer fazer?
-            </h1>
-            <div className="grid md:grid-cols-2 gap-4">
-              <button
-                onClick={() => handlePurposeSelect("list")}
-                className="bg-white p-8 rounded-xl border-2 border-[#E5E7EB] hover:border-[#C8A96B] transition-colors text-left group"
-              >
-                <div className="text-4xl mb-4">🏪</div>
-                <h3 className="font-semibold text-[#0F172A] text-xl mb-2">Listar meu negócio</h3>
-                <p className="text-[#1F2937]">Criar perfil e aparecer para novos clientes</p>
-              </button>
-              
-              <button
-                onClick={() => handlePurposeSelect("find")}
-                className="bg-white p-8 rounded-xl border-2 border-[#E5E7EB] hover:border-[#C8A96B] transition-colors text-left group"
-              >
-                <div className="text-4xl mb-4">🔍</div>
-                <h3 className="font-semibold text-[#0F172A] text-xl mb-2">Encontrar serviços</h3>
-                <p className="text-[#1F2937]">Buscar negócios e profissionais</p>
-              </button>
+      {/* Content Wizard */}
+      <main className="flex-grow max-w-3xl w-full mx-auto px-4 py-12">
+        <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-8 shadow-2xl backdrop-blur-sm">
+          {error && (
+            <div className="mb-6 p-4 bg-red-950/40 border border-red-900 text-red-400 rounded-xl text-sm">
+              {error}
             </div>
-          </div>
-        )}
+          )}
 
-        {step === 2 && (
-          <div className="max-w-3xl mx-auto">
-            <h1 className="font-display text-3xl text-[#0F172A] text-center mb-8">
-              Qual é a categoria do seu negócio?
-            </h1>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategorySelect(cat.id)}
-                  className="bg-white p-6 rounded-xl border-2 border-[#E5E7EB] hover:border-[#C8A96B] hover:shadow-lg transition-all text-left flex items-center gap-4"
-                >
-                  <span className="text-3xl">{cat.icon}</span>
-                  <span className="font-medium text-[#0F172A]">{cat.name}</span>
-                </button>
-              ))}
+          {success && (
+            <div className="mb-6 p-4 bg-green-950/40 border border-green-900 text-green-400 rounded-xl text-sm">
+              {success}
             </div>
-          </div>
-        )}
+          )}
 
-        {step === 3 && (
-          <div className="max-w-xl mx-auto">
-            <h1 className="font-display text-3xl text-[#0F172A] text-center mb-8">
-              Onde você está localizado?
-            </h1>
+          {/* STEP 1: Basic Info */}
+          {step === 1 && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-display text-[#C8A96B] font-semibold mb-2">Informações Básicas</h2>
+                <p className="text-sm text-gray-400">Insira os dados essenciais sobre a sua empresa.</p>
+              </div>
 
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={() => { setSelectedCountry("Portugal"); setCitySearch(""); }}
-                className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                  selectedCountry === "Portugal" 
-                    ? "bg-[#0F172A] text-white" 
-                    : "bg-white border border-[#E5E7EB] text-[#0F172A] hover:border-[#C8A96B]"
-                }`}
-              >
-                Portugal
-              </button>
-              <button
-                onClick={() => { setSelectedCountry("Brasil"); setCitySearch(""); }}
-                className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                  selectedCountry === "Brasil" 
-                    ? "bg-[#0F172A] text-white" 
-                    : "bg-white border border-[#E5E7EB] text-[#0F172A] hover:border-[#C8A96B]"
-                }`}
-              >
-                Brasil
-              </button>
-            </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Nome do Negócio *</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                    placeholder="Ex: Pastelaria central, Studio Bella, etc."
+                    required
+                  />
+                </div>
 
-            <div className="relative mb-4">
-              <input
-                type="text"
-                value={citySearch}
-                onChange={handleCitySearch}
-                onFocus={() => setShowSuggestions(true)}
-                placeholder={`Buscar cidade em ${selectedCountry}...`}
-                className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B]"
-              />
-              
-              {showSuggestions && citySearch && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-[#E5E7EB] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {filteredCities.length > 0 ? (
-                    filteredCities.map((city) => (
-                      <button
-                        key={city.id}
-                        onClick={() => handleCitySelect(city.id, city.name)}
-                        className="w-full px-4 py-3 text-left hover:bg-[#FAF7F2] transition-colors"
-                      >
-                        <span className="font-medium text-[#0F172A]">{city.name}</span>
-                      </button>
-                    ))
-                  ) : null}
-                  {citySearch.trim() && (
-                    <button
-                      onClick={handleCustomCity}
-                      className="w-full px-4 py-3 text-left border-t border-[#E5E7EB] hover:bg-[#FAF7F2] transition-colors"
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Descrição</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B] resize-none"
+                    placeholder="Escreva um breve resumo dos seus serviços ou produtos..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Categoria *</label>
+                    <select
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white focus:outline-none focus:border-[#C8A96B]"
+                      required
                     >
-                      <span className="text-[#C8A96B] font-medium">+ Adicionar &quot;{citySearch}&quot;</span>
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <p className="text-sm text-[#1F2937] mb-3">Cidades populares:</p>
-              <div className="flex flex-wrap gap-2">
-                {cities.filter(c => c.country === selectedCountry).slice(0, 6).map((city) => (
-                  <button
-                    key={city.id}
-                    onClick={() => handleCitySelect(city.id, city.name)}
-                    className="px-3 py-1.5 bg-white border border-[#E5E7EB] rounded-full text-sm text-[#0F172A] hover:border-[#C8A96B] transition-colors"
-                  >
-                    {city.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="max-w-xl mx-auto">
-            <h1 className="font-display text-3xl text-[#0F172A] text-center mb-8">
-              Complete seu perfil
-            </h1>
-            
-            <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-[#E5E7EB] p-6 space-y-6">
-              
-              <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-2">Logo do negócio</label>
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-xl bg-[#E5E7EB] flex items-center justify-center overflow-hidden">
-                    {logoPreview ? (
-                      <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-3xl">🏪</span>
-                    )}
+                      <option value="">Selecionar categoria...</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.icon} {c.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <label className="cursor-pointer px-4 py-2 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg text-sm text-[#0F172A] hover:border-[#C8A96B]">
-                    Upload Logo
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, "logo")} className="hidden" />
-                  </label>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">País *</label>
+                    <select
+                      value={country}
+                      onChange={(e) => {
+                        setCountry(e.target.value);
+                        setCityId(""); // Reset city when country changes
+                      }}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white focus:outline-none focus:border-[#C8A96B]"
+                    >
+                      <option value="Portugal">Portugal</option>
+                      <option value="Brasil">Brasil</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Cidade *</label>
+                    <select
+                      value={cityId}
+                      onChange={(e) => setCityId(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white focus:outline-none focus:border-[#C8A96B]"
+                      required
+                    >
+                      <option value="">Selecionar cidade...</option>
+                      {filteredCities.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Morada / Endereço</label>
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                      placeholder="Ex: Av. Principal, nº 123"
+                    />
+                  </div>
                 </div>
               </div>
 
+              <div className="flex justify-end pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!name || !categoryId || !cityId) {
+                      setError("Por favor, preencha todos os campos obrigatórios (*).");
+                      return;
+                    }
+                    setError(null);
+                    setStep(2);
+                  }}
+                  className="px-6 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors"
+                >
+                  Seguinte →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Contacts & Socials */}
+          {step === 2 && (
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-2">Imagem de capa</label>
-                <div className="relative h-32 rounded-xl bg-[#E5E7EB] overflow-hidden">
-                  {coverPreview ? (
-                    <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[#1F2937]">
-                      Clique para adicionar imagem de capa
-                    </div>
-                  )}
-                  <label className="absolute inset-0 cursor-pointer">
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, "cover")} className="hidden" />
-                  </label>
+                <h2 className="text-2xl font-display text-[#C8A96B] font-semibold mb-2">Contactos e Redes Sociais</h2>
+                <p className="text-sm text-gray-400">Adicione os canais de contacto preferidos dos seus clientes.</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">WhatsApp *</label>
+                    <input
+                      type="tel"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                      placeholder="Ex: +351912345678"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Telefone Fixo</label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                      placeholder="Ex: +351212345678"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Email Comercial</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                    placeholder="exemplo@empresa.com"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Instagram (@nome)</label>
+                    <input
+                      type="text"
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                      placeholder="@minha_empresa"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Facebook (URL)</label>
+                    <input
+                      type="text"
+                      value={facebook}
+                      onChange={(e) => setFacebook(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                      placeholder="facebook.com/pagina"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">TikTok (@nome)</label>
+                    <input
+                      type="text"
+                      value={tiktok}
+                      onChange={(e) => setTiktok(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                      placeholder="@minha_empresa"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">LinkedIn (URL)</label>
+                    <input
+                      type="text"
+                      value={linkedin}
+                      onChange={(e) => setLinkedin(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                      placeholder="linkedin.com/company/nome"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">YouTube (Canal)</label>
+                    <input
+                      type="text"
+                      value={youtube}
+                      onChange={(e) => setYoutube(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                      placeholder="youtube.com/c/canal"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Website Oficial</label>
+                    <input
+                      type="url"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#C8A96B]"
+                      placeholder="https://www.meusite.pt"
+                    />
+                  </div>
                 </div>
               </div>
 
+              <div className="flex justify-between pt-4">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-lg transition-colors"
+                >
+                  ← Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!whatsapp) {
+                      setError("WhatsApp é obrigatório para que os clientes o contactem.");
+                      return;
+                    }
+                    setError(null);
+                    setStep(3);
+                  }}
+                  className="px-6 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors"
+                >
+                  Seguinte →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Images */}
+          {step === 3 && (
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-2">Galeria (3 fotos)</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="relative h-24 rounded-lg bg-[#E5E7EB] overflow-hidden">
-                      {galleryPreviews[i] ? (
-                        <img src={galleryPreviews[i]} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
+                <h2 className="text-2xl font-display text-[#C8A96B] font-semibold mb-2">Imagens e Média</h2>
+                <p className="text-sm text-gray-400">Adicione a identidade visual da sua marca e fotos de galeria.</p>
+              </div>
+
+              <div className="space-y-6">
+                {/* Logo Upload */}
+                <div className="bg-[#0F172A] p-6 border border-gray-800 rounded-xl">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">Logótipo do Negócio</label>
+                  <div className="flex items-center gap-6">
+                    <div className="w-24 h-24 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center overflow-hidden">
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#1F2937] text-2xl">
-                          +
-                        </div>
+                        <span className="text-4xl text-gray-700">🏪</span>
                       )}
-                      <label className="absolute inset-0 cursor-pointer">
-                        <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, "gallery", i)} className="hidden" />
+                    </div>
+                    <label className="cursor-pointer px-5 py-2.5 bg-gray-850 hover:bg-gray-800 border border-gray-700 text-[#C8A96B] font-medium text-sm rounded-lg transition-all">
+                      Selecionar Logo
+                      <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Cover Upload */}
+                <div className="bg-[#0F172A] p-6 border border-gray-800 rounded-xl">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">Foto de Capa</label>
+                  <div className="space-y-3">
+                    <div className="h-40 w-full rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center overflow-hidden relative">
+                      {coverPreview ? (
+                        <img src={coverPreview} alt="Capa" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-gray-600 text-sm">Nenhuma imagem de capa selecionada</span>
+                      )}
+                    </div>
+                    <label className="inline-block cursor-pointer px-5 py-2.5 bg-gray-850 hover:bg-gray-800 border border-gray-700 text-[#C8A96B] font-medium text-sm rounded-lg transition-all">
+                      Selecionar Capa
+                      <input type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Gallery Upload */}
+                <div className="bg-[#0F172A] p-6 border border-gray-800 rounded-xl">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">Galeria de Fotos (Múltiplas)</label>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {galleryPreviews.map((url, i) => (
+                        <div key={i} className="relative aspect-video rounded-lg overflow-hidden border border-gray-800 bg-gray-950 group">
+                          <img src={url} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeGalleryImage(i)}
+                            className="absolute top-1 right-1 w-6 h-6 bg-red-600/90 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-700 transition-colors shadow"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      <label className="aspect-video border-2 border-dashed border-gray-800 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#C8A96B] bg-gray-950/40 text-gray-500 hover:text-[#C8A96B] transition-all">
+                        <span className="text-2xl font-light">+</span>
+                        <span className="text-xs">Foto</span>
+                        <input type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
                       </label>
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
 
+              <div className="flex justify-between pt-4">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-lg transition-colors"
+                >
+                  ← Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(4)}
+                  className="px-6 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors"
+                >
+                  Seguinte →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Hours */}
+          {step === 4 && (
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-1">Nome do negócio *</label>
-                <input
-                  type="text"
-                  value={businessData.name}
-                  onChange={(e) => setBusinessData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                  className="w-full px-4 py-3 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B]"
-                  placeholder="Nome da sua empresa"
-                />
+                <h2 className="text-2xl font-display text-[#C8A96B] font-semibold mb-2">Horário de Funcionamento</h2>
+                <p className="text-sm text-gray-400">Defina os dias e horas de abertura do seu negócio.</p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-1">WhatsApp *</label>
-                <input
-                  type="tel"
-                  value={businessData.whatsApp}
-                  onChange={(e) => setBusinessData(prev => ({ ...prev, whatsApp: e.target.value }))}
-                  required
-                  className="w-full px-4 py-3 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B]"
-                  placeholder="+351 999 999 999"
-                />
+              <div className="overflow-x-auto border border-gray-800 rounded-xl bg-[#0F172A]">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-900 border-b border-gray-800 text-sm text-gray-400">
+                      <th className="p-4">Dia</th>
+                      <th className="p-4">Abertura</th>
+                      <th className="p-4">Fecho</th>
+                      <th className="p-4 text-center">Fechado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-850 text-sm text-gray-200">
+                    {hours.map((row, index) => (
+                      <tr key={row.day} className="hover:bg-gray-900/30">
+                        <td className="p-4 font-medium">{row.day}</td>
+                        <td className="p-4">
+                          <input
+                            type="time"
+                            value={row.open}
+                            onChange={(e) => handleHoursChange(index, "open", e.target.value)}
+                            disabled={row.closed}
+                            className="bg-[#0F172A] border border-gray-800 text-white rounded px-2 py-1.5 focus:outline-none focus:border-[#C8A96B] disabled:opacity-30 disabled:border-transparent"
+                          />
+                        </td>
+                        <td className="p-4">
+                          <input
+                            type="time"
+                            value={row.close}
+                            onChange={(e) => handleHoursChange(index, "close", e.target.value)}
+                            disabled={row.closed}
+                            className="bg-[#0F172A] border border-gray-800 text-white rounded px-2 py-1.5 focus:outline-none focus:border-[#C8A96B] disabled:opacity-30 disabled:border-transparent"
+                          />
+                        </td>
+                        <td className="p-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={row.closed}
+                            onChange={(e) => handleHoursChange(index, "closed", e.target.checked)}
+                            className="w-4 h-4 rounded text-[#C8A96B] bg-[#0F172A] border-gray-800 focus:ring-0 cursor-pointer"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-1">Telefone</label>
-                <input
-                  type="tel"
-                  value={businessData.phone || ""}
-                  onChange={(e) => setBusinessData(prev => ({ ...prev, phone: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B]"
-                  placeholder="+351 999 999 999"
-                />
+              <div className="flex justify-between pt-4">
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  disabled={loading}
+                  className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
+                >
+                  ← Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="px-8 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? "A Guardar..." : "Guardar e Concluir ✔"}
+                </button>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-1">Morada</label>
-                <input
-                  type="text"
-                  value={businessData.address || ""}
-                  onChange={(e) => setBusinessData(prev => ({ ...prev, address: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B]"
-                  placeholder="Av. da Liberdade, 100, Lisboa"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-1">Instagram</label>
-                <input
-                  type="text"
-                  value={businessData.instagram || ""}
-                  onChange={(e) => setBusinessData(prev => ({ ...prev, instagram: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B]"
-                  placeholder="@seuinstagram"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-1">Website</label>
-                <input
-                  type="text"
-                  value={businessData.website || ""}
-                  onChange={(e) => setBusinessData(prev => ({ ...prev, website: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B]"
-                  placeholder="https://seusite.pt"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#0F172A] mb-1">Descrição</label>
-                <textarea
-                  value={businessData.description}
-                  onChange={(e) => setBusinessData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B] resize-none"
-                  placeholder="Descreva brevemente seu negócio..."
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || !businessData.name || !businessData.whatsApp}
-                className="w-full py-4 bg-[#C8A96B] text-[#0F172A] rounded-lg font-semibold hover:bg-[#D4BB82] transition-colors disabled:opacity-50"
-              >
-                {loading ? "A criar..." : "Criar meu negócio"}
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

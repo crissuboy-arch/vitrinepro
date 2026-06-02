@@ -1,12 +1,12 @@
--- VitrinePro Database Schema
--- Run this in Supabase SQL Editor
+-- VitrinePro Complete Database Schema
+-- Run this in the Supabase SQL Editor on your NEW project
 
 -- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Create tables
-
--- Users table (extends Supabase auth.users)
+-- ==========================================
+-- 1. PROFILES TABLE (Extends auth.users)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT,
@@ -17,9 +17,32 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Categories table
+-- Trigger to automatically create a profile for new users signing up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, display_name, plan)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    'free'
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ==========================================
+-- 2. CATEGORIES TABLE
+-- ==========================================
 CREATE TABLE IF NOT EXISTS public.categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
   slug TEXT NOT NULL UNIQUE,
   icon TEXT,
@@ -30,9 +53,11 @@ CREATE TABLE IF NOT EXISTS public.categories (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Cities table
+-- ==========================================
+-- 3. CITIES TABLE
+-- ==========================================
 CREATE TABLE IF NOT EXISTS public.cities (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT NOT NULL,
   country TEXT NOT NULL,
@@ -44,9 +69,11 @@ CREATE TABLE IF NOT EXISTS public.cities (
   UNIQUE(name, country)
 );
 
--- Plans/Pricing table
+-- ==========================================
+-- 4. PLANS/PRICING TABLE
+-- ==========================================
 CREATE TABLE IF NOT EXISTS public.plans (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
   slug TEXT NOT NULL UNIQUE,
   price_monthly NUMERIC(10,2),
@@ -56,49 +83,91 @@ CREATE TABLE IF NOT EXISTS public.plans (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Businesses table
+-- ==========================================
+-- 5. BUSINESSES TABLE
+-- ==========================================
 CREATE TABLE IF NOT EXISTS public.businesses (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  slug TEXT NOT NULL,
   description TEXT,
-  category_id UUID REFERENCES public.categories(id),
-  city_id UUID REFERENCES public.cities(id),
+  category TEXT,
+  city TEXT,
+  country TEXT,
   address TEXT,
   whatsapp TEXT,
   phone TEXT,
   email TEXT,
   instagram TEXT,
+  facebook TEXT,
+  tiktok TEXT,
+  youtube TEXT,
+  linkedin TEXT,
   website TEXT,
+  opening_hours JSONB DEFAULT '{}',
+  slug TEXT UNIQUE NOT NULL,
   logo_url TEXT,
   cover_url TEXT,
-  plan TEXT DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'premium')),
+  published BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Compatibility fields for existing frontend pages
+  category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
+  city_id UUID REFERENCES public.cities(id) ON DELETE SET NULL,
   is_published BOOLEAN DEFAULT false,
+  plan TEXT DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'premium')),
   is_verified BOOLEAN DEFAULT false,
   rating_average NUMERIC(3,2) DEFAULT 0,
   rating_count INTEGER DEFAULT 0,
   view_count INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
+  owner_origin_country TEXT,
+  
   UNIQUE(user_id)
 );
 
--- Business images gallery
-CREATE TABLE IF NOT EXISTS public.business_images (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+-- ==========================================
+-- 6. PRODUCTS TABLE
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.products (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
-  url TEXT NOT NULL,
-  type TEXT CHECK (type IN ('gallery', 'logo', 'cover')),
-  order_index INTEGER DEFAULT 0,
+  name TEXT NOT NULL,
+  description TEXT,
+  price NUMERIC(10, 2),
+  image_url TEXT,
+  order_index INTEGER DEFAULT 0
+);
+
+-- ==========================================
+-- 7. TESTIMONIALS TABLE
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.testimonials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  author_name TEXT NOT NULL,
+  text TEXT NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Reviews table
-CREATE TABLE IF NOT EXISTS public.reviews (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+-- ==========================================
+-- 8. GALLERY_IMAGES TABLE
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.gallery_images (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id),
+  image_url TEXT NOT NULL,
+  order_index INTEGER DEFAULT 0
+);
+
+-- ==========================================
+-- 9. REVIEWS TABLE (Compatibility)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   author_name TEXT NOT NULL,
   rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
   title TEXT,
@@ -107,108 +176,265 @@ CREATE TABLE IF NOT EXISTS public.reviews (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable RLS
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cities ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.business_images ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+-- ==========================================
+-- 10. BUSINESS_IMAGES TABLE (Compatibility)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.business_images (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  type TEXT CHECK (type IN ('gallery', 'logo', 'cover')),
+  order_index INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- RLS Policies
+-- ==========================================
+-- 11. TRIGGERS FOR BACKWARD COMPATIBILITY
+-- ==========================================
 
--- Profiles: users can update their own profile
-CREATE POLICY "Users can update own profile" ON public.profiles
-  FOR UPDATE USING (auth.uid() = id);
+-- Trigger to sync business fields (category/city lookup & published status)
+CREATE OR REPLACE FUNCTION public.sync_business_fields()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Sync published status
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.published IS NULL AND NEW.is_published IS NOT NULL THEN
+      NEW.published := NEW.is_published;
+    ELSIF NEW.is_published IS NULL AND NEW.published IS NOT NULL THEN
+      NEW.is_published := NEW.published;
+    END IF;
+  ELSE -- TG_OP = 'UPDATE'
+    IF NEW.published IS DISTINCT FROM OLD.published THEN
+      NEW.is_published := NEW.published;
+    ELSIF NEW.is_published IS DISTINCT FROM OLD.is_published THEN
+      NEW.published := NEW.is_published;
+    END IF;
+  END IF;
 
--- Businesses: public read, user can CRUD own
-CREATE POLICY "Anyone can view businesses" ON public.businesses
-  FOR SELECT USING (is_published = true);
+  -- Sync category name
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.category_id IS NOT NULL THEN
+      SELECT name INTO NEW.category FROM public.categories WHERE id = NEW.category_id;
+    END IF;
+  ELSE -- UPDATE
+    IF NEW.category_id IS DISTINCT FROM OLD.category_id AND NEW.category_id IS NOT NULL THEN
+      SELECT name INTO NEW.category FROM public.categories WHERE id = NEW.category_id;
+    END IF;
+  END IF;
 
-CREATE POLICY "Users can create businesses" ON public.businesses
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  -- Sync city and country
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.city_id IS NOT NULL THEN
+      SELECT name, country INTO NEW.city, NEW.country FROM public.cities WHERE id = NEW.city_id;
+    END IF;
+  ELSE -- UPDATE
+    IF NEW.city_id IS DISTINCT FROM OLD.city_id AND NEW.city_id IS NOT NULL THEN
+      SELECT name, country INTO NEW.city, NEW.country FROM public.cities WHERE id = NEW.city_id;
+    END IF;
+  END IF;
 
-CREATE POLICY "Users can update own businesses" ON public.businesses
-  FOR UPDATE USING (auth.uid() = user_id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
--- Business images: owner can manage
-CREATE POLICY "Business owner can manage images" ON public.business_images
-  FOR ALL USING (
-    business_id IN (SELECT id FROM public.businesses WHERE user_id = auth.uid())
-  );
+DROP TRIGGER IF EXISTS trigger_sync_business_fields ON public.businesses;
+CREATE TRIGGER trigger_sync_business_fields
+  BEFORE INSERT OR UPDATE ON public.businesses
+  FOR EACH ROW
+  EXECUTE FUNCTION public.sync_business_fields();
 
--- Reviews: public read, anyone can create
-CREATE POLICY "Anyone can view reviews" ON public.reviews
-  FOR SELECT USING (is_approved = true);
+-- Testimonial <-> Review Sync triggers
+CREATE OR REPLACE FUNCTION public.sync_testimonial_to_review()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF pg_trigger_depth() > 1 THEN
+    RETURN NEW;
+  END IF;
 
-CREATE POLICY "Anyone can create reviews" ON public.reviews
-  FOR INSERT WITH CHECK (true);
+  INSERT INTO public.reviews (id, business_id, author_name, rating, comment, is_approved, created_at)
+  VALUES (
+    NEW.id,
+    NEW.business_id,
+    NEW.author_name,
+    NEW.rating,
+    NEW.text,
+    true,
+    NEW.created_at
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    author_name = EXCLUDED.author_name,
+    rating = EXCLUDED.rating,
+    comment = EXCLUDED.comment,
+    is_approved = true;
 
--- Seed data for categories
-INSERT INTO public.categories (name, slug, icon, order_index) VALUES
-  ('Restaurantes', 'restaurantes', '🍽️', 1),
-  ('Beleza', 'beleza', '💅', 2),
-  ('Serviços', 'servicos', '🔧', 3),
-  ('Construção', 'construcao', '🏠', 4),
-  ('Automóvel', 'automovel', '🚗', 5),
-  ('Saúde', 'saude', '🏥', 6),
-  ('Lojas', 'lojas', '🛒', 7),
-  ('Pet Shop', 'pet-shop', '🐕', 8),
-  ('Cafetaria', 'cafetaria', '☕', 9),
-  ('Academia', 'academia', '💪', 10),
-  ('Decoração', 'decoracao', '🛋️', 11),
-  ('Loja de Roupa', 'loja-de-roupa', '👔', 12),
-  ('Serviço Doméstico', 'servico-domestico', '🏠', 13),
-  ('Produtos Digitais', 'produtos-digitais', '💻', 14),
-  ('Infoprodutos', 'infoprodutos', '📚', 15),
-  ('Marketing', 'marketing', '📈', 16),
-  ('Serviços Online', 'servicos-online', '🌐', 17),
-  ('Outros', 'outros', '📦', 18)
-ON CONFLICT (slug) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
--- Seed data for cities
-INSERT INTO public.cities (name, slug, country, order_index) VALUES
-  -- Portugal
-  ('Lisboa', 'lisboa', 'Portugal', 1),
-  ('Porto', 'porto', 'Portugal', 2),
-  ('Faro', 'faro', 'Portugal', 3),
-  ('Braga', 'braga', 'Portugal', 4),
-  ('Coimbra', 'coimbra', 'Portugal', 5),
-  ('Aveiro', 'aveiro', 'Portugal', 6),
-  ('Águeda', 'agueda', 'Portugal', 7),
-  ('Setúbal', 'setubal', 'Portugal', 8),
-  ('Leiria', 'leiria', 'Portugal', 9),
-  ('Viseu', 'viseu', 'Portugal', 10),
-  ('Évora', 'evora', 'Portugal', 11),
-  -- Brasil
-  ('São Paulo', 'sao-paulo', 'Brasil', 12),
-  ('Rio de Janeiro', 'rio-de-janeiro', 'Brasil', 13),
-  ('Belo Horizonte', 'belo-horizonte', 'Brasil', 14),
-  ('Brasília', 'brasilia', 'Brasil', 15),
-  ('Salvador', 'salvador', 'Brasil', 16),
-  ('Curitiba', 'curitiba', 'Brasil', 17),
-  ('Fortaleza', 'fortaleza', 'Brasil', 18),
-  ('Recife', 'recife', 'Brasil', 19),
-  ('Porto Alegre', 'porto-alegre', 'Brasil', 20)
-ON CONFLICT (name, country) DO NOTHING;
+DROP TRIGGER IF EXISTS trg_sync_testimonial_to_review ON public.testimonials;
+CREATE TRIGGER trg_sync_testimonial_to_review
+  AFTER INSERT OR UPDATE ON public.testimonials
+  FOR EACH ROW EXECUTE FUNCTION public.sync_testimonial_to_review();
 
--- Seed data for plans
-INSERT INTO public.plans (name, slug, price_monthly, price_yearly, features) VALUES
-  ('Free', 'free', 0, 0, '[]'),
-  ('Pro', 'pro', 29.90, 299.00, '["Destaque no topo", "Badge Premium", "Mais visualizações", "Estatísticas básicas"]'),
-  ('Premium', 'premium', 49.90, 499.00, '["Destaque no topo", "Badge Premium", "Mais visualizações", "Estatísticas avançadas", "Site personalizado", "Domínio próprio"]')
-ON CONFLICT (slug) DO NOTHING;
+CREATE OR REPLACE FUNCTION public.sync_testimonial_delete_to_review()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF pg_trigger_depth() > 1 THEN
+    RETURN OLD;
+  END IF;
 
--- Create storage bucket (run manually in Supabase Dashboard if needed)
--- INSERT INTO storage.buckets (id, name, public, file_size_limit, file_extensions) 
--- VALUES ('business-media', 'business-media', true, 5242880, '.jpg,.jpeg,.png,.webp,.gif');
+  DELETE FROM public.reviews WHERE id = OLD.id;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
 
--- Storage policies
--- Allow authenticated users to upload their own business images
--- CREATE POLICY "Users can upload business images" ON storage.objects
---   FOR INSERT WITH CHECK (bucket_id = 'business-media' AND auth.uid()::text = (storage.foldername(name))[1]);
+DROP TRIGGER IF EXISTS trg_sync_testimonial_delete_to_review ON public.testimonials;
+CREATE TRIGGER trg_sync_testimonial_delete_to_review
+  AFTER DELETE ON public.testimonials
+  FOR EACH ROW EXECUTE FUNCTION public.sync_testimonial_delete_to_review();
 
--- Allow public read access to business images
--- CREATE POLICY "Public can view business images" ON storage.objects
---   FOR SELECT USING (bucket_id = 'business-media');
+-- Review <-> Testimonial Sync triggers
+CREATE OR REPLACE FUNCTION public.sync_review_to_testimonial()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF pg_trigger_depth() > 1 THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.is_approved = true THEN
+    INSERT INTO public.testimonials (id, business_id, author_name, text, rating, created_at)
+    VALUES (
+      NEW.id,
+      NEW.business_id,
+      NEW.author_name,
+      COALESCE(NEW.comment, ''),
+      NEW.rating,
+      NEW.created_at
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      author_name = EXCLUDED.author_name,
+      text = EXCLUDED.text,
+      rating = EXCLUDED.rating;
+  ELSE
+    DELETE FROM public.testimonials WHERE id = NEW.id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_review_to_testimonial ON public.reviews;
+CREATE TRIGGER trg_sync_review_to_testimonial
+  AFTER INSERT OR UPDATE ON public.reviews
+  FOR EACH ROW EXECUTE FUNCTION public.sync_review_to_testimonial();
+
+CREATE OR REPLACE FUNCTION public.sync_review_delete_to_testimonial()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF pg_trigger_depth() > 1 THEN
+    RETURN OLD;
+  END IF;
+
+  DELETE FROM public.testimonials WHERE id = OLD.id;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_review_delete_to_testimonial ON public.reviews;
+CREATE TRIGGER trg_sync_review_delete_to_testimonial
+  AFTER DELETE ON public.reviews
+  FOR EACH ROW EXECUTE FUNCTION public.sync_review_delete_to_testimonial();
+
+-- Gallery Image <-> Business Image Sync triggers
+CREATE OR REPLACE FUNCTION public.sync_gallery_to_business_images()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF pg_trigger_depth() > 1 THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO public.business_images (id, business_id, url, type, order_index)
+  VALUES (
+    NEW.id,
+    NEW.business_id,
+    NEW.image_url,
+    'gallery',
+    NEW.order_index
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    url = EXCLUDED.url,
+    order_index = EXCLUDED.order_index;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_gallery_to_business_images ON public.gallery_images;
+CREATE TRIGGER trg_sync_gallery_to_business_images
+  AFTER INSERT OR UPDATE ON public.gallery_images
+  FOR EACH ROW EXECUTE FUNCTION public.sync_gallery_to_business_images();
+
+CREATE OR REPLACE FUNCTION public.sync_gallery_delete_to_business_images()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF pg_trigger_depth() > 1 THEN
+    RETURN OLD;
+  END IF;
+
+  DELETE FROM public.business_images WHERE id = OLD.id;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_gallery_delete_to_business_images ON public.gallery_images;
+CREATE TRIGGER trg_sync_gallery_delete_to_business_images
+  AFTER DELETE ON public.gallery_images
+  FOR EACH ROW EXECUTE FUNCTION public.sync_gallery_delete_to_business_images();
+
+CREATE OR REPLACE FUNCTION public.sync_business_images_to_gallery()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF pg_trigger_depth() > 1 THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.type = 'gallery' THEN
+    INSERT INTO public.gallery_images (id, business_id, image_url, order_index)
+    VALUES (
+      NEW.id,
+      NEW.business_id,
+      NEW.url,
+      NEW.order_index
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      image_url = EXCLUDED.image_url,
+      order_index = EXCLUDED.order_index;
+  ELSE
+    DELETE FROM public.gallery_images WHERE id = NEW.id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_business_images_to_gallery ON public.business_images;
+CREATE TRIGGER trg_sync_business_images_to_gallery
+  AFTER INSERT OR UPDATE ON public.business_images
+  FOR EACH ROW EXECUTE FUNCTION public.sync_business_images_to_gallery();
+
+CREATE OR REPLACE FUNCTION public.sync_business_images_delete_to_gallery()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF pg_trigger_depth() > 1 THEN
+    RETURN OLD;
+  END IF;
+
+  DELETE FROM public.gallery_images WHERE id = OLD.id;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_business_images_delete_to_gallery ON public.business_images;
+CREATE TRIGGER trg_sync_business_images_delete_to_gallery
+  AFTER DELETE ON public.business_images
+  FOR EACH ROW EXECUTE FUNCTION public.sync_business_images_delete_to_gallery();

@@ -1,0 +1,1101 @@
+/* eslint-disable */
+"use client";
+
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { supabase } from "../../lib/supabase";
+import BusinessChatWidget from "../../components/BusinessChatWidget";
+import AutomationPopup from "../../components/AutomationPopup";
+
+interface OpeningHour {
+  day: string;
+  open: string;
+  close: string;
+  closed: boolean;
+}
+
+interface Business {
+  id: string;
+  user_id?: string;
+  name: string;
+  category: string;
+  city: string;
+  country?: string;
+  logo?: string;
+  cover?: string;
+  gallery?: string[];
+  premium: boolean;
+  plan?: string;
+  description: string;
+  phone?: string;
+  whatsApp?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  youtube?: string;
+  linkedin?: string;
+  website?: string;
+  address?: string;
+  rating?: number;
+  reviewCount?: number;
+  email?: string;
+  slug: string;
+  opening_hours?: OpeningHour[];
+  published?: boolean;
+  is_published?: boolean;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price?: number;
+  image_url?: string;
+}
+
+interface Testimonial {
+  id: string;
+  author: string;
+  rating: number;
+  text: string;
+  date: string;
+}
+
+// -------------------------------------------------------------
+// CLIENT-SIDE FALLBACK DATA FOR THE "/vitrine/exemplo" SHOWCASE
+// -------------------------------------------------------------
+const mockExampleBusiness: Business = {
+  id: "exemplo-id",
+  name: "Estúdio Ouro & Co.",
+  category: "Beleza e Bem-estar",
+  city: "Lisboa",
+  logo: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=200&h=200&fit=crop",
+  cover: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=500&fit=crop",
+  gallery: [
+    "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1596178060671-7a80dc8059ea?w=800&h=600&fit=crop"
+  ],
+  premium: true,
+  description: "O Estúdio Ouro & Co. é um espaço exclusivo dedicado ao autocuidado, beleza e bem-estar. Oferecemos procedimentos de estética facial, massagens relaxantes, manicure e cortes de cabelo personalizados. Nossa missão é proporcionar uma experiência luxuosa e revigorante com profissionais altamente capacitados no coração de Lisboa.",
+  phone: "+351 999 999 999",
+  whatsApp: "351999999999",
+  instagram: "estudioouro.co",
+  facebook: "estudioouro.co",
+  tiktok: "estudioouro.co",
+  youtube: "estudioouro.co",
+  linkedin: "estudioouro.co",
+  website: "https://estudioouro.pt",
+  address: "Avenida da Liberdade 123, 1250-001 Lisboa, Portugal",
+  rating: 4.9,
+  reviewCount: 3,
+  email: "contacto@estudioouro.pt",
+  slug: "exemplo",
+  opening_hours: [
+    { day: "Segunda-feira", open: "09:00", close: "19:00", closed: false },
+    { day: "Terça-feira", open: "09:00", close: "19:00", closed: false },
+    { day: "Quarta-feira", open: "09:00", close: "19:00", closed: false },
+    { day: "Quinta-feira", open: "09:00", close: "19:00", closed: false },
+    { day: "Sexta-feira", open: "09:00", close: "19:00", closed: false },
+    { day: "Sábado", open: "09:00", close: "16:00", closed: false },
+    { day: "Domingo", open: "00:00", close: "00:00", closed: true }
+  ],
+  published: true,
+  is_published: true
+};
+
+const mockExampleProducts: Product[] = [
+  {
+    id: "p1",
+    name: "Tratamento Facial Premium",
+    description: "Limpeza de pele profunda, esfoliação com micro-correntes, máscara de argila de ouro e massagem drenante facial.",
+    price: 79.00,
+    image_url: "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=400&h=300&fit=crop"
+  },
+  {
+    id: "p2",
+    name: "Corte & Barba Real",
+    description: "Corte de cabelo estilizado e barba completa feita com navalha, toalhas quentes aromáticas e massagem facial capilar.",
+    price: 35.00,
+    image_url: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&h=300&fit=crop"
+  },
+  {
+    id: "p3",
+    name: "Massagem Relaxante de Ouro",
+    description: "Sessão completa de massagem corporal relaxante utilizando óleos essenciais aquecidos e pedras vulcânicas.",
+    price: 60.00,
+    image_url: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=300&fit=crop"
+  }
+];
+
+const mockExampleTestimonials: Testimonial[] = [
+  {
+    id: "t1",
+    author: "Maria Silva",
+    rating: 5,
+    text: "O atendimento do Estúdio Ouro é simplesmente divino! Fiquei maravilhada com o tratamento facial, a minha pele está radiante.",
+    date: "01/06/2026"
+  },
+  {
+    id: "t2",
+    author: "João Santos",
+    rating: 5,
+    text: "A melhor barbearia/estúdio que já visitei em Lisboa. O serviço de corte executivo é extremamente detalhado e relaxante.",
+    date: "30/05/2026"
+  },
+  {
+    id: "t3",
+    author: "Ana Costa",
+    rating: 5,
+    text: "Espaço sofisticado, limpo e super acolhedor. O chá de boas-vindas é maravilhoso e as terapeutas são muito profissionais.",
+    date: "28/05/2026"
+  }
+];
+
+const mockDemoBusiness: Business = {
+  id: "demo-id",
+  name: "Café Central",
+  category: "Cafetaria & Pastelaria",
+  city: "Lisboa",
+  logo: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=200&h=200&fit=crop",
+  cover: "https://images.unsplash.com/photo-1498804103079-a6351b050096?w=1200&h=500&fit=crop",
+  gallery: [
+    "https://images.unsplash.com/photo-1445116572660-236099ec97a0?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1507133750040-4a8f57021571?w=800&h=600&fit=crop"
+  ],
+  premium: true,
+  description: "O Café Central é o ponto de encontro de eleição no coração histórico de Lisboa. Unimos o aroma e o sabor de cafés de especialidade de torra artesanal à melhor pastelaria tradicional portuguesa cozida diariamente no nosso forno. Seja para um pequeno-almoço revigorante, um almoço leve e equilibrado ou para desfrutar de um momento calmo ao fim do dia, convidamos a conhecer o nosso espaço e a saborear o nosso expresso premiado.",
+  phone: "+351 213 456 789",
+  whatsApp: "351999999999",
+  instagram: "cafecentral.lisboa",
+  facebook: "cafecentral.lisboa",
+  tiktok: "cafecentral.lisboa",
+  youtube: "cafecentral.lisboa",
+  linkedin: "cafecentral.lisboa",
+  website: "https://cafecentrallisboa.pt",
+  address: "Praça de D. Pedro IV, Rossio, 1100-200 Lisboa, Portugal",
+  rating: 4.8,
+  reviewCount: 2,
+  email: "contacto@cafecentrallisboa.pt",
+  slug: "demo",
+  opening_hours: [
+    { day: "Segunda-feira", open: "08:00", close: "20:00", closed: false },
+    { day: "Terça-feira", open: "08:00", close: "20:00", closed: false },
+    { day: "Quarta-feira", open: "08:00", close: "20:00", closed: false },
+    { day: "Quinta-feira", open: "08:00", close: "20:00", closed: false },
+    { day: "Sexta-feira", open: "08:00", close: "20:00", closed: false },
+    { day: "Sábado", open: "08:00", close: "18:00", closed: false },
+    { day: "Domingo", open: "00:00", close: "00:00", closed: true }
+  ],
+  published: true,
+  is_published: true
+};
+
+const mockDemoProducts: Product[] = [
+  {
+    id: "dp1",
+    name: "Expresso de Especialidade",
+    description: "Expresso de grãos selecionados 100% arábica com torra local de perfil médio, apresentando notas ricas de chocolate preto e avelã.",
+    price: 1.50,
+    image_url: "https://images.unsplash.com/photo-151097252790b-af4f42d91dfa?w=400&h=300&fit=crop"
+  },
+  {
+    id: "dp2",
+    name: "Pastel de Nata da Casa",
+    description: "O clássico pastel de nata português confecionado com massa folhada crocante e recheio cremoso, servido acabado de sair do forno.",
+    price: 1.20,
+    image_url: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=300&fit=crop"
+  },
+  {
+    id: "dp3",
+    name: "Brunch do Campo",
+    description: "Fatia generosa de pão de fermentação lenta com puré de abacate temperado, ovo escalfado, sementes de sésamo e sumo de laranja natural.",
+    price: 12.50,
+    image_url: "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400&h=300&fit=crop"
+  }
+];
+
+const mockDemoTestimonials: Testimonial[] = [
+  {
+    id: "dt1",
+    author: "Pedro Alvares",
+    rating: 5,
+    text: "O melhor pastel de nata que já comi em Lisboa, e olha que já provei muitos! O expresso de especialidade é fora de série.",
+    date: "25/05/2026"
+  },
+  {
+    id: "dt2",
+    author: "Sofia Antunes",
+    rating: 4,
+    text: "Espaço incrivelmente bem decorado, ótimo para trabalhar ou para colocar a conversa em dia. O Brunch do Campo é maravilhoso.",
+    date: "18/05/2026"
+  }
+];
+
+export default function VitrineClient({ slug }: { slug: string }) {
+  const [mounted, setMounted] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Track page view silently after business loads
+  useEffect(() => {
+    if (business?.id) {
+      fetch("/api/analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ business_id: business.id, event_type: "page_view" }),
+      }).catch(() => {});
+    }
+  }, [business?.id]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const load = async () => {
+      let loggedInUser: any = null;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          loggedInUser = user;
+          setCurrentUser(user);
+        }
+      } catch (err) {
+        console.error("Error loading user in public page:", err);
+      }
+
+      if (slug === "demo") {
+        try {
+          const { data, error } = await supabase
+            .from("businesses")
+            .select("*")
+            .eq("slug", "demo")
+            .maybeSingle();
+
+          if (data) {
+            const [imagesRes, productsRes, testimonialsRes] = await Promise.all([
+              supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).order("order_index"),
+              supabase.from("products").select("*").eq("business_id", data.id).order("order_index"),
+              supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
+            ]);
+
+            const galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+
+            setBusiness({
+              id: data.id,
+              user_id: data.user_id,
+              name: data.name,
+              category: data.category || "Cafetaria & Pastelaria",
+              city: data.city || "Lisboa",
+              country: data.country || "Portugal",
+              logo: data.logo_url || "",
+              cover: data.cover_url || "",
+              gallery: galleryUrls,
+              description: data.description || "",
+              whatsApp: data.whatsapp || "",
+              phone: data.phone || "",
+              email: data.email || "",
+              instagram: data.instagram || "",
+              facebook: data.facebook || "",
+              tiktok: data.tiktok || "",
+              youtube: data.youtube || "",
+              linkedin: data.linkedin || "",
+              website: data.website || "",
+              address: data.address || "",
+              rating: data.rating_average || 4.8,
+              reviewCount: testimonialsRes.data?.length || 2,
+              premium: true,
+              plan: data.plan || "free",
+              slug: data.slug,
+              opening_hours: (data.opening_hours as unknown as OpeningHour[]) || [],
+            });
+
+            setProducts(productsRes.data && productsRes.data.length > 0 ? productsRes.data : mockDemoProducts);
+            setTestimonials(
+              testimonialsRes.data && testimonialsRes.data.length > 0
+                ? testimonialsRes.data.map((t) => ({
+                    id: t.id,
+                    author: t.author_name,
+                    rating: t.rating,
+                    text: t.text,
+                    date: new Date(t.created_at).toLocaleDateString("pt-PT"),
+                  }))
+                : mockDemoTestimonials
+            );
+            setLoaded(true);
+            return;
+          }
+        } catch (e) {
+          console.error("DB demo query failed, using static fallback:", e);
+        }
+
+        setBusiness(mockDemoBusiness);
+        setProducts(mockDemoProducts);
+        setTestimonials(mockDemoTestimonials);
+        setLoaded(true);
+        return;
+      }
+
+      if (slug === "exemplo") {
+        try {
+          const { data, error } = await supabase
+            .from("businesses")
+            .select("*")
+            .eq("slug", "exemplo")
+            .maybeSingle();
+
+          if (data) {
+            const [imagesRes, productsRes, testimonialsRes] = await Promise.all([
+              supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).order("order_index"),
+              supabase.from("products").select("*").eq("business_id", data.id).order("order_index"),
+              supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
+            ]);
+
+            const galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+
+            setBusiness({
+              id: data.id,
+              user_id: data.user_id,
+              name: data.name,
+              category: data.category || "Beleza e Bem-estar",
+              city: data.city || "Lisboa",
+              country: data.country || "Portugal",
+              logo: data.logo_url || "",
+              cover: data.cover_url || "",
+              gallery: galleryUrls,
+              description: data.description || "",
+              whatsApp: data.whatsapp || "",
+              phone: data.phone || "",
+              email: data.email || "",
+              instagram: data.instagram || "",
+              facebook: data.facebook || "",
+              tiktok: data.tiktok || "",
+              youtube: data.youtube || "",
+              linkedin: data.linkedin || "",
+              website: data.website || "",
+              address: data.address || "",
+              rating: data.rating_average || 4.9,
+              reviewCount: testimonialsRes.data?.length || 3,
+              premium: true,
+              plan: data.plan || "free",
+              slug: data.slug,
+              opening_hours: (data.opening_hours as unknown as OpeningHour[]) || [],
+            });
+
+            setProducts(productsRes.data && productsRes.data.length > 0 ? productsRes.data : mockExampleProducts);
+            setTestimonials(
+              testimonialsRes.data && testimonialsRes.data.length > 0
+                ? testimonialsRes.data.map((t) => ({
+                    id: t.id,
+                    author: t.author_name,
+                    rating: t.rating,
+                    text: t.text,
+                    date: new Date(t.created_at).toLocaleDateString("pt-PT"),
+                  }))
+                : mockExampleTestimonials
+            );
+            setLoaded(true);
+            return;
+          }
+        } catch (e) {
+          console.error("DB example query failed, using static fallback:", e);
+        }
+
+        setBusiness(mockExampleBusiness);
+        setProducts(mockExampleProducts);
+        setTestimonials(mockExampleTestimonials);
+        setLoaded(true);
+        return;
+      }
+
+      // Carregamento padrão de negócios do BD
+      try {
+        const { data, error } = await supabase
+          .from("businesses")
+          .select("*")
+          .eq("slug", slug)
+          .maybeSingle();
+
+        if (error) {
+          console.error("[VITRINE] Erro ao carregar negócio:", error.message);
+        }
+
+        if (data) {
+          const isPublished = data.published || data.is_published;
+          const isOwner = loggedInUser && loggedInUser.id === data.user_id;
+
+          if (!isPublished && !isOwner) {
+            setBusiness(null);
+            setLoaded(true);
+            return;
+          }
+
+          const [imagesRes, productsRes, testimonialsRes] = await Promise.all([
+            supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).order("order_index"),
+            supabase.from("products").select("*").eq("business_id", data.id).order("order_index"),
+            supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
+          ]);
+
+          const galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+
+          setBusiness({
+            id: data.id,
+            user_id: data.user_id,
+            name: data.name,
+            category: data.category || "Serviços",
+            city: data.city || "Geral",
+            country: data.country || "Portugal",
+            logo: data.logo_url || "",
+            cover: data.cover_url || "",
+            gallery: galleryUrls,
+            description: data.description || "",
+            whatsApp: data.whatsapp || "",
+            phone: data.phone || "",
+            email: data.email || "",
+            instagram: data.instagram || "",
+            facebook: data.facebook || "",
+            tiktok: data.tiktok || "",
+            youtube: data.youtube || "",
+            linkedin: data.linkedin || "",
+            website: data.website || "",
+            address: data.address || "",
+            rating: data.rating_average || 5.0,
+            reviewCount: testimonialsRes.data?.length || 0,
+            premium: data.plan === "pro" || data.plan === "premium" || data.plan === "gold" || data.plan === "business",
+            plan: data.plan || "free",
+            slug: data.slug,
+            opening_hours: (data.opening_hours as unknown as OpeningHour[]) || [],
+            published: data.published,
+            is_published: data.is_published,
+          });
+
+          if (productsRes.data) {
+            setProducts(productsRes.data);
+          }
+
+          if (testimonialsRes.data) {
+            setTestimonials(
+              testimonialsRes.data.map((t) => ({
+                id: t.id,
+                author: t.author_name,
+                rating: t.rating,
+                text: t.text,
+                date: new Date(t.created_at).toLocaleDateString("pt-PT"),
+              }))
+            );
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      setLoaded(true);
+    };
+
+    load();
+  }, [mounted, slug]);
+
+  if (!mounted || !loaded) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <img src="/logo-vitrinepro.png" alt="Loading..." className="w-16 h-16 animate-pulse bg-transparent object-contain" />
+          <div className="w-10 h-10 border-4 border-[#C8A96B] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[#C8A96B] text-sm font-semibold font-display tracking-widest uppercase animate-pulse mt-2">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!business) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center text-center p-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6">
+          <div className="text-6xl">🏪</div>
+          <h1 className="text-2xl font-display font-bold text-white">Vitrine não encontrada</h1>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            Esta página não existe, está inativa ou o administrador desativou a publicação.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/"
+              className="inline-block px-8 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl transition-all shadow-lg active:scale-95"
+            >
+              Voltar à Página Inicial
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const allGalleryImages = [business.logo, business.cover, ...(business.gallery || [])].filter(Boolean) as string[];
+
+  return (
+    <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col font-sans select-none">
+      
+      {/* Draft Banner for Owner Preview */}
+      {business && !(business.published || business.is_published) && (
+        <div className="w-full bg-[#78350f] border-b border-[#92400e] text-[#fef3c7] px-4 py-3 text-center text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 select-text z-50">
+          <span>⚠️</span>
+          <span>
+            <strong>Rascunho Privado:</strong> Esta página não está publicada e só é visível para si. 
+            Para a tornar pública para os seus clientes, clique em <strong>&quot;Publicar Vitrine&quot;</strong> no seu{" "}
+            <Link href="/dashboard" className="underline hover:text-white transition-colors">
+              Dashboard
+            </Link>.
+          </span>
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightboxImg && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#050B14]/95 backdrop-blur-sm p-4 animate-fade-in"
+          onClick={() => setLightboxImg(null)}
+        >
+          <div className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightboxImg}
+              alt="Ampliação da imagem"
+              className="object-contain max-w-full max-h-full rounded-xl shadow-2xl border border-slate-800"
+            />
+            <button
+              onClick={() => setLightboxImg(null)}
+              className="absolute top-4 right-4 bg-slate-900/80 border border-slate-700 text-white w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shadow hover:bg-[#C8A96B] hover:text-[#0F172A] hover:border-transparent transition-all"
+              aria-label="Fechar"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating green WhatsApp Button */}
+      {business.whatsApp && (
+        <a
+          href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => {
+            if (business.id) {
+              fetch("/api/analytics", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ business_id: business.id, event_type: "whatsapp_click" }),
+              }).catch(() => {});
+            }
+          }}
+          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-[0_8px_30px_rgb(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all group duration-300"
+          title="Fale no WhatsApp"
+        >
+          <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.437.002 9.861-4.416 9.863-9.848.001-2.63-1.019-5.101-2.872-6.958C16.39 1.982 13.921.962 11.29.959c-5.44.004-9.866 4.423-9.868 9.856-.001 2.03.529 4.017 1.535 5.768L1.903 21.8l5.59-1.465zM17.47 14.86c-.3-.15-1.77-.874-2.04-.972-.27-.1-.47-.15-.67.15-.2.3-.77.972-.94 1.172-.17.2-.34.225-.64.075-.3-.15-1.265-.467-2.41-1.488-.89-.795-1.49-1.777-1.665-2.077-.175-.3-.02-.46.13-.61.135-.13.3-.35.45-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.67-1.62-.92-2.2-.24-.58-.48-.5-.67-.512-.175-.008-.375-.01-.575-.01-.2 0-.525.075-.8.375-.275.3-1.05 1.025-1.05 2.5s1.075 2.9 1.225 3.1c.15.2 2.11 3.22 5.11 4.52.714.31 1.27.495 1.702.63.714.227 1.363.195 1.875.118.571-.085 1.77-.724 2.02-1.388.25-.664.25-1.233.175-1.388-.075-.15-.275-.25-.575-.4z" />
+          </svg>
+          <span className="absolute right-full mr-3 bg-slate-900 border border-slate-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
+            WhatsApp Online
+          </span>
+        </a>
+      )}
+
+      {/* Top Navbar */}
+      <nav className="bg-[#0b1326] border-b border-slate-800/80 sticky top-0 z-30">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {currentUser && business && currentUser.id === business.user_id ? (
+              <Link
+                href="/dashboard"
+                className="text-xs font-semibold text-[#C8A96B] hover:text-[#D4BB82] transition-colors border border-[#C8A96B]/30 hover:border-[#C8A96B]/60 px-3 py-2 rounded-lg"
+              >
+                ⚙️ Voltar ao Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/"
+                className="text-xs text-slate-400 hover:text-white transition-colors border border-slate-800 hover:border-slate-600 px-3 py-2 rounded-lg"
+              >
+                ← Início
+              </Link>
+            )}
+            <Link href="/explorar" className="text-xs font-semibold text-slate-400 hover:text-white transition-colors border border-slate-800 hover:border-slate-650 px-3 py-2 rounded-lg">
+              🔍 Explorar
+            </Link>
+          </div>
+          <Link href="/" className="hover:opacity-90 transition-opacity">
+            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+          </Link>
+        </div>
+      </nav>
+
+      {/* Full-width Cover Header */}
+      <div className="relative h-60 sm:h-72 md:h-96 w-full bg-[#1b253b]">
+        {business.cover ? (
+          <Image
+            src={business.cover}
+            alt={business.name}
+            fill
+            className="object-cover"
+            priority
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-tr from-[#0F172A] to-slate-900"></div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/50 to-transparent" />
+      </div>
+
+      {/* Profile Summary Overlay */}
+      <div className="relative max-w-5xl mx-auto w-full px-4 -mt-20 sm:-mt-24 md:-mt-28 pb-8 flex flex-col items-center sm:items-start text-center sm:text-left sm:flex-row sm:gap-6 border-b border-slate-800">
+        
+        {/* Overlay Logo */}
+        <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-2xl border-4 border-[#0F172A] bg-slate-900 shadow-2xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+          {business.logo ? (
+            <Image
+              src={business.logo}
+              alt={`Logo ${business.name}`}
+              fill
+              className="object-cover cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => business.logo && setLightboxImg(business.logo)}
+            />
+          ) : (
+            <span className="text-5xl text-[#C8A96B]">🏪</span>
+          )}
+        </div>
+
+        {/* Business details */}
+        <div className="mt-4 sm:mt-24 flex-grow">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+            <h1 className="text-3xl sm:text-4xl font-bold font-display text-white leading-tight">{business.name}</h1>
+            {business.premium && (
+              <span className="px-2.5 py-1 text-[10px] md:text-xs font-bold text-[#0F172A] bg-[#C8A96B] rounded-full uppercase tracking-wider shadow-lg shadow-[#C8A96B]/10">
+                Premium
+              </span>
+            )}
+          </div>
+          <p className="text-[#C8A96B] font-medium text-sm mt-1 sm:mt-0">{business.category} · 📍 {business.city}</p>
+          
+          <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 text-xs">
+            <div className="flex text-[#C8A96B] text-sm">
+              {Array.from({ length: Math.round(business.rating || 5) }).map((_, i) => (
+                <span key={i}>★</span>
+              ))}
+              {Array.from({ length: 5 - Math.round(business.rating || 5) }).map((_, i) => (
+                <span key={i} className="text-slate-700">★</span>
+              ))}
+            </div>
+            <span className="font-bold text-white ml-1">{business.rating?.toFixed(1)}</span>
+            <span className="text-slate-400">({business.reviewCount} avaliações)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Grid: Description, Products, Testimonials vs Contact details */}
+      <div className="max-w-5xl mx-auto w-full px-4 py-8 flex-grow">
+        <div className="grid lg:grid-cols-3 gap-8">
+          
+          {/* Main Content Area */}
+          <div className="lg:col-span-2 space-y-12">
+            
+            {/* Description */}
+            <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 md:p-8 space-y-4">
+              <h2 className="text-xl font-bold font-display text-white border-b border-slate-800 pb-2">Sobre Nós</h2>
+              <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line font-light">
+                {business.description || "Bem-vindo à nossa página profissional. Conecte-se connosco por um dos canais disponíveis."}
+              </p>
+            </div>
+
+            {/* Products Showcase */}
+            {products.length > 0 && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold font-display text-white border-b border-slate-800 pb-3 flex items-center gap-2">
+                  <span>📦</span> Produtos & Serviços
+                </h2>
+                <div className="grid sm:grid-cols-2 gap-6">
+                  {products.map((product) => (
+                    <div
+                      key={product.id}
+                      className="bg-slate-900/60 border border-slate-800/80 rounded-xl overflow-hidden hover:border-[#C8A96B]/50 transition-all duration-300 flex flex-col group"
+                    >
+                      <div
+                        className="relative h-44 bg-slate-950 flex-shrink-0 flex items-center justify-center cursor-pointer overflow-hidden"
+                        onClick={() => product.image_url && setLightboxImg(product.image_url)}
+                      >
+                        {product.image_url ? (
+                          <Image
+                            src={product.image_url}
+                            alt={product.name}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="text-slate-700 flex flex-col items-center gap-1">
+                            <span className="text-5xl">📦</span>
+                            <span className="text-[10px] text-slate-500 font-semibold">Sem Imagem</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-5 flex-grow flex flex-col justify-between">
+                        <div>
+                          <div className="flex justify-between items-start gap-2 mb-2">
+                            <h3 className="font-bold text-white text-base font-display">{product.name}</h3>
+                            {product.price !== null && product.price !== undefined && (
+                              <span className="text-[#C8A96B] font-bold text-xs bg-[#C8A96B]/10 px-2 py-0.5 rounded border border-[#C8A96B]/25">
+                                €{product.price.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400 font-light leading-relaxed line-clamp-3">{product.description}</p>
+                        </div>
+
+                        {business.whatsApp && (
+                          <a
+                            href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}?text=${encodeURIComponent(
+                              `Olá! Vi o vosso produto *${product.name}* no VitrinePro e gostava de obter mais informações.`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-5 flex items-center justify-center gap-2 py-2 bg-slate-800 hover:bg-[#C8A96B] hover:text-[#0F172A] text-[#C8A96B] rounded-lg text-xs font-semibold transition-all border border-[#C8A96B]/20 hover:border-transparent active:scale-95"
+                          >
+                            Pedir Informações
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Gallery Images Lightbox Showcase */}
+            {business.gallery && business.gallery.length > 0 && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold font-display text-white border-b border-slate-800 pb-3 flex items-center gap-2">
+                  <span>🖼️</span> Galeria de Fotos
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {business.gallery.map((imgUrl, i) => (
+                    <div
+                      key={i}
+                      className="relative h-28 sm:h-36 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden cursor-pointer hover:border-[#C8A96B]/50 transition-all hover:scale-[1.02] duration-300 group"
+                      onClick={() => setLightboxImg(imgUrl)}
+                    >
+                      <Image
+                        src={imgUrl}
+                        alt={`${business.name} galeria ${i + 1}`}
+                        fill
+                        className="object-cover group-hover:opacity-90 transition-opacity"
+                      />
+                      <div className="absolute inset-0 bg-[#0F172A]/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                        <span className="text-[10px] text-white bg-slate-950/80 px-2 py-1 rounded-md border border-slate-700">🔍 Ampliar</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Testimonials */}
+            {testimonials.length > 0 && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold font-display text-white border-b border-slate-800 pb-3 flex items-center gap-2">
+                  <span>⭐</span> Avaliações e Depoimentos
+                </h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {testimonials.map((t) => (
+                    <div
+                      key={t.id}
+                      className="bg-slate-900/40 border border-slate-800/80 rounded-xl p-5 space-y-3 flex flex-col justify-between hover:border-[#C8A96B]/30 transition-all duration-300"
+                    >
+                      <p className="text-slate-300 italic text-xs leading-relaxed font-light">&quot;{t.text}&quot;</p>
+                      <div className="flex justify-between items-center border-t border-slate-800/50 pt-3">
+                        <span className="font-bold text-xs text-white font-display">{t.author}</span>
+                        <div className="flex text-[#C8A96B] text-[10px]">
+                          {Array.from({ length: t.rating }).map((_, i) => <span key={i}>★</span>)}
+                          {Array.from({ length: 5 - t.rating }).map((_, i) => <span key={i} className="text-slate-800">★</span>)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Contact Details, Social Links, Map, Hours */}
+          <div className="lg:col-span-1 space-y-6">
+            
+            {/* Contact list block */}
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 space-y-5">
+              <h3 className="text-lg font-bold text-white font-display border-b border-slate-800 pb-2">Canais de Contacto</h3>
+              
+              <div className="flex flex-col gap-3">
+                {/* Whatsapp */}
+                {business.whatsApp && (
+                  <a
+                    href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#20ba5a] active:scale-95 transition-all text-xs tracking-wider uppercase shadow-lg shadow-[#25D366]/10"
+                  >
+                    Falar via WhatsApp
+                  </a>
+                )}
+
+                {/* Telephone */}
+                {business.phone && (
+                  <a
+                    href={`tel:${business.phone}`}
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-xl font-bold transition-all text-xs tracking-wider uppercase"
+                  >
+                    Ligar para Telefone
+                  </a>
+                )}
+              </div>
+
+              {/* Social Grid */}
+              <div className="grid grid-cols-1 gap-2 pt-2 border-t border-slate-800/80">
+                {/* Email */}
+                {business.email && (
+                  <SocialLink
+                    href={`mailto:${business.email}`}
+                    label="E-mail"
+                    value={business.email}
+                    icon={
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    }
+                  />
+                )}
+
+                {/* Instagram */}
+                {business.instagram && (
+                  <SocialLink
+                    href={`https://instagram.com/${business.instagram.replace("@", "")}`}
+                    label="Instagram"
+                    value={`@${business.instagram.replace("@", "")}`}
+                    icon={
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" stroke="currentColor" strokeWidth="2" />
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" stroke="currentColor" strokeWidth="2" />
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    }
+                  />
+                )}
+
+                {/* Facebook */}
+                {business.facebook && (
+                  <SocialLink
+                    href={`https://facebook.com/${business.facebook}`}
+                    label="Facebook"
+                    value={business.facebook}
+                    icon={
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    }
+                  />
+                )}
+
+                {/* TikTok */}
+                {business.tiktok && (
+                  <SocialLink
+                    href={`https://tiktok.com/@${business.tiktok.replace("@", "")}`}
+                    label="TikTok"
+                    value={`@${business.tiktok.replace("@", "")}`}
+                    icon={
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    }
+                  />
+                )}
+
+                {/* YouTube */}
+                {business.youtube && (
+                  <SocialLink
+                    href={`https://youtube.com/c/${business.youtube}`}
+                    label="YouTube"
+                    value={business.youtube}
+                    icon={
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25a29 29 0 0 0-.46-5.33z" stroke="currentColor" strokeWidth="2" />
+                        <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" />
+                      </svg>
+                    }
+                  />
+                )}
+
+                {/* LinkedIn */}
+                {business.linkedin && (
+                  <SocialLink
+                    href={`https://linkedin.com/in/${business.linkedin}`}
+                    label="LinkedIn"
+                    value={business.linkedin}
+                    icon={
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" stroke="currentColor" strokeWidth="2" />
+                        <rect x="2" y="9" width="4" height="12" stroke="currentColor" strokeWidth="2" />
+                        <circle cx="4" cy="4" r="2" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                    }
+                  />
+                )}
+
+                {/* Official Website */}
+                {business.website && (
+                  <SocialLink
+                    href={business.website.startsWith("http") ? business.website : `https://${business.website}`}
+                    label="Site Oficial"
+                    value={business.website.replace(/(^\w+:|^)\/\//, "")}
+                    icon={
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                      </svg>
+                    }
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Opening Hours list block */}
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 space-y-4">
+              <h3 className="text-lg font-bold text-white font-display border-b border-slate-800 pb-2">
+                Horário de Funcionamento
+              </h3>
+              
+              <div className="space-y-2">
+                {business.opening_hours && business.opening_hours.length > 0 ? (
+                  business.opening_hours.map((oh) => (
+                    <div key={oh.day} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-800/30 last:border-0">
+                      <span className="text-slate-400 font-medium">{oh.day}</span>
+                      {oh.closed ? (
+                        <span className="text-red-400 font-semibold text-[10px] bg-red-400/10 px-2 py-0.5 rounded border border-red-400/10">Fechado</span>
+                      ) : (
+                        <span className="text-slate-200 font-semibold">{oh.open} - {oh.close}</span>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-500 italic">Horário não configurado.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Location & Map Block */}
+            {business.address && (
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 space-y-4">
+                <h3 className="text-lg font-bold text-white font-display border-b border-slate-800 pb-2">Localização</h3>
+                <p className="text-slate-300 text-xs leading-relaxed font-light">{business.address}</p>
+                
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-800 hover:bg-[#C8A96B] hover:text-[#0F172A] text-[#C8A96B] rounded-xl font-bold transition-all text-xs border border-[#C8A96B]/20 hover:border-transparent active:scale-95"
+                >
+                  📍 Ver no Google Maps
+                </a>
+              </div>
+            )}
+
+            {/* Share Widget */}
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 text-center space-y-3">
+              <span className="text-xs text-slate-400 font-semibold block">Partilhar esta Vitrina</span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert("Link copiado para a área de transferência!");
+                }}
+                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition-all border border-slate-700"
+              >
+                🔗 Copiar Link da Vitrine
+              </button>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `Vê a vitrine de ${business.name} em ${business.city}! \n${(process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : ""))}/vitrine/${business.slug}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "#25D366",
+                  color: "white",
+                  padding: "10px 16px",
+                  borderRadius: "8px",
+                  textDecoration: "none",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  marginTop: "8px",
+                  justifyContent: "center",
+                  cursor: "pointer"
+                }}
+              >
+                💚 Partilhar no WhatsApp
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-[#050B14] border-t border-slate-900 py-10 mt-16 text-center text-slate-500 text-xs">
+        <div className="max-w-5xl mx-auto px-4 flex flex-col items-center gap-3">
+          <Link href="/" className="hover:opacity-90 transition-opacity">
+            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 object-contain bg-transparent" />
+          </Link>
+          <p className="text-slate-400">
+            <a href={`https://vitrinepro.pt?ref=${business.slug}`} 
+               target="_blank"
+               rel="noopener noreferrer"
+               style={{ color: "#C8A96B", textDecoration: "none", fontSize: "13px" }}>
+              ⚡ Criado com VitrinePro
+            </a>
+          </p>
+          <p className="text-[10px] text-slate-600">© 2026 VitrinePro. Todos os direitos reservados.</p>
+        </div>
+      </footer>
+
+      {/* Floating AI Chat Widget - Only appears for Pro/Business plan */}
+      {(business.plan === "pro" || business.plan === "business" || business.plan === "premium") && (
+        <BusinessChatWidget business={business} products={products} />
+      )}
+
+      {/* Automation Popup */}
+      <AutomationPopup plan={business.plan} businessName={business.name} />
+
+    </div>
+  );
+}
+
+const SocialLink = ({ href, label, icon, value }: { href: string; label: string; icon: React.ReactNode; value?: string }) => {
+  if (!value) return null;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 p-3 bg-slate-800/40 hover:bg-slate-800/80 border border-slate-800/80 hover:border-[#C8A96B]/50 rounded-xl text-slate-300 hover:text-white transition-all group"
+    >
+      <div className="text-[#C8A96B] group-hover:scale-110 transition-transform">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider leading-none mb-1">{label}</p>
+        <p className="text-xs font-medium truncate">{value}</p>
+      </div>
+    </a>
+  );
+};

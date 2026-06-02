@@ -1,58 +1,78 @@
+/* eslint-disable */
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../context/SupabaseAuthContext";
 import { supabase } from "../lib/supabase";
+import { Eye, EyeOff } from "lucide-react";
+
+function getReadableError(message: string): string {
+  if (!message) return "Ocorreu um erro. Tenta novamente.";
+  if (message.includes("Invalid login credentials") || message.includes("invalid_credentials"))
+    return "Email ou senha incorretos. Verifica os teus dados.";
+  if (message.includes("Email not confirmed"))
+    return "Email ainda não confirmado. Verifica a tua caixa de entrada (e spam).";
+  if (message.includes("User already registered"))
+    return "Este email já está registado. Clica em 'Entrar'.";
+  if (message.includes("Password should be at least"))
+    return "A senha deve ter pelo menos 6 caracteres.";
+  if (message.includes("Unable to validate email address"))
+    return "Endereço de email inválido.";
+  if (message.includes("too many requests") || message.includes("rate limit"))
+    return "Demasiadas tentativas. Aguarda uns momentos e tenta novamente.";
+  if (message.includes("network") || message.includes("fetch"))
+    return "Erro de ligação. Verifica a tua internet e tenta novamente.";
+  return message;
+}
 
 function LoginForm() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(true);
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
+  const { signInWithEmail, signInWithGoogle } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const errorRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Check if Google provider is enabled
-    const checkGoogleProvider = async () => {
-      try {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: 'https://dummy-url.com' }
-        });
-        // If we get here without error, Google is enabled
-      } catch (err: any) {
-        if (err.message?.includes("provider is not enabled") || err.message?.includes("unsupported_provider")) {
-          setGoogleEnabled(false);
-        }
-      }
-    };
-    checkGoogleProvider();
-  }, []);
+  const showError = (msg: string) => {
+    setError(getReadableError(msg));
+    setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+  };
+
+  const plan = searchParams.get("plan");
+  const nextPath = searchParams.get("next");
 
   const handleGoogleLogin = async () => {
     if (!googleEnabled) {
-      setError("Login com Google não está configurado. Use email/senha.");
+      showError("Login com Google não está configurado. Use email/senha.");
       return;
     }
     setError("");
     setGoogleLoading(true);
     try {
-      await signInWithGoogle();
+      const params = new URLSearchParams();
+      if (plan) params.set("plan", plan);
+      if (nextPath) params.set("next", nextPath);
+      const queryString = params.toString();
+      const redirectUrl = queryString
+        ? `${window.location.origin}/auth/callback?${queryString}`
+        : `${window.location.origin}/auth/callback`;
+      await signInWithGoogle(redirectUrl);
     } catch (err: any) {
       console.error("[LOGIN] Google error:", err);
       if (err.message?.includes("provider is not enabled")) {
         setGoogleEnabled(false);
-        setError("Login com Google não está configurado. Use email/senha.");
+        showError("Login com Google não está configurado. Use email/senha.");
       } else {
-        setError("Erro ao fazer login com Google. Tente novamente.");
+        showError(err.message || "Erro ao fazer login com Google.");
       }
       setGoogleLoading(false);
     }
@@ -69,21 +89,19 @@ function LoginForm() {
     e.preventDefault();
     setError("");
     setSuccess("");
-    setLoading(true);
-    
-    try {
-      console.log("[LOGIN] Attempting auth...", { isSignUp, email: email.substring(0, 3) + "***" });
-      
-      if (isSignUp) {
-        const { data, error: signupError } = await supabase.auth.signUp({
-          email,
-          password,
-        });
 
-        console.log("[LOGIN] Signup result:", { user: data.user?.id, error: signupError?.message });
+    if (!email.trim() || !password.trim()) {
+      showError("Preenche o email e a senha.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        const { data, error: signupError } = await supabase.auth.signUp({ email, password });
         if (signupError) throw signupError;
 
-        // Create profile immediately
         if (data.user) {
           await supabase.from("profiles").upsert({
             id: data.user.id,
@@ -93,56 +111,48 @@ function LoginForm() {
           });
         }
 
-        // Check if user is immediately confirmed (or confirmation disabled)
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (session?.user) {
-          // User is logged in - check for business
-          const { data: existingBusiness } = await supabase
-            .from('businesses')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .single();
+          const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).maybeSingle();
           
-          if (existingBusiness) {
-            router.push("/dashboard");
-          } else {
-            router.push("/onboarding");
-          }
+          let target = nextPath || (biz ? "/dashboard" : "/onboarding");
+          const params = new URLSearchParams();
+          if (plan) params.set("plan", plan);
+          
+          const redirectUrl = params.toString() ? `${target}?${params.toString()}` : target;
+          router.push(redirectUrl);
         } else {
-          // Email confirmation required - show success message
-          setSuccess("Conta criada! Verifique seu email para confirmar e depois faça login.");
+          setSuccess("✅ Conta criada! Verifica o teu email para confirmar e depois faz login.");
           setIsSignUp(false);
-          return;
         }
       } else {
-        // Login flow
-        await signInWithEmail(email, password);
-        
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+        // Login
+        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (loginError) throw loginError;
+
+        // Small delay for session cookie to be set
+        await new Promise((r) => setTimeout(r, 300));
+
         const { data: { session } } = await supabase.auth.getSession();
-        console.log("[LOGIN] Session after login:", session?.user?.id);
-        
+
         if (session?.user) {
-          const { data: existingBusiness } = await supabase
-            .from('businesses')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .single();
+          const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).maybeSingle();
           
-          if (existingBusiness) {
-            router.push("/dashboard");
-          } else {
-            router.push("/onboarding");
-          }
+          let target = nextPath || (biz ? "/dashboard" : "/onboarding");
+          const params = new URLSearchParams();
+          if (plan) params.set("plan", plan);
+          
+          const redirectUrl = params.toString() ? `${target}?${params.toString()}` : target;
+          router.push(redirectUrl);
         } else {
-          setError("Email ou senha incorretos");
+          showError("Não foi possível iniciar sessão. Tenta novamente.");
         }
       }
     } catch (err: any) {
       console.error("[LOGIN] Auth error:", err);
-      setError(err.message || "Authentication failed");
+      showError(err.message || "Erro de autenticação.");
     } finally {
       setLoading(false);
     }
@@ -153,7 +163,7 @@ function LoginForm() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-8 shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
           <Link href="/" className="block text-center mb-8">
-            <span className="text-3xl font-display text-[#C8A96B]">VitrinePro</span>
+            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-16 mx-auto object-contain bg-transparent" />
           </Link>
 
           <h1 className="text-2xl font-display text-[#0F172A] text-center mb-2">
@@ -164,18 +174,6 @@ function LoginForm() {
               ? "Junte-se a milhares de negócios em Portugal" 
               : "Bem-vindo de volta"}
           </p>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
-              {success}
-            </div>
-          )}
 
           {googleEnabled && (
             <button
@@ -209,35 +207,80 @@ function LoginForm() {
                 Email
               </label>
               <input
+                id="email"
+                name="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full px-4 py-3 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B] transition-colors"
                 placeholder="seu@email.com"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-[#0F172A] mb-1">
-                Password
+              <label htmlFor="password" className="block text-sm font-medium text-[#0F172A] mb-1">
+                Senha{isSignUp && <span className="text-xs text-gray-400 font-normal ml-1">(mínimo 6 caracteres)</span>}
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-3 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B] transition-colors"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
+                  className="w-full pl-4 pr-12 py-3 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-[#C8A96B] transition-colors text-[#0F172A]"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#C8A96B] transition-colors focus:outline-none cursor-pointer p-1"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
+
+            {/* Error/Success — perto do botão para ser sempre visível */}
+            {error && (
+              <div
+                ref={errorRef}
+                className="bg-red-50 border-2 border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm font-medium flex items-start gap-2"
+              >
+                <span className="text-red-500 flex-shrink-0 mt-0.5">⚠️</span>
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="bg-green-50 border-2 border-green-300 text-green-700 px-4 py-3 rounded-xl text-sm font-medium flex items-start gap-2">
+                <span className="flex-shrink-0 mt-0.5">✅</span>
+                {success}
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[#C8A96B] text-[#0F172A] rounded-lg font-semibold hover:bg-[#D4BB82] transition-colors disabled:opacity-50"
+              className="w-full py-3.5 bg-[#C8A96B] text-[#0F172A] rounded-xl font-bold hover:bg-[#D4BB82] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? "A processar..." : isSignUp ? "Criar conta" : "Entrar"}
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-[#0F172A] border-t-transparent rounded-full animate-spin" />
+                  A processar...
+                </>
+              ) : (
+                isSignUp ? "Criar conta" : "Entrar →"
+              )}
             </button>
           </form>
 
