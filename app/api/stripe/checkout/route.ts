@@ -8,12 +8,8 @@ const PLAN_PRICE_MAP: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
-  // Guard: Stripe not configured → graceful 503
   if (!process.env.STRIPE_SECRET_KEY) {
-    return NextResponse.json(
-      { error: "stripe_not_configured" },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: "stripe_not_configured" }, { status: 503 });
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -36,16 +32,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const host = request.headers.get("host") || "localhost:3000";
-    const protocol = request.headers.get("x-forwarded-proto") || "http";
-    const origin = `${protocol}://${host}`;
+    // NEXT_PUBLIC_APP_URL is the canonical origin — more reliable than request headers behind proxies
+    const origin =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (() => {
+        const host = request.headers.get("host") || "localhost:3000";
+        const proto = request.headers.get("x-forwarded-proto") || "http";
+        return `${proto}://${host}`;
+      })();
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: businessId,
+      // Session metadata for checkout.session.completed
       metadata: { planId, businessId },
+      // Subscription metadata for invoice.payment_succeeded (renewals)
+      subscription_data: {
+        metadata: { planId, businessId },
+      },
       success_url: `${origin}/dashboard?success=stripe&plan=${planId}`,
       cancel_url: `${origin}/dashboard?cancel=stripe`,
     });
