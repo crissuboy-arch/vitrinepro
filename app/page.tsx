@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "./lib/supabase";
 import ChatWidget from "./components/ChatWidget";
 import RefPopup from "./components/RefPopup";
+import LeadCapturePopup from "./components/LeadCapturePopup";
 
 // Google Fonts
 import { Playfair_Display, DM_Sans } from "next/font/google";
@@ -655,6 +656,7 @@ export default function HomePage() {
       {/* Chat Widget */}
       <ChatWidget />
       <RefPopup />
+      <LeadCapturePopup />
 
     </div>
   );

@@ -55,6 +55,16 @@ interface UserProfile {
   created_at: string;
 }
 
+interface Lead {
+  id: string;
+  name: string;
+  email: string;
+  whatsapp: string | null;
+  business_type: string | null;
+  source: string | null;
+  created_at: string;
+}
+
 interface Stats {
   totalBusinesses: number;
   publishedBusinesses: number;
@@ -85,7 +95,7 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<"businesses" | "categories" | "cities" | "users">("businesses");
+  const [activeTab, setActiveTab] = useState<"businesses" | "categories" | "cities" | "users" | "leads">("businesses");
 
   // City CRUD states
   const [cities, setCities] = useState<City[]>([]);
@@ -101,6 +111,10 @@ export default function AdminPage() {
   // Users state
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [userSearch, setUserSearch] = useState("");
+
+  // Leads state
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leadSearch, setLeadSearch] = useState("");
 
   // Category CRUD states
   const [catName, setCatName] = useState("");
@@ -149,7 +163,7 @@ export default function AdminPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [bizRes, reviewRes, catRes, citiesRes, usersRes] = await Promise.all([
+      const [bizRes, reviewRes, catRes, citiesRes, usersRes, leadsRes] = await Promise.all([
         supabase
           .from("businesses")
           .select("*, categories(name), cities(name)")
@@ -170,6 +184,11 @@ export default function AdminPage() {
           .select("id, email, display_name, plan, created_at")
           .order("created_at", { ascending: false })
           .limit(200),
+        supabase
+          .from("leads")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(500),
       ]);
 
       const bizList: Business[] = bizRes.data || [];
@@ -177,6 +196,7 @@ export default function AdminPage() {
       setCategories(catRes.data || []);
       setCities(citiesRes.data || []);
       setUsers(usersRes.data || []);
+      setLeads(leadsRes.data || []);
 
       const reviews = reviewRes.data || [];
       setStats({
@@ -218,6 +238,15 @@ export default function AdminPage() {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const toggleFeatured = async (biz: Business) => {
+    const next = !(biz as any).is_featured;
+    setActionLoading(biz.id + "featured");
+    try {
+      await supabase.from("businesses").update({ is_featured: next }).eq("id", biz.id);
+      setBusinesses((prev) => prev.map((b) => b.id === biz.id ? { ...b, is_featured: next } as any : b));
+    } catch (e) { console.error(e); } finally { setActionLoading(null); }
   };
 
   const deleteBusiness = async (id: string) => {
@@ -425,6 +454,10 @@ export default function AdminPage() {
     !userSearch || (u.email || "").toLowerCase().includes(userSearch.toLowerCase()) || (u.display_name || "").toLowerCase().includes(userSearch.toLowerCase())
   );
 
+  const filteredLeads = leads.filter((l) =>
+    !leadSearch || (l.email || "").toLowerCase().includes(leadSearch.toLowerCase()) || (l.name || "").toLowerCase().includes(leadSearch.toLowerCase())
+  );
+
   const planColors: Record<string, string> = {
     free: "bg-[#E5E7EB] text-[#1F2937]",
     pro: "bg-blue-100 text-blue-800",
@@ -504,6 +537,16 @@ export default function AdminPage() {
           >
             👥 Utilizadores
           </button>
+          <button
+            onClick={() => setActiveTab("leads")}
+            className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
+              activeTab === "leads"
+                ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
+                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+            }`}
+          >
+            📩 Leads ({leads.length})
+          </button>
         </div>
 
         {activeTab === "businesses" && (
@@ -559,6 +602,7 @@ export default function AdminPage() {
                       <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Cidade</th>
                       <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Plano</th>
                       <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Estado</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Destaque</th>
                       <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Visualizações</th>
                       <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Data</th>
                       <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Ações</th>
@@ -567,7 +611,7 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-[#E5E7EB]">
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-[#1F2937]">
+                        <td colSpan={9} className="px-4 py-8 text-center text-[#1F2937]">
                           Nenhum negócio encontrado.
                         </td>
                       </tr>
@@ -615,6 +659,20 @@ export default function AdminPage() {
                               } disabled:opacity-50`}
                             >
                               {actionLoading === biz.id ? "..." : biz.published ? "Publicado" : "Não publicado"}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => toggleFeatured(biz)}
+                              disabled={actionLoading === biz.id + "featured"}
+                              title={(biz as any).is_featured ? "Remover destaque" : "Destacar negócio"}
+                              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                (biz as any).is_featured
+                                  ? "bg-[#FEF3C7] text-[#92400E] hover:bg-red-100 hover:text-red-700"
+                                  : "bg-[#FAF7F2] text-[#9CA3AF] hover:bg-[#FEF3C7] hover:text-[#92400E]"
+                              } disabled:opacity-50`}
+                            >
+                              {actionLoading === biz.id + "featured" ? "..." : (biz as any).is_featured ? "⭐ Destacado" : "— Normal"}
                             </button>
                           </td>
                           <td className="px-4 py-3 text-[#1F2937]">{biz.view_count || 0}</td>
@@ -1090,6 +1148,81 @@ export default function AdminPage() {
               </div>
               <div className="px-4 py-3.5 border-t border-[#E5E7EB] bg-[#FAF7F2] text-xs text-[#9CA3AF] font-medium">
                 {filteredUsers.length} utilizador{filteredUsers.length !== 1 ? "es" : ""} encontrado{filteredUsers.length !== 1 ? "s" : ""}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Leads Tab */}
+        {activeTab === "leads" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
+              <h2 className="text-base font-bold text-[#0F172A] font-display">
+                Leads captados ({leads.length})
+              </h2>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  placeholder="Pesquisar por nome ou email..."
+                  value={leadSearch}
+                  onChange={(e) => setLeadSearch(e.target.value)}
+                  className="px-4 py-2 border border-[#E5E7EB] rounded-lg text-sm bg-[#FAF7F2] w-64 max-w-full focus:outline-none focus:ring-1 focus:ring-[#C8A96B]"
+                />
+                <button onClick={loadData} className="px-3 py-2 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg text-xs text-[#1F2937] hover:bg-[#E5E7EB]">
+                  Atualizar
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#FAF7F2] border-b border-[#E5E7EB]">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Nome</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Email</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">WhatsApp</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Tipo de Negócio</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Origem</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Data</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E5E7EB]">
+                    {filteredLeads.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                          {leads.length === 0
+                            ? "Nenhum lead ainda. O popup de captação aparece após 7 segundos para visitantes não autenticados."
+                            : "Nenhum lead encontrado."}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredLeads.map((l) => (
+                        <tr key={l.id} className="hover:bg-[#FAF7F2] transition-colors">
+                          <td className="px-4 py-3 font-medium text-[#0F172A]">{l.name}</td>
+                          <td className="px-4 py-3 text-slate-600">{l.email}</td>
+                          <td className="px-4 py-3 text-slate-600">
+                            {l.whatsapp ? (
+                              <a href={`https://wa.me/${l.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline font-medium">
+                                {l.whatsapp}
+                              </a>
+                            ) : "—"}
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">{l.business_type || "—"}</td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-0.5 bg-[#FAF7F2] text-[#1F2937] rounded text-[10px] font-medium">{l.source || "popup"}</span>
+                          </td>
+                          <td className="px-4 py-3 text-[#9CA3AF] text-xs font-medium">
+                            {new Date(l.created_at).toLocaleDateString("pt-PT")}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-4 py-3.5 border-t border-[#E5E7EB] bg-[#FAF7F2] text-xs text-[#9CA3AF] font-medium">
+                {filteredLeads.length} lead{filteredLeads.length !== 1 ? "s" : ""} · Execute a migration 005_leads.sql no Supabase para activar a tabela
               </div>
             </div>
           </div>
