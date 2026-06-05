@@ -14,10 +14,15 @@ import { Playfair_Display, DM_Sans } from "next/font/google";
 // Landing components
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
+import StatsSection from "@/components/landing/StatsSection";
+import BusinessTypesSection from "@/components/landing/BusinessTypesSection";
+import ShowcaseSection from "@/components/landing/ShowcaseSection";
 import ProblemSection from "@/components/landing/ProblemSection";
 import SolutionSection from "@/components/landing/SolutionSection";
-import StepsSection from "@/components/landing/StepsSection";
+import VideoSection from "@/components/landing/VideoSection";
 import ComparisonSection from "@/components/landing/ComparisonSection";
+import StepsSection from "@/components/landing/StepsSection";
+import SocialProofBar from "@/components/landing/SocialProofBar";
 import PlansSection from "@/components/landing/PlansSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import FinalCTASection from "@/components/landing/FinalCTASection";
@@ -393,6 +398,9 @@ export default function HomePage() {
 
       {/* SECÇÃO 1 — HERO */}
       <HeroSection onCadastrar={handleCadastrarClick} />
+      <StatsSection />
+      <BusinessTypesSection />
+      <ShowcaseSection />
 
       {/* SEÇÃO COMUNIDADES */}
       <section className="py-16 md:py-24 bg-[#090E1A] border-b border-white/5 relative z-10">
@@ -486,8 +494,10 @@ export default function HomePage() {
 
       <ProblemSection />
       <SolutionSection />
-      <StepsSection />
+      <VideoSection />
       <ComparisonSection />
+      <StepsSection />
+      <SocialProofBar />
       <PlansSection onSelectPlan={handleSelectPlan} />
       <TestimonialsSection />
 

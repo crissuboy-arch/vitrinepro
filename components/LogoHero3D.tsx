@@ -4,8 +4,8 @@ export default function LogoHero3D() {
   return (
     <div
       style={{
-        width: '320px',
-        height: '320px',
+        width: '128px',
+        height: '128px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -15,8 +15,8 @@ export default function LogoHero3D() {
         src="/vitrinepro-logo-3d.html"
         scrolling="no"
         style={{
-          width: '320px',
-          height: '320px',
+          width: '128px',
+          height: '128px',
           border: 'none',
           outline: 'none',
           background: 'transparent',
