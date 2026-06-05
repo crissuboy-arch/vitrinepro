@@ -17,6 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   let businessRoutes: MetadataRoute.Sitemap = [];
+  let seoRoutes: MetadataRoute.Sitemap = [];
 
   try {
     const supabase = createClient(
@@ -24,24 +25,47 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    const { data } = await supabase
-      .from("businesses")
-      .select("slug, updated_at")
-      .eq("published", true)
-      .order("updated_at", { ascending: false })
-      .limit(1000);
+    const [bizRes, citiesRes, catsRes] = await Promise.all([
+      supabase
+        .from("businesses")
+        .select("slug, updated_at")
+        .eq("published", true)
+        .order("updated_at", { ascending: false })
+        .limit(1000),
+      supabase
+        .from("cities")
+        .select("slug")
+        .eq("is_active", true),
+      supabase
+        .from("categories")
+        .select("slug")
+        .eq("is_active", true),
+    ]);
 
-    if (data) {
-      businessRoutes = data.map((b) => ({
+    if (bizRes.data) {
+      businessRoutes = bizRes.data.map((b) => ({
         url: `${siteUrl}/vitrine/${b.slug}`,
         changeFrequency: "weekly" as const,
         priority: 0.9,
         lastModified: b.updated_at ? new Date(b.updated_at) : new Date(),
       }));
     }
+
+    if (citiesRes.data && catsRes.data) {
+      for (const city of citiesRes.data) {
+        for (const cat of catsRes.data) {
+          seoRoutes.push({
+            url: `${siteUrl}/${city.slug}/${cat.slug}`,
+            changeFrequency: "weekly" as const,
+            priority: 0.8,
+            lastModified: new Date(),
+          });
+        }
+      }
+    }
   } catch {
     // Supabase unavailable at build time — sitemap still serves static routes
   }
 
-  return [...staticRoutes, ...businessRoutes];
+  return [...staticRoutes, ...businessRoutes, ...seoRoutes];
 }

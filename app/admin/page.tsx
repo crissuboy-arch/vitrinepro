@@ -38,6 +38,23 @@ interface Category {
   order_index: number;
 }
 
+interface City {
+  id: string;
+  name: string;
+  slug: string;
+  country: string;
+  is_active: boolean;
+  order_index: number;
+}
+
+interface UserProfile {
+  id: string;
+  email: string;
+  display_name: string | null;
+  plan: string;
+  created_at: string;
+}
+
 interface Stats {
   totalBusinesses: number;
   publishedBusinesses: number;
@@ -68,7 +85,22 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<"businesses" | "categories">("businesses");
+  const [activeTab, setActiveTab] = useState<"businesses" | "categories" | "cities" | "users">("businesses");
+
+  // City CRUD states
+  const [cities, setCities] = useState<City[]>([]);
+  const [citySearch, setCitySearch] = useState("");
+  const [editingCity, setEditingCity] = useState<City | null>(null);
+  const [cityName, setCityName] = useState("");
+  const [citySlug, setCitySlug] = useState("");
+  const [cityCountry, setCityCountry] = useState("Portugal");
+  const [cityIsActive, setCityIsActive] = useState(true);
+  const [cityOrderIndex, setCityOrderIndex] = useState(0);
+  const [cityActionLoading, setCityActionLoading] = useState(false);
+
+  // Users state
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [userSearch, setUserSearch] = useState("");
 
   // Category CRUD states
   const [catName, setCatName] = useState("");
@@ -100,17 +132,24 @@ export default function AdminPage() {
     loadData();
   }, [mounted, user]);
 
-  // Auto-slugify when writing category name (unless editing)
+  // Auto-slugify for category name
   useEffect(() => {
     if (!editingCategory) {
       setCatSlug(slugify(catName));
     }
   }, [catName, editingCategory]);
 
+  // Auto-slugify for city name
+  useEffect(() => {
+    if (!editingCity) {
+      setCitySlug(slugify(cityName));
+    }
+  }, [cityName, editingCity]);
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [bizRes, reviewRes, catRes] = await Promise.all([
+      const [bizRes, reviewRes, catRes, citiesRes, usersRes] = await Promise.all([
         supabase
           .from("businesses")
           .select("*, categories(name), cities(name)")
@@ -121,11 +160,23 @@ export default function AdminPage() {
           .select("*")
           .order("order_index", { ascending: true })
           .order("name", { ascending: true }),
+        supabase
+          .from("cities")
+          .select("*")
+          .order("order_index", { ascending: true })
+          .order("name", { ascending: true }),
+        supabase
+          .from("profiles")
+          .select("id, email, display_name, plan, created_at")
+          .order("created_at", { ascending: false })
+          .limit(200),
       ]);
 
       const bizList: Business[] = bizRes.data || [];
       setBusinesses(bizList);
       setCategories(catRes.data || []);
+      setCities(citiesRes.data || []);
+      setUsers(usersRes.data || []);
 
       const reviews = reviewRes.data || [];
       setStats({
@@ -284,6 +335,76 @@ export default function AdminPage() {
     setCatOrderIndex(0);
   };
 
+  // City Actions
+  const handleSaveCity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cityName || !citySlug) {
+      alert("Por favor, preencha o nome e o slug.");
+      return;
+    }
+    setCityActionLoading(true);
+    try {
+      const payload = {
+        name: cityName,
+        slug: citySlug,
+        country: cityCountry || "Portugal",
+        is_active: cityIsActive,
+        order_index: Number(cityOrderIndex),
+      };
+
+      if (editingCity) {
+        const { error } = await supabase.from("cities").update(payload).eq("id", editingCity.id);
+        if (error) { alert(`Erro ao atualizar cidade: ${error.message}`); }
+        else { setEditingCity(null); resetCityForm(); loadData(); }
+      } else {
+        const { error } = await supabase.from("cities").insert(payload);
+        if (error) { alert(`Erro ao criar cidade: ${error.message}`); }
+        else { resetCityForm(); loadData(); }
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Ocorreu um erro ao salvar a cidade.");
+    } finally {
+      setCityActionLoading(false);
+    }
+  };
+
+  const handleDeleteCity = async (id: string) => {
+    if (!confirm("Tem a certeza que deseja eliminar esta cidade? Isto pode afetar os negócios associados.")) return;
+    setCityActionLoading(true);
+    try {
+      const { error } = await supabase.from("cities").delete().eq("id", id);
+      if (error) { alert(`Erro ao eliminar cidade: ${error.message}`); }
+      else {
+        if (editingCity?.id === id) { setEditingCity(null); resetCityForm(); }
+        loadData();
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Ocorreu um erro ao eliminar a cidade.");
+    } finally {
+      setCityActionLoading(false);
+    }
+  };
+
+  const startEditCity = (city: City) => {
+    setEditingCity(city);
+    setCityName(city.name);
+    setCitySlug(city.slug);
+    setCityCountry(city.country);
+    setCityIsActive(city.is_active);
+    setCityOrderIndex(city.order_index);
+  };
+
+  const resetCityForm = () => {
+    setEditingCity(null);
+    setCityName("");
+    setCitySlug("");
+    setCityCountry("Portugal");
+    setCityIsActive(true);
+    setCityOrderIndex(0);
+  };
+
   const filtered = businesses.filter((b) => {
     const matchSearch = !search || b.name.toLowerCase().includes(search.toLowerCase());
     if (filter === "published") return b.published && matchSearch;
@@ -295,6 +416,14 @@ export default function AdminPage() {
   const filteredCategories = categories.filter((c) => {
     return !catSearch || c.name.toLowerCase().includes(catSearch.toLowerCase()) || c.slug.toLowerCase().includes(catSearch.toLowerCase());
   });
+
+  const filteredCities = cities.filter((c) =>
+    !citySearch || c.name.toLowerCase().includes(citySearch.toLowerCase()) || c.slug.toLowerCase().includes(citySearch.toLowerCase())
+  );
+
+  const filteredUsers = users.filter((u) =>
+    !userSearch || (u.email || "").toLowerCase().includes(userSearch.toLowerCase()) || (u.display_name || "").toLowerCase().includes(userSearch.toLowerCase())
+  );
 
   const planColors: Record<string, string> = {
     free: "bg-[#E5E7EB] text-[#1F2937]",
@@ -353,11 +482,31 @@ export default function AdminPage() {
                 : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
             }`}
           >
-            📁 Gestor de Categorias
+            📁 Categorias
+          </button>
+          <button
+            onClick={() => setActiveTab("cities")}
+            className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
+              activeTab === "cities"
+                ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
+                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+            }`}
+          >
+            🏙️ Cidades
+          </button>
+          <button
+            onClick={() => setActiveTab("users")}
+            className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
+              activeTab === "users"
+                ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
+                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+            }`}
+          >
+            👥 Utilizadores
           </button>
         </div>
 
-        {activeTab === "businesses" ? (
+        {activeTab === "businesses" && (
           <>
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -507,8 +656,10 @@ export default function AdminPage() {
               <ReviewsPanel />
             </div>
           </>
-        ) : (
-          /* Categories Tab */
+        )}
+
+        {/* Categories Tab */}
+        {activeTab === "categories" && (
           <div className="grid lg:grid-cols-3 gap-8">
             
             {/* Left/Middle Column: List of Categories */}
@@ -737,6 +888,210 @@ export default function AdminPage() {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* Cities Tab */}
+        {activeTab === "cities" && (
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
+                <h2 className="text-base font-bold text-[#0F172A] font-display">
+                  Cidades Ativas ({cities.length})
+                </h2>
+                <input
+                  type="text"
+                  placeholder="Pesquisar por nome ou slug..."
+                  value={citySearch}
+                  onChange={(e) => setCitySearch(e.target.value)}
+                  className="px-4 py-2 border border-[#E5E7EB] rounded-lg text-sm bg-[#FAF7F2] w-64 max-w-full focus:outline-none focus:ring-1 focus:ring-[#C8A96B]"
+                />
+              </div>
+
+              <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[#FAF7F2] border-b border-[#E5E7EB]">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Nome</th>
+                        <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Slug (SEO)</th>
+                        <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">País</th>
+                        <th className="text-left px-4 py-3 font-semibold text-[#0F172A] w-20">Ordem</th>
+                        <th className="text-left px-4 py-3 font-semibold text-[#0F172A] w-20">Status</th>
+                        <th className="text-left px-4 py-3 font-semibold text-[#0F172A] w-28">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E5E7EB]">
+                      {filteredCities.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                            Nenhuma cidade cadastrada ou encontrada.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredCities.map((city) => (
+                          <tr key={city.id} className="hover:bg-[#FAF7F2] transition-colors">
+                            <td className="px-4 py-3 font-medium text-[#0F172A]">{city.name}</td>
+                            <td className="px-4 py-3 text-slate-500 font-mono text-xs">{city.slug}</td>
+                            <td className="px-4 py-3 text-slate-600 text-xs">{city.country}</td>
+                            <td className="px-4 py-3 text-slate-600 font-mono text-xs">{city.order_index}</td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${city.is_active ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                                {city.is_active ? "Ativa" : "Inativa"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <button onClick={() => startEditCity(city)} className="text-blue-600 hover:text-blue-800 text-xs font-bold">Editar</button>
+                                <button onClick={() => handleDeleteCity(city.id)} disabled={cityActionLoading} className="text-red-500 hover:text-red-700 text-xs font-bold disabled:opacity-55">Excluir</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 shadow-sm sticky top-24">
+                <h3 className="font-display text-lg text-[#0F172A] mb-4 font-bold border-b pb-2">
+                  {editingCity ? "📝 Editar Cidade" : "➕ Adicionar Cidade"}
+                </h3>
+                <form onSubmit={handleSaveCity} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nome da Cidade</label>
+                    <input
+                      type="text"
+                      required
+                      value={cityName}
+                      onChange={(e) => setCityName(e.target.value)}
+                      placeholder="Ex: Lisboa, Porto, Braga"
+                      className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm bg-[#FAF7F2] focus:outline-none focus:ring-1 focus:ring-[#C8A96B]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Slug Único (SEO)</label>
+                    <input
+                      type="text"
+                      required
+                      value={citySlug}
+                      onChange={(e) => setCitySlug(slugify(e.target.value))}
+                      placeholder="Ex: lisboa, porto"
+                      className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm bg-[#FAF7F2] font-mono focus:outline-none focus:ring-1 focus:ring-[#C8A96B]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">País</label>
+                    <select
+                      value={cityCountry}
+                      onChange={(e) => setCityCountry(e.target.value)}
+                      className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm bg-[#FAF7F2] focus:outline-none focus:ring-1 focus:ring-[#C8A96B]"
+                    >
+                      <option value="Portugal">Portugal</option>
+                      <option value="Brasil">Brasil</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Ordem de Exibição</label>
+                    <input
+                      type="number"
+                      value={cityOrderIndex}
+                      onChange={(e) => setCityOrderIndex(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm bg-[#FAF7F2] font-mono focus:outline-none focus:ring-1 focus:ring-[#C8A96B]"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 py-2">
+                    <input
+                      type="checkbox"
+                      id="cityIsActive"
+                      checked={cityIsActive}
+                      onChange={(e) => setCityIsActive(e.target.checked)}
+                      className="rounded border-[#E5E7EB] text-[#C8A96B] focus:ring-[#C8A96B]"
+                    />
+                    <label htmlFor="cityIsActive" className="text-xs font-bold text-slate-700 uppercase cursor-pointer select-none">
+                      Cidade Ativa para SEO
+                    </label>
+                  </div>
+                  <div className="flex gap-2 pt-2 border-t mt-4">
+                    <button
+                      type="submit"
+                      disabled={cityActionLoading}
+                      className="flex-1 px-4 py-2.5 bg-[#0F172A] text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
+                    >
+                      {cityActionLoading ? "Salvando..." : editingCity ? "Atualizar" : "Criar Cidade"}
+                    </button>
+                    {editingCity && (
+                      <button type="button" onClick={resetCityForm} className="px-4 py-2.5 bg-slate-200 text-[#0F172A] text-xs font-bold rounded-lg hover:bg-slate-300 transition-colors">
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Users Tab */}
+        {activeTab === "users" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
+              <h2 className="text-base font-bold text-[#0F172A] font-display">
+                Utilizadores ({users.length})
+              </h2>
+              <input
+                type="text"
+                placeholder="Pesquisar por email ou nome..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                className="px-4 py-2 border border-[#E5E7EB] rounded-lg text-sm bg-[#FAF7F2] w-64 max-w-full focus:outline-none focus:ring-1 focus:ring-[#C8A96B]"
+              />
+            </div>
+
+            <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#FAF7F2] border-b border-[#E5E7EB]">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Email</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Nome</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Plano</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Registo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E5E7EB]">
+                    {filteredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                          {users.length === 0 ? "Sem dados de utilizadores (verifique RLS da tabela profiles)." : "Nenhum utilizador encontrado."}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredUsers.map((u) => (
+                        <tr key={u.id} className="hover:bg-[#FAF7F2] transition-colors">
+                          <td className="px-4 py-3 text-[#0F172A] font-medium">{u.email || "—"}</td>
+                          <td className="px-4 py-3 text-slate-600">{u.display_name || "—"}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${planColors[u.plan] || planColors.free}`}>
+                              {u.plan || "free"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-[#9CA3AF] text-xs font-medium">
+                            {u.created_at ? new Date(u.created_at).toLocaleDateString("pt-PT") : "—"}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-4 py-3.5 border-t border-[#E5E7EB] bg-[#FAF7F2] text-xs text-[#9CA3AF] font-medium">
+                {filteredUsers.length} utilizador{filteredUsers.length !== 1 ? "es" : ""} encontrado{filteredUsers.length !== 1 ? "s" : ""}
+              </div>
+            </div>
           </div>
         )}
       </div>
