@@ -1,12 +1,13 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import BusinessChatWidget from "../../components/BusinessChatWidget";
 import AutomationPopup from "../../components/AutomationPopup";
+import { getCommunityByCountry } from "@/lib/communities";
 
 interface OpeningHour {
   day: string;
@@ -44,6 +45,10 @@ interface Business {
   opening_hours?: OpeningHour[];
   published?: boolean;
   is_published?: boolean;
+  owner_origin_country?: string;
+  owner_name?: string;
+  owner_photo?: string;
+  owner_bio?: string;
 }
 
 interface Product {
@@ -243,10 +248,58 @@ export default function VitrineClient({ slug }: { slug: string }) {
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favoriteId, setFavoriteId] = useState<string | null>(null);
+  const [similarBusinesses, setSimilarBusinesses] = useState<any[]>([]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Load favorite status + similar businesses after business loads
+  useEffect(() => {
+    if (!business?.id) return;
+
+    // Check if current user has favorited
+    const checkFav = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const { data } = await supabase
+        .from("favorites")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .eq("business_id", business.id)
+        .maybeSingle();
+      if (data) { setIsFavorited(true); setFavoriteId(data.id); }
+    };
+
+    // Fetch similar businesses (same category, excluding current)
+    const fetchSimilar = async () => {
+      const { data } = await supabase
+        .from("businesses")
+        .select("id, name, slug, category, city, logo_url, cover_url, rating_average, plan")
+        .eq("published", true)
+        .eq("category", business.category)
+        .neq("id", business.id)
+        .limit(4);
+      setSimilarBusinesses(data || []);
+    };
+
+    checkFav();
+    fetchSimilar();
+  }, [business?.id, business?.category]);
+
+  const toggleFavorite = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) { window.location.href = "/login?next=" + window.location.pathname; return; }
+    if (isFavorited && favoriteId) {
+      await supabase.from("favorites").delete().eq("id", favoriteId);
+      setIsFavorited(false); setFavoriteId(null);
+    } else if (business?.id) {
+      const { data } = await supabase.from("favorites").insert({ user_id: session.user.id, business_id: business.id }).select("id").single();
+      if (data) { setIsFavorited(true); setFavoriteId(data.id); }
+    }
+  }, [isFavorited, favoriteId, business?.id]);
 
   // Show engagement popup 3s after business loads (once per session)
   useEffect(() => {
@@ -500,6 +553,10 @@ export default function VitrineClient({ slug }: { slug: string }) {
             opening_hours: (data.opening_hours as unknown as OpeningHour[]) || [],
             published: data.published,
             is_published: data.is_published,
+            owner_origin_country: data.owner_origin_country || "",
+            owner_name: data.owner_name || "",
+            owner_photo: data.owner_photo || "",
+            owner_bio: data.owner_bio || "",
           });
 
           if (productsRes.data) {
@@ -1148,6 +1205,72 @@ export default function VitrineClient({ slug }: { slug: string }) {
               </div>
             )}
 
+            {/* ── Community seal ── */}
+            {(() => {
+              const community = business.owner_origin_country
+                ? getCommunityByCountry(business.owner_origin_country)
+                : null;
+              if (!community) return null;
+              return (
+                <Link
+                  href={`/comunidade/${community.slug}`}
+                  className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3 hover:border-[#C8A96B]/30 transition-colors"
+                >
+                  <span className="text-3xl">{community.icon}</span>
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Comunidade</p>
+                    <p className="text-white font-bold text-sm">{community.name}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: community.color }}>Ver todos os negócios →</p>
+                  </div>
+                </Link>
+              );
+            })()}
+
+            {/* ── Founder profile ── */}
+            {(business.owner_name || business.owner_origin_country) && (
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 space-y-3">
+                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-800 pb-2">Fundador(a)</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-[#C8A96B]/10 border border-[#C8A96B]/20 flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
+                    {business.owner_photo
+                      ? <img src={business.owner_photo} alt="" className="w-full h-full object-cover" />
+                      : "👤"}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-white font-bold text-sm">{business.owner_name || "Fundador(a)"}</p>
+                    <p className="text-slate-400 text-xs">{business.owner_origin_country || ""}</p>
+                    <p className="text-[#C8A96B] text-[10px] font-semibold">📍 {business.city}</p>
+                  </div>
+                </div>
+                {business.owner_bio && (
+                  <p className="text-slate-400 text-xs leading-relaxed font-light">{business.owner_bio}</p>
+                )}
+              </div>
+            )}
+
+            {/* ── Favourite button ── */}
+            <button
+              onClick={toggleFavorite}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all border"
+              style={isFavorited
+                ? { background: "#EF444415", borderColor: "#EF4444", color: "#EF4444" }
+                : { background: "transparent", borderColor: "rgba(255,255,255,0.1)", color: "rgba(148,163,184,1)" }}
+            >
+              {isFavorited ? "❤️ Guardado nos favoritos" : "🤍 Guardar negócio"}
+            </button>
+
+            {/* Invite button */}
+            <button
+              onClick={() => {
+                const url = window.location.origin + "/login?ref=" + business.slug;
+                navigator.clipboard.writeText(url);
+                alert("Link de convite copiado! Partilha com outro negócio.");
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all bg-slate-800/40 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800"
+            >
+              🔗 Convidar outro negócio
+            </button>
+
             {/* Share Widget */}
             <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 text-center space-y-3">
               <span className="text-xs text-slate-400 font-semibold block">Partilhar esta Vitrina</span>
@@ -1189,6 +1312,34 @@ export default function VitrineClient({ slug }: { slug: string }) {
           </div>
         </div>
       </div>
+
+      {/* ── Similar businesses ── */}
+      {similarBusinesses.length > 0 && (
+        <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
+          <h3 className="text-xl font-bold font-display text-white">Pessoas também visitaram</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {similarBusinesses.map(biz => (
+              <Link
+                key={biz.id}
+                href={`/vitrine/${biz.slug}`}
+                className="group bg-slate-900/60 border border-slate-800 hover:border-[#C8A96B]/40 rounded-xl overflow-hidden transition-all hover:-translate-y-0.5"
+              >
+                <div className="h-20 bg-slate-800 overflow-hidden relative">
+                  {biz.cover_url
+                    ? <img src={biz.cover_url} alt="" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform" />
+                    : <div className="w-full h-full flex items-center justify-center text-2xl">🏪</div>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent" />
+                </div>
+                <div className="p-3">
+                  <p className="text-white text-xs font-bold truncate group-hover:text-[#C8A96B] transition-colors">{biz.name}</p>
+                  <p className="text-slate-500 text-[10px] truncate">📍 {biz.city}</p>
+                  <p className="text-[#C8A96B] text-[10px] mt-1 font-bold">★ {biz.rating_average?.toFixed(1) || "5.0"}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-[#050B14] border-t border-slate-900 py-10 mt-16 text-center text-slate-500 text-xs">

@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
+import { getCommunityByCountry } from "@/lib/communities";
 
 interface Business {
   id: string;
@@ -195,6 +196,7 @@ export default function ExplorarPage() {
         reviewCount: b.rating_count || 0,
         slug: b.slug,
         country: b.country || b.owner_origin_country || "",
+        owner_origin_country: b.owner_origin_country || "",
       };
     });
   }, [realBusinesses, dbCategories, dbCities]);
@@ -484,6 +486,18 @@ function ExplorarCard({ biz }: { biz: any }) {
             ✦ Destaque
           </span>
         )}
+
+        {/* Community seal */}
+        {(() => {
+          const comm = biz.owner_origin_country ? getCommunityByCountry(biz.owner_origin_country) : null;
+          if (!comm) return null;
+          return (
+            <span className="absolute top-3 left-3 z-20 px-2 py-0.5 text-[9px] font-bold rounded-full backdrop-blur-md"
+              style={{ background: `${comm.color}25`, color: comm.color, border: `1px solid ${comm.color}40` }}>
+              {comm.icon} {comm.name}
+            </span>
+          );
+        })()}
 
         <span className="absolute bottom-3 left-3 z-20 px-2.5 py-0.5 text-[9px] font-bold bg-[#0F172A]/80 border border-white/5 text-[#C8A96B] rounded-full uppercase tracking-wider backdrop-blur-md">
           {biz.category}
