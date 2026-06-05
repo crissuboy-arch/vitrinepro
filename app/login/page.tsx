@@ -127,23 +127,18 @@ function LoginForm() {
           setIsSignUp(false);
         }
       } else {
-        // Login
-        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+        // Login — use session from result directly, no fragile delay needed
+        const { data: { session }, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
 
         if (loginError) throw loginError;
 
-        // Small delay for session cookie to be set
-        await new Promise((r) => setTimeout(r, 300));
-
-        const { data: { session } } = await supabase.auth.getSession();
-
         if (session?.user) {
           const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).maybeSingle();
-          
+
           let target = nextPath || (biz ? "/dashboard" : "/onboarding");
           const params = new URLSearchParams();
           if (plan) params.set("plan", plan);
-          
+
           const redirectUrl = params.toString() ? `${target}?${params.toString()}` : target;
           router.push(redirectUrl);
         } else {
