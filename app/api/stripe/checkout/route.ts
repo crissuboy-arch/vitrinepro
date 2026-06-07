@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+export const runtime = "nodejs";
+
 const PLAN_PRICE_MAP: Record<string, string> = {
   premium: process.env.STRIPE_PRICE_PREMIUM || "price_1TdcwCAMDgnZ14qnXRDpeJj9",
   pro: process.env.STRIPE_PRICE_PREMIUM || "price_1TdcwCAMDgnZ14qnXRDpeJj9",

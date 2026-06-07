@@ -365,9 +365,11 @@ export default function HomePage() {
       });
       
       if (!resp.ok) {
-        throw new Error("HTTP error " + resp.status);
+        const body = await resp.text().catch(() => "(sem corpo)");
+        console.error("[PLANS] Checkout API error:", resp.status, body);
+        throw new Error(`HTTP error ${resp.status}: ${body}`);
       }
-      
+
       const data = await resp.json();
       if (data.url) {
         console.log("[PLANS] Redirecting to Stripe url:", data.url);
