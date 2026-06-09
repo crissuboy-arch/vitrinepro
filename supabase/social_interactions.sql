@@ -14,7 +14,18 @@ CREATE TABLE IF NOT EXISTS public.business_likes (
 CREATE INDEX IF NOT EXISTS idx_biz_likes_user ON public.business_likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_biz_likes_biz  ON public.business_likes(business_id);
 
--- ── 2. business_shares (anonymous OK) ──────────────────────────
+-- ── 2. favorites (create if not yet applied) ───────────────────
+CREATE TABLE IF NOT EXISTS public.favorites (
+  id          UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  business_id UUID        NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, business_id)
+);
+CREATE INDEX IF NOT EXISTS idx_favorites_user ON public.favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_biz  ON public.favorites(business_id);
+
+-- ── 3. business_shares (anonymous OK) ─────────────────────────
 CREATE TABLE IF NOT EXISTS public.business_shares (
   id          UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
   business_id UUID        NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
