@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { getMarketplaceProducts, getDbCategories } from "@/lib/business-actions";
+import MarketplaceGrid from "../MarketplaceGrid";
 
 interface MarketplacePageProps {
   params: Promise<{ category: string }>;
@@ -35,9 +35,9 @@ export default async function MarketplaceCategoryPage({ params }: MarketplacePag
   const resolvedParams = await params;
   const { category: categorySlug } = resolvedParams;
 
-  // Parallel fetch products and categories
-  const [products, categories] = await Promise.all([
-    getMarketplaceProducts(categorySlug),
+  // Parallel fetch products and categories (first page only)
+  const [{ products, hasMore }, categories] = await Promise.all([
+    getMarketplaceProducts(categorySlug, 24, 0),
     getDbCategories(),
   ]);
 
@@ -121,97 +121,15 @@ export default async function MarketplaceCategoryPage({ params }: MarketplacePag
         <section className="flex-grow space-y-6">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-base font-bold text-white font-display">
-              {currentCat ? currentCat.name : "Todos os Produtos"} ({products.length})
+              {currentCat ? currentCat.name : "Todos os Produtos"}
             </h3>
           </div>
 
-          {products.length > 0 ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((prod) => {
-                const isDigital = prod.type === "digital";
-                return (
-                  <Link
-                    key={prod.id}
-                    href={`/produto/${prod.slug || prod.id}`}
-                    className="bg-slate-900/40 border border-slate-800 hover:border-[#C8A96B]/50 rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-                  >
-                    <div>
-                      {/* Product Image Cover */}
-                      <div className="relative h-48 bg-slate-950 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                        {prod.image_url ? (
-                          <Image
-                            src={prod.image_url}
-                            alt={prod.name}
-                            fill
-                            className="object-cover group-hover:scale-102 transition-transform duration-500"
-                          />
-                        ) : (
-                          <div className="text-slate-700 flex flex-col items-center gap-1">
-                            <span className="text-5xl">📦</span>
-                          </div>
-                        )}
-                        {isDigital ? (
-                          <span className="absolute top-3 left-3 px-2 py-0.5 bg-blue-600 text-white text-[9px] font-bold rounded uppercase tracking-wider shadow">
-                            💻 Digital
-                          </span>
-                        ) : (
-                          <span className="absolute top-3 left-3 px-2 py-0.5 bg-orange-600 text-white text-[9px] font-bold rounded uppercase tracking-wider shadow">
-                            🛍️ Físico
-                          </span>
-                        )}
-                        {prod.price !== null && (
-                          <span className="absolute bottom-3 right-3 px-2.5 py-1 bg-[#C8A96B] text-[#0F172A] text-xs font-bold rounded-lg shadow-lg">
-                            €{prod.price.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Product Content Details */}
-                      <div className="p-5 space-y-2">
-                        <div className="flex gap-2 items-center text-[10px] text-slate-500">
-                          <span>Loja:</span>
-                          <span className="text-slate-350 hover:underline">
-                            {prod.businesses?.name}
-                          </span>
-                          {prod.businesses?.is_verified_store && (
-                            <span className="text-[#C8A96B]">✓</span>
-                          )}
-                        </div>
-                        <h4 className="font-display text-base font-bold text-white group-hover:text-[#C8A96B] transition-colors leading-tight">
-                          {prod.name}
-                        </h4>
-                        <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                          {prod.description || "Consulte o nosso catálogo para mais informações e encomendas."}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="px-5 pb-5 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs mt-3">
-                      <span className="text-slate-500">📍 {prod.businesses?.city || "Portugal"}</span>
-                      <span className="text-[#C8A96B] font-bold group-hover:underline">
-                        Ver Detalhes →
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-20 bg-slate-900/10 border border-dashed border-slate-800 rounded-3xl space-y-6">
-              <span className="text-5xl block">🛍️</span>
-              <div className="space-y-2 px-6">
-                <h4 className="text-lg font-bold text-white font-display">Sem produtos nesta categoria</h4>
-                <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
-                  Ainda não existem produtos listados na categoria de {currentCat ? currentCat.name.toLowerCase() : "produtos"}. Visite a página novamente mais tarde!
-                </p>
-              </div>
-              <div className="pt-2">
-                <Link href="/dashboard" className="inline-block px-6 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-xs font-bold rounded-xl transition-all active:scale-95">
-                  Anunciar Meus Produtos
-                </Link>
-              </div>
-            </div>
-          )}
+          <MarketplaceGrid
+            initialProducts={products}
+            initialHasMore={hasMore}
+            categorySlug={categorySlug}
+          />
         </section>
 
       </main>

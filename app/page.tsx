@@ -645,13 +645,26 @@ export default function HomePage() {
 
       <FinalCTASection onCadastrar={handleCadastrarClick} />
 
-      <footer className="py-16 bg-[#030610] border-t border-white/5 text-center text-slate-500 text-xs z-10">
-        <div className="max-w-6xl mx-auto px-4 space-y-4">
+      <footer className="py-16 bg-[#030610] border-t border-white/5 text-slate-500 text-xs z-10">
+        <div className="max-w-6xl mx-auto px-4 space-y-6 text-center">
           <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-12 mx-auto object-contain bg-transparent" />
           <p className="text-slate-400 font-light max-w-md mx-auto">
             A ferramenta SaaS definitiva para simplificar a presença online de pequenos negócios e profissionais liberais.
           </p>
-          <p className="text-[10px] text-slate-650 pt-2">© 2026 VitrinePro. Todos os direitos reservados.</p>
+
+          {/* Navigation links */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] text-slate-500">
+            <Link href="/businesses" className="hover:text-[#C8A96B] transition-colors">Marketplace</Link>
+            <Link href="/pricing" className="hover:text-[#C8A96B] transition-colors">Planos</Link>
+            <Link href="/explorar" className="hover:text-[#C8A96B] transition-colors">Explorar</Link>
+            <span className="text-slate-700 hidden sm:inline">·</span>
+            <Link href="/politica-privacidade" className="hover:text-[#C8A96B] transition-colors">Política de Privacidade</Link>
+            <Link href="/termos-de-servico" className="hover:text-[#C8A96B] transition-colors">Termos de Serviço</Link>
+          </div>
+
+          <p className="text-[10px] text-slate-700 pt-2">
+            © 2026 VitrinePro · Portugal · Todos os direitos reservados
+          </p>
         </div>
       </footer>
 

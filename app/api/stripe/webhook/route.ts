@@ -56,10 +56,20 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true });
       }
 
-      console.log(`[STRIPE WEBHOOK] Updating plan '${planId}' for business ${businessId}`);
+      const subscriptionId = typeof session.subscription === "string"
+        ? session.subscription
+        : (session.subscription as any)?.id ?? null;
+      const customerId = typeof session.customer === "string" ? session.customer : null;
+
+      console.log(`[STRIPE WEBHOOK] Updating plan '${planId}' for business ${businessId} (sub: ${subscriptionId})`);
       const { error } = await supabase
         .from("businesses")
-        .update({ plan: planId })
+        .update({
+          plan: planId,
+          stripe_subscription_id: subscriptionId,
+          stripe_customer_id: customerId,
+          subscription_cancel_at: null, // clear any pending cancellation on new checkout
+        })
         .eq("id", businessId);
 
       if (error) {
@@ -91,16 +101,37 @@ export async function POST(request: Request) {
           }
         }
       }
-    } else if (event.type === "customer.subscription.deleted") {
-      // Cancellation: downgrade to free
+    } else if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object;
       const businessId = subscription.metadata?.businessId;
 
       if (businessId) {
-        console.log(`[STRIPE WEBHOOK] Subscription cancelled for business ${businessId} — downgrading to free`);
+        if (subscription.cancel_at_period_end && subscription.cancel_at) {
+          const cancelAt = new Date(subscription.cancel_at * 1000).toISOString();
+          console.log(`[STRIPE WEBHOOK] Subscription cancel scheduled for business ${businessId} at ${cancelAt}`);
+          await supabase
+            .from("businesses")
+            .update({ subscription_cancel_at: cancelAt })
+            .eq("id", businessId);
+        } else if (!subscription.cancel_at_period_end) {
+          // Reactivated — clear scheduled cancellation
+          console.log(`[STRIPE WEBHOOK] Subscription reactivated for business ${businessId}`);
+          await supabase
+            .from("businesses")
+            .update({ subscription_cancel_at: null })
+            .eq("id", businessId);
+        }
+      }
+    } else if (event.type === "customer.subscription.deleted") {
+      // Period ended after cancel_at_period_end — downgrade to free and clear subscription data
+      const subscription = event.data.object;
+      const businessId = subscription.metadata?.businessId;
+
+      if (businessId) {
+        console.log(`[STRIPE WEBHOOK] Subscription deleted for business ${businessId} — downgrading to free`);
         await supabase
           .from("businesses")
-          .update({ plan: "free" })
+          .update({ plan: "free", stripe_subscription_id: null, subscription_cancel_at: null })
           .eq("id", businessId);
       }
     }

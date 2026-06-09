@@ -4,4 +4,3 @@ Allow: /
 
 # Sitemap URL
 Sitemap: https://vitrinepro.pt/sitemap.xml
-Sitemap: http://localhost:3000/sitemap.xml

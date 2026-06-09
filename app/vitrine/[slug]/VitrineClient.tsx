@@ -880,16 +880,22 @@ export default function VitrineClient({ slug }: { slug: string }) {
           <p className="text-[#C8A96B] font-medium text-sm mt-1 sm:mt-0">{business.category} · 📍 {business.city}</p>
           
           <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 text-xs">
-            <div className="flex text-[#C8A96B] text-sm">
-              {Array.from({ length: Math.round(business.rating || 5) }).map((_, i) => (
-                <span key={i}>★</span>
-              ))}
-              {Array.from({ length: 5 - Math.round(business.rating || 5) }).map((_, i) => (
-                <span key={i} className="text-slate-700">★</span>
-              ))}
-            </div>
-            <span className="font-bold text-white ml-1">{business.rating?.toFixed(1)}</span>
-            <span className="text-slate-400">({business.reviewCount} avaliações)</span>
+            {business.rating && (business.reviewCount ?? 0) > 0 ? (
+              <>
+                <div className="flex text-[#C8A96B] text-sm">
+                  {Array.from({ length: Math.round(business.rating) }).map((_, i) => (
+                    <span key={i}>★</span>
+                  ))}
+                  {Array.from({ length: 5 - Math.round(business.rating) }).map((_, i) => (
+                    <span key={i} className="text-slate-700">★</span>
+                  ))}
+                </div>
+                <span className="font-bold text-white ml-1">{business.rating.toFixed(1)}</span>
+                <span className="text-slate-400">({business.reviewCount} avaliações)</span>
+              </>
+            ) : (
+              <span className="text-slate-500 italic text-[11px]">Sem avaliações</span>
+            )}
           </div>
         </div>
       </div>

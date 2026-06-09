@@ -42,6 +42,12 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const errorRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (searchParams.get("message") === "password-updated") {
+      setSuccess("✅ Senha atualizada com sucesso! Entra com a tua nova senha.");
+    }
+  }, [searchParams]);
+
   const showError = (msg: string) => {
     setError(getReadableError(msg));
     setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
@@ -245,6 +251,17 @@ function LoginForm() {
                 </button>
               </div>
             </div>
+
+            {!isSignUp && (
+              <div className="flex justify-end -mt-1">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-[#C8A96B] hover:underline"
+                >
+                  Esqueceu a senha?
+                </Link>
+              </div>
+            )}
 
             {/* Error/Success — perto do botão para ser sempre visível */}
             {error && (

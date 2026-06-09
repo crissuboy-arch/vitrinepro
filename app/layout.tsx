@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/SupabaseAuthContext";
+import CookieConsent from "./components/CookieConsent";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <AuthProvider>
           {children}
+          <CookieConsent />
         </AuthProvider>
       </body>
     </html>

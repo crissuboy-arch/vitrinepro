@@ -275,7 +275,11 @@ export async function getBusinessesByCityAndCategory(
 /**
  * Fetches marketplace products (physical & digital) with business info, optionally filtered by category slug.
  */
-export async function getMarketplaceProducts(categorySlug?: string): Promise<any[]> {
+export async function getMarketplaceProducts(
+  categorySlug?: string,
+  limit = 24,
+  offset = 0
+): Promise<{ products: any[]; hasMore: boolean }> {
   try {
     let query = supabase
       .from("products")
@@ -294,12 +298,17 @@ export async function getMarketplaceProducts(categorySlug?: string): Promise<any
       }
     }
 
-    const { data, error } = await query.order("order_index", { ascending: true });
+    // Fetch one extra to know if there are more pages
+    const { data, error } = await query
+      .order("order_index", { ascending: true })
+      .range(offset, offset + limit);
+
     if (error) throw error;
-    return data || [];
+    const rows = data || [];
+    return { products: rows.slice(0, limit), hasMore: rows.length > limit };
   } catch (err) {
     console.error("[DB] Error fetching marketplace products:", err);
-    return [];
+    return { products: [], hasMore: false };
   }
 }
 

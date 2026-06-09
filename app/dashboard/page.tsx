@@ -126,15 +126,34 @@ export default function DashboardPage() {
   const [prodPreview, setProdPreview] = useState("");
   const [savingProduct, setSavingProduct] = useState(false);
 
+  // Edit Product State
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [editProdName, setEditProdName] = useState("");
+  const [editProdDesc, setEditProdDesc] = useState("");
+  const [editProdPrice, setEditProdPrice] = useState("");
+  const [editProdFile, setEditProdFile] = useState<File | null>(null);
+  const [editProdPreview, setEditProdPreview] = useState("");
+  const [savingEditProduct, setSavingEditProduct] = useState(false);
+
   // Testimonial Form State
   const [testAuthor, setTestAuthor] = useState("");
   const [testText, setTestText] = useState("");
   const [testRating, setTestRating] = useState(5);
   const [savingTestimonial, setSavingTestimonial] = useState(false);
 
+  // Edit Testimonial State
+  const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
+  const [editTestAuthor, setEditTestAuthor] = useState("");
+  const [editTestText, setEditTestText] = useState("");
+  const [editTestRating, setEditTestRating] = useState(5);
+  const [savingEditTestimonial, setSavingEditTestimonial] = useState(false);
+
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [toast, setToast] = useState("");
+  const [showCatalogModal, setShowCatalogModal] = useState(false);
 
   // Auto-dismiss toast after 4s
   useEffect(() => {
@@ -301,6 +320,41 @@ export default function DashboardPage() {
     }
   }, [business?.id]);
 
+  const handleCancelSubscription = async () => {
+    if (!business?.id) return;
+    setCancelLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/stripe/cancel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ businessId: business.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao cancelar.");
+
+      setShowCancelModal(false);
+
+      if (data.immediate) {
+        setBusiness((prev: any) => ({ ...prev, plan: "free", subscription_cancel_at: null }));
+        setToast("Assinatura cancelada. O teu plano foi alterado para Grátis.");
+      } else {
+        const formatted = data.cancel_at
+          ? new Date(data.cancel_at).toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" })
+          : "fim do período";
+        setBusiness((prev: any) => ({ ...prev, subscription_cancel_at: data.cancel_at }));
+        setToast(`Cancelamento agendado. Acesso premium até ${formatted}.`);
+      }
+    } catch (err: any) {
+      setToast("Erro: " + (err.message || "Não foi possível cancelar."));
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
   if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center flex-col gap-4">
@@ -458,7 +512,63 @@ export default function DashboardPage() {
     }
   };
 
-  // 4. Add Testimonial Action
+  // 4. Delete Product
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm("Eliminar este produto?")) return;
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) { alert("Erro ao eliminar: " + error.message); return; }
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+    setToast("Produto eliminado.");
+  };
+
+  // 5. Open Edit Modal
+  const openEditProduct = (p: any) => {
+    setEditingProduct(p);
+    setEditProdName(p.name);
+    setEditProdDesc(p.description || "");
+    setEditProdPrice(p.price !== null && p.price !== undefined ? String(p.price) : "");
+    setEditProdFile(null);
+    setEditProdPreview(p.image_url || "");
+  };
+
+  // 6. Save Edit
+  const handleSaveEditProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct || !editProdName) return;
+    setSavingEditProduct(true);
+    try {
+      let imageUrl = editingProduct.image_url || "";
+      if (editProdFile) {
+        imageUrl = await uploadProductImage(editProdFile, business.id);
+      }
+      const dbUpdates = {
+        name: editProdName,
+        description: editProdDesc || null,
+        price: editProdPrice ? parseFloat(editProdPrice) : null,
+        image_url: imageUrl || null,
+      };
+      const { error } = await supabase.from("products").update(dbUpdates).eq("id", editingProduct.id);
+      if (error) throw error;
+      // Convert null → undefined for local Product interface compatibility
+      const localUpdates: Partial<Product> = {
+        name: editProdName,
+        description: editProdDesc || undefined,
+        price: editProdPrice ? parseFloat(editProdPrice) : undefined,
+        image_url: imageUrl || undefined,
+      };
+      setProducts((prev) =>
+        prev.map((p) => (p.id === editingProduct.id ? { ...p, ...localUpdates } : p))
+      );
+      setEditingProduct(null);
+      setToast("Produto atualizado.");
+    } catch (err: any) {
+      alert("Erro ao atualizar: " + err.message);
+    } finally {
+      setSavingEditProduct(false);
+    }
+  };
+
+  // 7. Add Testimonial Action
   const handleAddTestimonial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!testAuthor || !testText) return;
@@ -490,7 +600,45 @@ export default function DashboardPage() {
     }
   };
 
-  // 5. Add Gallery Images Action
+  // 5. Delete Testimonial
+  const handleDeleteTestimonial = async (id: string) => {
+    if (!confirm("Eliminar este depoimento?")) return;
+    const { error } = await supabase.from("testimonials").delete().eq("id", id);
+    if (error) { alert("Erro ao eliminar: " + error.message); return; }
+    setTestimonials((prev) => prev.filter((t) => t.id !== id));
+    setToast("Depoimento eliminado.");
+  };
+
+  // 6. Open Edit Testimonial Modal
+  const openEditTestimonial = (t: Testimonial) => {
+    setEditingTestimonial(t);
+    setEditTestAuthor(t.author_name);
+    setEditTestText(t.text);
+    setEditTestRating(t.rating);
+  };
+
+  // 7. Save Edit Testimonial
+  const handleSaveEditTestimonial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTestimonial) return;
+    setSavingEditTestimonial(true);
+    try {
+      const updates = { author_name: editTestAuthor, text: editTestText, rating: editTestRating };
+      const { error } = await supabase.from("testimonials").update(updates).eq("id", editingTestimonial.id);
+      if (error) throw error;
+      setTestimonials((prev) =>
+        prev.map((t) => (t.id === editingTestimonial.id ? { ...t, ...updates } : t))
+      );
+      setEditingTestimonial(null);
+      setToast("Depoimento atualizado.");
+    } catch (err: any) {
+      alert("Erro ao atualizar: " + err.message);
+    } finally {
+      setSavingEditTestimonial(false);
+    }
+  };
+
+  // 8. Add Gallery Images Action
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -604,7 +752,14 @@ export default function DashboardPage() {
             plan={business.plan || "free"}
             onUpgrade={handleUpgrade}
             checkoutLoading={checkoutLoading}
+            subscriptionCancelAt={business.subscription_cancel_at ?? null}
+            onCancelRequest={() => setShowCancelModal(true)}
           />
+        )}
+
+        {/* ===== VITRINE SHARE CARD ===== */}
+        {business?.slug && (
+          <VitrineShareCard slug={business.slug} />
         )}
 
         {/* ===== SHORT LINK SECTION ===== */}
@@ -697,10 +852,16 @@ export default function DashboardPage() {
                 Editar Informações
               </button>
               <button
+                onClick={() => setShowCatalogModal(true)}
+                className="flex-1 md:flex-initial px-5 py-2.5 border border-[#C8A96B]/50 text-[#C8A96B] hover:bg-[#C8A96B]/10 rounded-lg font-bold text-sm transition-colors flex items-center gap-2"
+              >
+                <span>📄</span> Gerar Catálogo PDF
+              </button>
+              <button
                 onClick={handleTogglePublish}
                 className={`flex-grow md:flex-initial px-5 py-2.5 border rounded-lg font-bold text-sm transition-colors ${
-                  business?.published 
-                    ? "border-red-900 bg-red-950/20 text-red-400 hover:bg-red-900 hover:text-white" 
+                  business?.published
+                    ? "border-red-900 bg-red-950/20 text-red-400 hover:bg-red-900 hover:text-white"
                     : "border-green-800 bg-green-950/20 text-green-400 hover:bg-green-800 hover:text-white"
                 }`}
               >
@@ -755,6 +916,20 @@ export default function DashboardPage() {
                           )}
                         </div>
                         <p className="text-xs text-gray-400 mt-1 line-clamp-2">{p.description || "Sem descrição..."}</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => openEditProduct(p)}
+                            className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p.id)}
+                            className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-red-700 hover:text-red-400 transition-colors"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -786,14 +961,28 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   {testimonials.map((t) => (
                     <div key={t.id} className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors">
-                      <div className="flex justify-between items-center mb-2">
+                      <div className="flex justify-between items-start mb-2">
                         <span className="font-semibold text-sm text-white">{t.author_name}</span>
                         <div className="flex text-[#C8A96B] text-xs">
                           {Array.from({ length: t.rating }).map((_, i) => <span key={i}>★</span>)}
                           {Array.from({ length: 5 - t.rating }).map((_, i) => <span key={i} className="text-gray-700">★</span>)}
                         </div>
                       </div>
-                      <p className="text-xs text-gray-300 leading-relaxed italic">&quot;{t.text}&quot;</p>
+                      <p className="text-xs text-gray-300 leading-relaxed italic mb-3">&quot;{t.text}&quot;</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEditTestimonial(t)}
+                          className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTestimonial(t.id)}
+                          className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-red-700 hover:text-red-400 transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1242,6 +1431,102 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* EDIT PRODUCT MODAL */}
+      {editingProduct && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <form
+            onSubmit={handleSaveEditProduct}
+            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+          >
+            <button
+              type="button"
+              onClick={() => setEditingProduct(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+            <h3 className="text-lg font-display font-semibold text-[#C8A96B]">Editar Produto</h3>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Nome do Produto *</label>
+                <input
+                  type="text"
+                  value={editProdName}
+                  onChange={(e) => setEditProdName(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Descrição</label>
+                <textarea
+                  value={editProdDesc}
+                  onChange={(e) => setEditProdDesc(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Preço (€)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editProdPrice}
+                  onChange={(e) => setEditProdPrice(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                  placeholder="Ex: 15.50"
+                />
+              </div>
+
+              <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg">
+                <label className="block text-xs font-medium text-gray-400 mb-2">Imagem do Produto</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded bg-gray-950 border border-gray-800 flex items-center justify-center overflow-hidden">
+                    {editProdPreview ? (
+                      <img src={editProdPreview} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xl">📦</span>
+                    )}
+                  </div>
+                  <label className="cursor-pointer px-3 py-1.5 bg-gray-800 text-xs text-[#C8A96B] border border-gray-700 hover:border-[#C8A96B] rounded font-semibold transition-all">
+                    Alterar Imagem
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) { setEditProdFile(f); setEditProdPreview(URL.createObjectURL(f)); }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => setEditingProduct(null)}
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded text-xs transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={savingEditProduct}
+                className="px-4 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded text-xs transition-colors"
+              >
+                {savingEditProduct ? "A Guardar..." : "Guardar Alterações"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* ADD TESTIMONIAL MODAL */}
       {showTestimonialModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
@@ -1319,6 +1604,144 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* EDIT TESTIMONIAL MODAL */}
+      {editingTestimonial && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <form
+            onSubmit={handleSaveEditTestimonial}
+            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+          >
+            <button
+              type="button"
+              onClick={() => setEditingTestimonial(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+            <h3 className="text-lg font-display font-semibold text-[#C8A96B]">Editar Depoimento</h3>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Nome do Autor *</label>
+                <input
+                  type="text"
+                  value={editTestAuthor}
+                  onChange={(e) => setEditTestAuthor(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Avaliação</label>
+                <select
+                  value={editTestRating}
+                  onChange={(e) => setEditTestRating(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white focus:outline-none"
+                >
+                  <option value={5}>5 estrelas (Excelente)</option>
+                  <option value={4}>4 estrelas (Bom)</option>
+                  <option value={3}>3 estrelas (Regular)</option>
+                  <option value={2}>2 estrelas (Ruim)</option>
+                  <option value={1}>1 estrela (Péssimo)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Depoimento *</label>
+                <textarea
+                  value={editTestText}
+                  onChange={(e) => setEditTestText(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white resize-none"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => setEditingTestimonial(null)}
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded text-xs transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={savingEditTestimonial}
+                className="px-4 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded text-xs transition-colors"
+              >
+                {savingEditTestimonial ? "A Guardar..." : "Guardar Alterações"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* CANCEL SUBSCRIPTION MODAL */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900 border border-red-900/40 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-950/60 border border-red-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-lg">⚠️</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-display font-semibold text-white">Cancelar Assinatura</h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Plano <span className="capitalize text-[#C8A96B]">{business?.plan}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 space-y-2 text-sm text-gray-300">
+              <p className="font-medium text-white text-sm">O que acontece ao cancelar:</p>
+              <ul className="space-y-1.5 text-xs text-gray-400">
+                <li className="flex items-start gap-2"><span className="text-green-400 mt-0.5">✓</span> Manténs o acesso premium até ao fim do período já pago.</li>
+                <li className="flex items-start gap-2"><span className="text-green-400 mt-0.5">✓</span> A tua vitrine permanece visível no marketplace.</li>
+                <li className="flex items-start gap-2"><span className="text-red-400 mt-0.5">✗</span> No fim do período perdes o destaque e as estatísticas.</li>
+                <li className="flex items-start gap-2"><span className="text-red-400 mt-0.5">✗</span> O plano será revertido para Grátis automaticamente.</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancelLoading}
+                className="flex-1 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
+              >
+                Manter Assinatura
+              </button>
+              <button
+                onClick={handleCancelSubscription}
+                disabled={cancelLoading}
+                className="flex-1 px-4 py-2.5 bg-red-900 hover:bg-red-800 border border-red-700 text-red-200 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {cancelLoading ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-red-300 border-t-transparent rounded-full animate-spin" />
+                    A cancelar...
+                  </>
+                ) : (
+                  "Confirmar Cancelamento"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CATALOG PDF MODAL */}
+      {showCatalogModal && business && (
+        <CatalogPdfModal
+          business={business}
+          products={products}
+          plan={business.plan || "free"}
+          onClose={() => setShowCatalogModal(false)}
+        />
+      )}
+
       {/* Toast notification */}
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 bg-[#1E293B] border border-[#C8A96B]/40 text-white text-sm font-medium rounded-xl shadow-2xl animate-fade-in max-w-sm text-center">
@@ -1329,19 +1752,636 @@ export default function DashboardPage() {
   );
 }
 
+// ─── Vitrine Share Card ────────────────────────────────────────────────────
+function VitrineShareCard({ slug }: { slug: string }) {
+  const [copied, setCopied] = useState(false);
+  const vitrineUrl = `https://vitrinepro.pt/vitrine/${slug}`;
+  const waText = encodeURIComponent(`Visita a minha vitrine profissional: ${vitrineUrl}`);
+  const waUrl = `https://wa.me/?text=${waText}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&bgcolor=0F172A&color=C8A96B&data=${encodeURIComponent(vitrineUrl)}`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(vitrineUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  return (
+    <div className="bg-gray-900 border border-[#C8A96B]/20 rounded-2xl p-6 shadow-xl mt-6">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[#C8A96B] text-base">🔗</span>
+        <h4 className="text-sm font-bold text-white">Link da tua Vitrine</h4>
+      </div>
+      <p className="text-[11px] text-gray-400 mb-5 leading-relaxed">
+        Use este link na bio do Instagram, WhatsApp, cartões digitais e materiais de divulgação.
+      </p>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Left: URL + actions */}
+        <div className="flex-grow space-y-3">
+          {/* URL box */}
+          <div className="flex items-center gap-2 bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3">
+            <a
+              href={`/vitrine/${slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-grow text-xs text-[#C8A96B] font-mono hover:underline truncate"
+            >
+              {vitrineUrl}
+            </a>
+            <ExternalLink className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={handleCopy}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                copied
+                  ? "bg-green-700 text-white"
+                  : "bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A]"
+              }`}
+            >
+              {copied ? <><Check className="w-3.5 h-3.5" /> Copiado!</> : <><Copy className="w-3.5 h-3.5" /> Copiar Link</>}
+            </button>
+
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-green-700 hover:bg-green-600 text-white transition-all"
+            >
+              <span>📲</span> Partilhar no WhatsApp
+            </a>
+          </div>
+        </div>
+
+        {/* Right: QR Code */}
+        <div className="flex-shrink-0 flex flex-col items-center gap-2">
+          <div className="w-[90px] h-[90px] rounded-xl overflow-hidden border border-gray-800 bg-[#0F172A] flex items-center justify-center">
+            <img
+              src={qrSrc}
+              alt={`QR Code da vitrine de ${slug}`}
+              width={80}
+              height={80}
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <span className="text-[10px] text-gray-500">QR Code</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Catalog PDF Modal ────────────────────────────────────────────────────
+
+const TITLE_FONTS = [
+  { label: "Playfair Display", value: "Playfair Display" },
+  { label: "Cormorant Garamond", value: "Cormorant Garamond" },
+  { label: "Libre Baskerville", value: "Libre Baskerville" },
+  { label: "Montserrat", value: "Montserrat" },
+  { label: "Raleway", value: "Raleway" },
+];
+
+const BODY_FONTS = [
+  { label: "Inter", value: "Inter" },
+  { label: "Lato", value: "Lato" },
+  { label: "Open Sans", value: "Open Sans" },
+  { label: "Poppins", value: "Poppins" },
+  { label: "Source Sans 3", value: "Source Sans 3" },
+];
+
+interface CatalogPrefs {
+  colorBg: string;
+  colorAccent: string;
+  colorText: string;
+  colorSection: string;
+  titleFont: string;
+  bodyFont: string;
+  inclProducts: boolean;
+  inclServices: boolean;
+  inclHours: boolean;
+  inclLocation: boolean;
+  footerPhrase: string;
+}
+
+const DEFAULT_PREFS: CatalogPrefs = {
+  colorBg: "#0a0d14",
+  colorAccent: "#c9a96e",
+  colorText: "#f5f0e8",
+  colorSection: "#f7f5f0",
+  titleFont: "Playfair Display",
+  bodyFont: "Inter",
+  inclProducts: true,
+  inclServices: true,
+  inclHours: true,
+  inclLocation: true,
+  footerPhrase: "",
+};
+
+function loadCatalogPrefs(businessId: string): CatalogPrefs {
+  try {
+    const raw = localStorage.getItem(`vp_catalog_${businessId}`);
+    if (!raw) return DEFAULT_PREFS;
+    return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_PREFS;
+  }
+}
+
+function saveCatalogPrefs(businessId: string, prefs: CatalogPrefs) {
+  try {
+    localStorage.setItem(`vp_catalog_${businessId}`, JSON.stringify(prefs));
+  } catch {}
+}
+
+function buildCatalogHtml(biz: any, products: any[], prefs: CatalogPrefs): string {
+  const baseUrl = "https://vitrinepro.pt";
+  const vitrineUrl = `${baseUrl}/vitrine/${biz.slug || ""}`;
+  const gFonts = `${prefs.titleFont}:wght@400;700&family=${prefs.bodyFont}:wght@400;600`.replace(/ /g, "+");
+
+  const hours: any[] = Array.isArray(biz.opening_hours) ? biz.opening_hours : [];
+  const openDays = hours.filter((h) => !h.closed && h.open && h.close);
+
+  const featured = products[0];
+  const rest = products.slice(1);
+
+  const servicesRaw: string[] = Array.isArray(biz.services)
+    ? biz.services
+    : typeof biz.services === "string"
+    ? biz.services.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
+    : [];
+
+  return `<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=${gFonts}&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'${prefs.bodyFont}',sans-serif;background:#fff;color:#111;width:210mm}
+  .page{width:210mm;min-height:297mm;page-break-after:always;overflow:hidden}
+
+  /* ── CAPA ── */
+  .cover{background:${prefs.colorBg};color:${prefs.colorText};padding:60px 50px;min-height:297mm;display:flex;flex-direction:column;justify-content:space-between;position:relative}
+  .cover-top{display:flex;justify-content:space-between;align-items:flex-start}
+  .cover-tag{font-family:'${prefs.bodyFont}',sans-serif;font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:${prefs.colorAccent};border:1px solid ${prefs.colorAccent}44;padding:5px 12px;border-radius:20px}
+  .cover-year{font-size:9px;color:${prefs.colorAccent}88;letter-spacing:2px}
+  .cover-center{flex:1;display:flex;flex-direction:column;justify-content:center;padding:60px 0}
+  .cover-pre{font-family:'${prefs.bodyFont}',sans-serif;font-size:10px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:${prefs.colorAccent};margin-bottom:20px}
+  .cover-title{font-family:'${prefs.titleFont}',serif;font-size:52px;font-weight:700;line-height:1.1;color:${prefs.colorText};margin-bottom:16px}
+  .cover-sub{font-size:14px;color:${prefs.colorAccent};font-weight:600;letter-spacing:1px;margin-bottom:30px}
+  .cover-divider{width:60px;height:3px;background:${prefs.colorAccent};margin-bottom:24px;border-radius:2px}
+  .cover-desc{font-size:12px;color:${prefs.colorText}bb;line-height:1.7;max-width:420px}
+  .cover-contacts{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .cover-contact-item{font-size:10px;color:${prefs.colorText}99;text-align:right}
+  .cover-contact-label{color:${prefs.colorAccent};font-weight:600;margin-right:6px}
+  .cover-footer-bar{border-top:1px solid ${prefs.colorAccent}33;padding-top:20px;display:flex;justify-content:space-between;align-items:center}
+  .cover-footer-url{font-size:9px;color:${prefs.colorAccent};letter-spacing:1px}
+  .cover-footer-logo{font-family:'${prefs.titleFont}',serif;font-size:12px;color:${prefs.colorText}55;letter-spacing:2px}
+
+  /* ── CONTEÚDO ── */
+  .content-page{background:#fff;padding:50px}
+  .section{margin-bottom:40px}
+  .section-label{font-size:8px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:${prefs.colorAccent};margin-bottom:14px}
+  .section-title{font-family:'${prefs.titleFont}',serif;font-size:26px;font-weight:700;color:#0a0d14;margin-bottom:6px}
+  .gold-bar{width:40px;height:3px;background:${prefs.colorAccent};border-radius:2px;margin-bottom:24px}
+
+  /* produtos */
+  .featured-product{background:${prefs.colorBg};border-radius:12px;padding:24px;display:flex;gap:24px;margin-bottom:24px;align-items:center}
+  .featured-img{width:100px;height:100px;object-fit:cover;border-radius:8px;flex-shrink:0;background:#1e2533}
+  .featured-img-placeholder{width:100px;height:100px;border-radius:8px;background:#1e2533;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0}
+  .featured-badge{display:inline-block;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${prefs.colorAccent};border:1px solid ${prefs.colorAccent}44;padding:3px 8px;border-radius:10px;margin-bottom:8px}
+  .featured-name{font-family:'${prefs.titleFont}',serif;font-size:20px;font-weight:700;color:${prefs.colorText};margin-bottom:6px}
+  .featured-desc{font-size:11px;color:${prefs.colorText}88;line-height:1.6}
+  .featured-price{font-size:18px;font-weight:700;color:${prefs.colorAccent};margin-top:8px}
+  .products-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .product-card{border:1px solid #e8e4dd;border-radius:10px;overflow:hidden}
+  .product-card-img{width:100%;height:80px;object-fit:cover;background:#f0ede8;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .product-card-body{padding:12px}
+  .product-card-name{font-family:'${prefs.titleFont}',serif;font-size:13px;font-weight:700;color:#0a0d14;margin-bottom:4px}
+  .product-card-desc{font-size:9px;color:#666;line-height:1.5;margin-bottom:6px}
+  .product-card-price{font-size:12px;font-weight:700;color:${prefs.colorAccent}}
+
+  /* serviços */
+  .services-list{list-style:none;display:flex;flex-direction:column;gap:12px}
+  .service-item{display:flex;align-items:flex-start;gap:16px;padding:14px 16px;border:1px solid #e8e4dd;border-radius:8px}
+  .service-num{font-family:'${prefs.titleFont}',serif;font-size:22px;font-weight:700;color:${prefs.colorAccent};line-height:1;flex-shrink:0;width:32px}
+  .service-text{font-size:12px;color:#333;line-height:1.5;padding-top:4px}
+
+  /* horários */
+  .hours-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .hour-row{display:flex;justify-content:space-between;padding:8px 12px;background:${prefs.colorSection};border-radius:6px;font-size:11px}
+  .hour-day{font-weight:600;color:#333}
+  .hour-time{color:${prefs.colorAccent};font-weight:600}
+
+  /* localização */
+  .location-box{background:${prefs.colorSection};border-radius:10px;padding:20px 24px;border-left:3px solid ${prefs.colorAccent}}
+  .location-addr{font-size:13px;font-weight:600;color:#0a0d14;margin-bottom:4px}
+  .location-city{font-size:11px;color:#666}
+
+  /* rodapé */
+  .pdf-footer{border-top:2px solid ${prefs.colorAccent};padding-top:20px;margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end}
+  .footer-left .footer-biz{font-family:'${prefs.titleFont}',serif;font-size:14px;font-weight:700;color:#0a0d14}
+  .footer-left .footer-phrase{font-size:9px;color:#999;margin-top:3px;max-width:260px;line-height:1.5}
+  .footer-right .footer-url{font-size:9px;color:${prefs.colorAccent};font-weight:600;letter-spacing:0.5px}
+  .footer-right .footer-brand{font-size:8px;color:#ccc;margin-top:3px;text-align:right}
+</style>
+</head>
+<body>
+
+<!-- ══ CAPA ══ -->
+<div class="page cover">
+  <div class="cover-top">
+    <span class="cover-tag">${biz.category || "Negócio Local"}</span>
+    <span class="cover-year">CATÁLOGO ${new Date().getFullYear()}</span>
+  </div>
+
+  <div class="cover-center">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div>
+        <div class="cover-pre">Catálogo Profissional</div>
+        <h1 class="cover-title">${biz.name || "Negócio"}</h1>
+        <div class="cover-sub">${biz.category || ""}${biz.city ? " · " + biz.city : ""}</div>
+        <div class="cover-divider"></div>
+        <p class="cover-desc">${(biz.description || "").slice(0, 200)}</p>
+      </div>
+      <div class="cover-contacts">
+        ${biz.phone ? `<div class="cover-contact-item"><span class="cover-contact-label">Tel.</span>${biz.phone}</div>` : ""}
+        ${biz.whatsapp ? `<div class="cover-contact-item"><span class="cover-contact-label">WhatsApp</span>${biz.whatsapp}</div>` : ""}
+        ${biz.email ? `<div class="cover-contact-item"><span class="cover-contact-label">Email</span>${biz.email}</div>` : ""}
+        ${biz.instagram ? `<div class="cover-contact-item"><span class="cover-contact-label">Instagram</span>@${biz.instagram.replace(/^@/, "")}</div>` : ""}
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-footer-bar">
+    <span class="cover-footer-url">${vitrineUrl}</span>
+    <span class="cover-footer-logo">VITRINEPRO</span>
+  </div>
+</div>
+
+<!-- ══ CONTEÚDO ══ -->
+<div class="page content-page">
+
+  ${prefs.inclProducts && products.length > 0 ? `
+  <div class="section">
+    <div class="section-label">Catálogo</div>
+    <h2 class="section-title">Os Nossos Produtos</h2>
+    <div class="gold-bar"></div>
+
+    ${featured ? `
+    <div class="featured-product">
+      ${featured.image_url
+        ? `<img class="featured-img" src="${featured.image_url}" alt="${featured.name}"/>`
+        : `<div class="featured-img-placeholder">📦</div>`}
+      <div>
+        <span class="featured-badge">Destaque</span>
+        <div class="featured-name">${featured.name}</div>
+        <div class="featured-desc">${(featured.description || "").slice(0, 120)}</div>
+        ${featured.price != null ? `<div class="featured-price">€${Number(featured.price).toFixed(2)}</div>` : ""}
+      </div>
+    </div>` : ""}
+
+    ${rest.length > 0 ? `
+    <div class="products-grid">
+      ${rest.slice(0, 9).map((p: any) => `
+      <div class="product-card">
+        <div class="product-card-img">
+          ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:80px;object-fit:cover"/>` : "📦"}
+        </div>
+        <div class="product-card-body">
+          <div class="product-card-name">${p.name}</div>
+          <div class="product-card-desc">${(p.description || "").slice(0, 60)}</div>
+          ${p.price != null ? `<div class="product-card-price">€${Number(p.price).toFixed(2)}</div>` : ""}
+        </div>
+      </div>`).join("")}
+    </div>` : ""}
+  </div>` : ""}
+
+  ${prefs.inclServices && servicesRaw.length > 0 ? `
+  <div class="section">
+    <div class="section-label">Serviços</div>
+    <h2 class="section-title">O Que Oferecemos</h2>
+    <div class="gold-bar"></div>
+    <ul class="services-list">
+      ${servicesRaw.slice(0, 8).map((s: string, i: number) => `
+      <li class="service-item">
+        <span class="service-num">0${i + 1}</span>
+        <span class="service-text">${s}</span>
+      </li>`).join("")}
+    </ul>
+  </div>` : ""}
+
+  ${prefs.inclHours && openDays.length > 0 ? `
+  <div class="section">
+    <div class="section-label">Horários</div>
+    <h2 class="section-title">Quando Estamos Abertos</h2>
+    <div class="gold-bar"></div>
+    <div class="hours-grid">
+      ${openDays.map((h: any) => `
+      <div class="hour-row">
+        <span class="hour-day">${h.day}</span>
+        <span class="hour-time">${h.open} – ${h.close}</span>
+      </div>`).join("")}
+    </div>
+  </div>` : ""}
+
+  ${prefs.inclLocation && (biz.address || biz.city) ? `
+  <div class="section">
+    <div class="section-label">Localização</div>
+    <h2 class="section-title">Onde Nos Encontrar</h2>
+    <div class="gold-bar"></div>
+    <div class="location-box">
+      ${biz.address ? `<div class="location-addr">${biz.address}</div>` : ""}
+      ${biz.city ? `<div class="location-city">${biz.city}${biz.country ? ", " + biz.country : ""}</div>` : ""}
+    </div>
+  </div>` : ""}
+
+  <div class="pdf-footer">
+    <div class="footer-left">
+      <div class="footer-biz">${biz.name}</div>
+      ${prefs.footerPhrase ? `<div class="footer-phrase">${prefs.footerPhrase}</div>` : ""}
+    </div>
+    <div class="footer-right">
+      <div class="footer-url">${vitrineUrl}</div>
+      <div class="footer-brand">vitrinepro.pt</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>`;
+}
+
+function CatalogPdfModal({
+  business,
+  products,
+  plan,
+  onClose,
+}: {
+  business: any;
+  products: any[];
+  plan: string;
+  onClose: () => void;
+}) {
+  const isPremium = plan === "premium" || plan === "business";
+  const [prefs, setPrefs] = useState<CatalogPrefs>(() => loadCatalogPrefs(business.id));
+  const [generating, setGenerating] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const set = <K extends keyof CatalogPrefs>(key: K, val: CatalogPrefs[K]) =>
+    setPrefs((p) => ({ ...p, [key]: val }));
+
+  const handleGenerate = async (preview = false) => {
+    if (preview) setPreviewing(true);
+    else setGenerating(true);
+
+    try {
+      saveCatalogPrefs(business.id, prefs);
+      const html = buildCatalogHtml(business, products, prefs);
+
+      const html2pdf = (await import("html2pdf.js")).default;
+      const container = document.createElement("div");
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      container.innerHTML = html;
+      document.body.appendChild(container);
+
+      const opt = {
+        margin: 0,
+        filename: `${(business.name || "catalogo").toLowerCase().replace(/\s+/g, "-")}_catalogo.pdf`,
+        image: { type: "jpeg" as const, quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
+      };
+
+      if (preview) {
+        const pdfBlob = await html2pdf().set(opt).from(container).outputPdf("blob");
+        const url = URL.createObjectURL(pdfBlob);
+        setPreviewUrl(url);
+        window.open(url, "_blank");
+      } else {
+        await html2pdf().set(opt).from(container).save();
+      }
+
+      document.body.removeChild(container);
+    } catch (err: any) {
+      alert("Erro ao gerar PDF: " + err.message);
+    } finally {
+      setGenerating(false);
+      setPreviewing(false);
+    }
+  };
+
+  const inputCls = "w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white focus:outline-none focus:border-[#C8A96B]/50";
+  const labelCls = "block text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wide";
+
+  return (
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+      <div className="bg-[#0F172A] border border-gray-800 rounded-2xl w-full max-w-2xl shadow-2xl my-4">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-800">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📄</span>
+            <div>
+              <h2 className="text-base font-bold text-white font-display">Gerar Catálogo PDF</h2>
+              <p className="text-[11px] text-gray-500">Estilo editorial premium para materiais de divulgação</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors text-lg">✕</button>
+        </div>
+
+        {/* FREE PLAN GATE */}
+        {!isPremium ? (
+          <div className="px-6 py-10 text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-[#C8A96B]/10 border border-[#C8A96B]/20 flex items-center justify-center mx-auto text-3xl">🔒</div>
+            <h3 className="text-lg font-bold text-white font-display">Funcionalidade Premium</h3>
+            <p className="text-sm text-gray-400 leading-relaxed max-w-sm mx-auto">
+              A geração de catálogos PDF está disponível nos planos <span className="text-[#C8A96B] font-semibold">Premium</span> e <span className="text-purple-400 font-semibold">Business</span>.
+            </p>
+            <div className="pt-2 flex gap-3 justify-center">
+              <button
+                onClick={onClose}
+                className="px-5 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl text-sm transition-colors"
+              >
+                Ver Planos Premium →
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="px-6 py-5 space-y-6 max-h-[75vh] overflow-y-auto">
+
+            {/* ── CORES ── */}
+            <div>
+              <h3 className="text-xs font-bold text-[#C8A96B] uppercase tracking-widest mb-3">Cores</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { key: "colorBg" as const, label: "Fundo da Capa" },
+                  { key: "colorAccent" as const, label: "Destaque / Dourado" },
+                  { key: "colorText" as const, label: "Texto Principal" },
+                  { key: "colorSection" as const, label: "Fundo das Secções" },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <label className={labelCls}>{label}</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={prefs[key]}
+                        onChange={(e) => set(key, e.target.value)}
+                        className="w-10 h-9 rounded cursor-pointer bg-transparent border border-gray-700 p-0.5"
+                      />
+                      <input
+                        type="text"
+                        value={prefs[key]}
+                        onChange={(e) => set(key, e.target.value)}
+                        className="flex-1 px-2 py-2 bg-[#0F172A] border border-gray-800 rounded text-xs text-white font-mono"
+                        maxLength={7}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── TIPOGRAFIA ── */}
+            <div>
+              <h3 className="text-xs font-bold text-[#C8A96B] uppercase tracking-widest mb-3">Tipografia</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Fonte dos Títulos</label>
+                  <select value={prefs.titleFont} onChange={(e) => set("titleFont", e.target.value)} className={inputCls}>
+                    {TITLE_FONTS.map((f) => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Fonte do Corpo</label>
+                  <select value={prefs.bodyFont} onChange={(e) => set("bodyFont", e.target.value)} className={inputCls}>
+                    {BODY_FONTS.map((f) => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* ── CONTEÚDO ── */}
+            <div>
+              <h3 className="text-xs font-bold text-[#C8A96B] uppercase tracking-widest mb-3">Conteúdo</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { key: "inclProducts" as const, label: "Incluir Produtos" },
+                  { key: "inclServices" as const, label: "Incluir Serviços" },
+                  { key: "inclHours" as const, label: "Incluir Horários" },
+                  { key: "inclLocation" as const, label: "Incluir Localização" },
+                ] as const).map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-2 px-3 py-2.5 bg-gray-900 border border-gray-800 rounded-lg cursor-pointer hover:border-[#C8A96B]/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={prefs[key]}
+                      onChange={(e) => set(key, e.target.checked)}
+                      className="w-4 h-4 accent-[#C8A96B] cursor-pointer"
+                    />
+                    <span className="text-xs text-gray-300">{label}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="mt-3">
+                <label className={labelCls}>Frase de Rodapé</label>
+                <input
+                  type="text"
+                  value={prefs.footerPhrase}
+                  onChange={(e) => set("footerPhrase", e.target.value)}
+                  placeholder="Ex: Qualidade e tradição em cada detalhe."
+                  className={inputCls}
+                  maxLength={120}
+                />
+              </div>
+            </div>
+
+            {/* ── PREVIEW ── */}
+            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg flex-shrink-0 border border-gray-700 flex items-center justify-center" style={{ background: prefs.colorBg }}>
+                <span style={{ color: prefs.colorAccent, fontSize: 16 }}>A</span>
+              </div>
+              <div className="flex-grow min-w-0">
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Capa: <span className="font-mono text-[10px]">{prefs.colorBg}</span> · Destaque: <span className="font-mono text-[10px]">{prefs.colorAccent}</span> · Títulos: <span className="text-white text-[10px]">{prefs.titleFont}</span> · Corpo: <span className="text-white text-[10px]">{prefs.bodyFont}</span>
+                </p>
+                <p className="text-[10px] text-gray-600 mt-0.5">
+                  {[prefs.inclProducts && "Produtos", prefs.inclServices && "Serviços", prefs.inclHours && "Horários", prefs.inclLocation && "Localização"].filter(Boolean).join(" · ") || "Nenhuma secção seleccionada"}
+                </p>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* Footer actions */}
+        {isPremium && (
+          <div className="px-6 py-4 border-t border-gray-800 flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={() => handleGenerate(true)}
+              disabled={previewing || generating}
+              className="flex-1 py-2.5 border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 text-sm font-medium rounded-xl transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+            >
+              {previewing ? (
+                <><span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> A pré-visualizar...</>
+              ) : (
+                "🔍 Pré-visualizar"
+              )}
+            </button>
+            <button
+              onClick={() => handleGenerate(false)}
+              disabled={generating || previewing}
+              className="flex-1 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-sm font-bold rounded-xl transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+            >
+              {generating ? (
+                <><span className="w-4 h-4 border-2 border-[#0F172A] border-t-transparent rounded-full animate-spin" /> A gerar PDF...</>
+              ) : (
+                "⬇ Gerar e Descarregar PDF"
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Plan Section Component ────────────────────────────────────────────────
 function PlanSection({
   plan,
   onUpgrade,
   checkoutLoading,
+  subscriptionCancelAt,
+  onCancelRequest,
 }: {
   plan: string;
   onUpgrade: (planId: string) => void;
   checkoutLoading: boolean;
+  subscriptionCancelAt?: string | null;
+  onCancelRequest?: () => void;
 }) {
   const isPremium = plan === "premium" || plan === "pro";
   const isBusiness = plan === "business";
   const isFree = !isPremium && !isBusiness;
+  const isCanceling = Boolean(subscriptionCancelAt);
+
+  const cancelDate = subscriptionCancelAt
+    ? new Date(subscriptionCancelAt).toLocaleDateString("pt-PT", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
 
   const planLabel = isBusiness ? "Business" : isPremium ? "Premium ✦" : "Grátis";
 
@@ -1405,6 +2445,16 @@ function PlanSection({
               <p>✅ Relatório mensal avançado</p>
             </div>
           )}
+
+          {/* Cancellation notice */}
+          {isCanceling && cancelDate && (
+            <div className="flex items-center gap-2 bg-red-950/30 border border-red-900/40 rounded-lg px-3 py-2 w-fit mt-1">
+              <span className="text-red-400 text-xs">⚠️</span>
+              <span className="text-red-300 text-xs font-medium">
+                Cancelamento agendado — acesso premium até <strong>{cancelDate}</strong>
+              </span>
+            </div>
+          )}
         </div>
 
         {isFree && (
@@ -1427,13 +2477,29 @@ function PlanSection({
             </p>
           </div>
         )}
-        {isPremium && (
+        {isPremium && !isCanceling && (
+          <div className="flex flex-col gap-2 items-end">
+            <button
+              onClick={() => onUpgrade("business")}
+              disabled={checkoutLoading}
+              className="px-6 py-2.5 border border-[#C8A96B]/40 text-[#C8A96B] hover:bg-[#C8A96B] hover:text-[#0F172A] font-bold rounded-xl transition-all text-xs cursor-pointer disabled:opacity-50"
+            >
+              Ver Plano Business →
+            </button>
+            <button
+              onClick={onCancelRequest}
+              className="text-[11px] text-gray-600 hover:text-red-400 transition-colors underline underline-offset-2"
+            >
+              Cancelar assinatura
+            </button>
+          </div>
+        )}
+        {isBusiness && !isCanceling && (
           <button
-            onClick={() => onUpgrade("business")}
-            disabled={checkoutLoading}
-            className="px-6 py-2.5 border border-[#C8A96B]/40 text-[#C8A96B] hover:bg-[#C8A96B] hover:text-[#0F172A] font-bold rounded-xl transition-all text-xs cursor-pointer disabled:opacity-50"
+            onClick={onCancelRequest}
+            className="text-[11px] text-gray-600 hover:text-red-400 transition-colors underline underline-offset-2 self-end"
           >
-            Ver Plano Business →
+            Cancelar assinatura
           </button>
         )}
       </div>

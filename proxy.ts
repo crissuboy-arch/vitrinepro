@@ -2,8 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const ADMIN_EMAILS = ["cris.suboy@gmail.com"];
+
 export async function proxy(request: NextRequest) {
-  // Must be let — setAll recreates this when cookies are refreshed
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -15,11 +16,9 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          // Update request cookies first so the new response inherits them
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          // Recreate response with updated request (required for token rotation)
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -29,19 +28,25 @@ export async function proxy(request: NextRequest) {
     }
   );
 
+  // getUser() validates the JWT server-side (more secure than getSession())
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
 
   const protectedRoutes = ["/dashboard", "/onboarding", "/favoritos", "/admin"];
-  const isProtected = protectedRoutes.some((r) =>
-    request.nextUrl.pathname.startsWith(r)
-  );
+  const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
 
-  if (isProtected && !session) {
+  if (isProtected && !user) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Admin-only guard: authenticated but not in the allow-list
+  if (pathname.startsWith("/admin") && user && !ADMIN_EMAILS.includes(user.email ?? "")) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return supabaseResponse;
