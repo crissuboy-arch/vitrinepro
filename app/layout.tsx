@@ -3,6 +3,7 @@ import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/SupabaseAuthContext";
 import CookieConsent from "./components/CookieConsent";
+import GoogleAnalytics from "./components/GoogleAnalytics";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -36,6 +37,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <CookieConsent />
+          <GoogleAnalytics />
         </AuthProvider>
       </body>
     </html>

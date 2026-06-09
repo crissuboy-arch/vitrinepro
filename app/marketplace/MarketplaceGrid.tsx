@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/app/lib/supabase";
+import { trackMarketplaceView } from "@/app/lib/analytics";
 
 const PAGE_SIZE = 24;
 
@@ -49,6 +50,10 @@ export default function MarketplaceGrid({
   const [products, setProducts] = useState<any[]>(initialProducts);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    trackMarketplaceView(categorySlug || "todas");
+  }, [categorySlug]);
 
   const handleLoadMore = async () => {
     setLoading(true);

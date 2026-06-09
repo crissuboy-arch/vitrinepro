@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabase";
 import { getMyBusiness, updateBusiness } from "@/lib/business-actions";
 import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/lib/supabase-storage";
 import { Sparkles, Lock, Copy, Check, ExternalLink } from "lucide-react";
+import { trackCatalogPdfDownload } from "@/app/lib/analytics";
 
 // Interfaces
 interface Category {
@@ -2188,6 +2189,7 @@ function CatalogPdfModal({
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        trackCatalogPdfDownload(business.id, business.name);
       }
     } catch (err: any) {
       alert("Erro ao gerar PDF: " + err.message);

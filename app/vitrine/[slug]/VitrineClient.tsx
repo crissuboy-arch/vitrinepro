@@ -8,6 +8,7 @@ import { supabase } from "../../lib/supabase";
 import BusinessChatWidget from "../../components/BusinessChatWidget";
 import AutomationPopup from "../../components/AutomationPopup";
 import { getCommunityByCountry } from "@/lib/communities";
+import { trackVitrineView, trackWhatsAppClick } from "@/app/lib/analytics";
 
 interface OpeningHour {
   day: string;
@@ -332,6 +333,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ business_id: business.id, event_type: "page_view" }),
       }).catch(() => {});
+      trackVitrineView(business.id, business.name, business.category);
     }
   }, [business?.id]);
 
@@ -790,6 +792,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ business_id: business.id, event_type: "whatsapp_click" }),
               }).catch(() => {});
+              trackWhatsAppClick(business.id, business.name);
             }
           }}
           className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-[0_8px_30px_rgb(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all group duration-300"

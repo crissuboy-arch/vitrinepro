@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { CONSENT_EVENT } from "./GoogleAnalytics";
 
 const STORAGE_KEY = "vp_cookie_consent";
 
@@ -30,6 +31,7 @@ function savePrefs(prefs: Omit<CookiePrefs, "essential" | "timestamp">): CookieP
     timestamp: new Date().toISOString(),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(full));
+  window.dispatchEvent(new CustomEvent(CONSENT_EVENT));
   return full;
 }
 
