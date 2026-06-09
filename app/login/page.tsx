@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useAuth } from "../context/SupabaseAuthContext";
 import { supabase } from "../lib/supabase";
 import { Eye, EyeOff } from "lucide-react";
+import { trackSignUp } from "@/app/lib/analytics";
 
 function getReadableError(message: string): string {
   if (!message) return "Ocorreu um erro. Tenta novamente.";
@@ -115,6 +116,7 @@ function LoginForm() {
             display_name: email.split("@")[0],
             plan: "free",
           });
+          trackSignUp("email");
         }
 
         const { data: { session } } = await supabase.auth.getSession();

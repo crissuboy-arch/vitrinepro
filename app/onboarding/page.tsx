@@ -7,6 +7,7 @@ import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import { createBusiness } from "@/lib/business-actions";
 import { uploadLogo, uploadCover, uploadGallery } from "@/lib/supabase-storage";
+import { trackVitrineCreate } from "@/app/lib/analytics";
 
 interface Category {
   id: string;
@@ -256,10 +257,11 @@ export default function OnboardingPage() {
         await supabase.from("business_images").insert(imageInserts);
       }
 
+      trackVitrineCreate(businessId, name, categoryId || "");
       setSuccess("Negócio criado com sucesso! A redirecionar...");
       setTimeout(() => {
-        const redirectUrl = selectedPlan 
-          ? `/dashboard?success=onboarding&plan=${selectedPlan}` 
+        const redirectUrl = selectedPlan
+          ? `/dashboard?success=onboarding&plan=${selectedPlan}`
           : "/dashboard?success=onboarding";
         router.push(redirectUrl);
       }, 1500);

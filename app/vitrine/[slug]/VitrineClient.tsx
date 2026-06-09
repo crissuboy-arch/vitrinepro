@@ -8,7 +8,7 @@ import { supabase } from "../../lib/supabase";
 import BusinessChatWidget from "../../components/BusinessChatWidget";
 import AutomationPopup from "../../components/AutomationPopup";
 import { getCommunityByCountry } from "@/lib/communities";
-import { trackVitrineView, trackWhatsAppClick } from "@/app/lib/analytics";
+import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib/analytics";
 import SocialBar from "../../components/SocialBar";
 
 interface OpeningHour {
@@ -1068,6 +1068,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 {business.phone && (
                   <a
                     href={`tel:${business.phone}`}
+                    onClick={() => trackPhoneClick(business.id, business.name)}
                     className="flex items-center justify-center gap-2 w-full py-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-xl font-bold transition-all text-xs tracking-wider uppercase"
                   >
                     Ligar para Telefone

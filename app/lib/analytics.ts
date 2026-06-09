@@ -26,4 +26,16 @@ export function trackCatalogPdfDownload(businessId: string, businessName: string
   fire("catalog_pdf_download", { business_id: businessId, business_name: businessName });
 }
 
+export function trackSignUp(method: "email" | "google") {
+  fire("sign_up", { method });
+}
+
+export function trackVitrineCreate(businessId: string, businessName: string, category: string) {
+  fire("vitrine_create", { business_id: businessId, business_name: businessName, category });
+}
+
+export function trackPhoneClick(businessId: string, businessName: string) {
+  fire("phone_click", { business_id: businessId, business_name: businessName });
+}
+
 export {};
