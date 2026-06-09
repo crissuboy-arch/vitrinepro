@@ -277,7 +277,7 @@ export async function POST(request: Request) {
   }
 
   const plan = biz.plan || "free";
-  if (plan !== "premium" && plan !== "business") {
+  if (plan !== "premium" && plan !== "pro" && plan !== "business") {
     return new Response(JSON.stringify({ error: "Funcionalidade exclusiva para planos Premium e Business." }), { status: 403 });
   }
 

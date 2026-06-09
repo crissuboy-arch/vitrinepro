@@ -2114,7 +2114,7 @@ function CatalogPdfModal({
   plan: string;
   onClose: () => void;
 }) {
-  const isPremium = plan === "premium" || plan === "business";
+  const isPremium = plan === "premium" || plan === "pro" || plan === "business";
   const [prefs, setPrefs] = useState<CatalogPrefs>(() => {
     const saved = business.catalog_settings;
     if (!saved) return DEFAULT_PREFS;
