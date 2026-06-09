@@ -1881,27 +1881,13 @@ const DEFAULT_PREFS: CatalogPrefs = {
   footerPhrase: "",
 };
 
-function loadCatalogPrefs(businessId: string): CatalogPrefs {
-  try {
-    const raw = localStorage.getItem(`vp_catalog_${businessId}`);
-    if (!raw) return DEFAULT_PREFS;
-    return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_PREFS;
-  }
-}
+function buildCatalogHtml_DELETED_PLACEHOLDER_DO_NOT_USE(biz: any, products: any[], prefs: CatalogPrefs): string {
+  // PDF generation moved to server-side /api/generate-catalog (Puppeteer)
+  return "";
 
-function saveCatalogPrefs(businessId: string, prefs: CatalogPrefs) {
-  try {
-    localStorage.setItem(`vp_catalog_${businessId}`, JSON.stringify(prefs));
-  } catch {}
-}
-
-function buildCatalogHtml(biz: any, products: any[], prefs: CatalogPrefs): string {
   const baseUrl = "https://vitrinepro.pt";
   const vitrineUrl = `${baseUrl}/vitrine/${biz.slug || ""}`;
   const gFonts = `${prefs.titleFont}:wght@400;700&family=${prefs.bodyFont}:wght@400;600`.replace(/ /g, "+");
-
   const hours: any[] = Array.isArray(biz.opening_hours) ? biz.opening_hours : [];
   const openDays = hours.filter((h) => !h.closed && h.open && h.close);
 
@@ -2129,47 +2115,80 @@ function CatalogPdfModal({
   onClose: () => void;
 }) {
   const isPremium = plan === "premium" || plan === "business";
-  const [prefs, setPrefs] = useState<CatalogPrefs>(() => loadCatalogPrefs(business.id));
+  const [prefs, setPrefs] = useState<CatalogPrefs>(() => {
+    const saved = business.catalog_settings;
+    if (!saved) return DEFAULT_PREFS;
+    return {
+      colorBg: saved.corCapa ?? DEFAULT_PREFS.colorBg,
+      colorAccent: saved.corDestaque ?? DEFAULT_PREFS.colorAccent,
+      colorText: saved.corTexto ?? DEFAULT_PREFS.colorText,
+      colorSection: saved.corFundo ?? DEFAULT_PREFS.colorSection,
+      titleFont: saved.fonteTitulo ?? DEFAULT_PREFS.titleFont,
+      bodyFont: saved.fonteCorpo ?? DEFAULT_PREFS.bodyFont,
+      inclProducts: saved.incluirProdutos ?? DEFAULT_PREFS.inclProducts,
+      inclServices: saved.incluirServicos ?? DEFAULT_PREFS.inclServices,
+      inclHours: saved.incluirHorarios ?? DEFAULT_PREFS.inclHours,
+      inclLocation: DEFAULT_PREFS.inclLocation,
+      footerPhrase: saved.fraseRodape ?? DEFAULT_PREFS.footerPhrase,
+    };
+  });
   const [generating, setGenerating] = useState(false);
   const [previewing, setPreviewing] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const set = <K extends keyof CatalogPrefs>(key: K, val: CatalogPrefs[K]) =>
     setPrefs((p) => ({ ...p, [key]: val }));
+
+  const buildSettings = () => ({
+    corCapa: prefs.colorBg,
+    corDestaque: prefs.colorAccent,
+    corTexto: prefs.colorText,
+    corFundo: prefs.colorSection,
+    fonteTitulo: prefs.titleFont,
+    fonteCorpo: prefs.bodyFont,
+    incluirProdutos: prefs.inclProducts,
+    incluirServicos: prefs.inclServices,
+    incluirHorarios: prefs.inclHours,
+    fraseRodape: prefs.footerPhrase,
+  });
 
   const handleGenerate = async (preview = false) => {
     if (preview) setPreviewing(true);
     else setGenerating(true);
 
     try {
-      saveCatalogPrefs(business.id, prefs);
-      const html = buildCatalogHtml(business, products, prefs);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Não autenticado.");
 
-      const html2pdf = (await import("html2pdf.js")).default;
-      const container = document.createElement("div");
-      container.style.position = "absolute";
-      container.style.left = "-9999px";
-      container.innerHTML = html;
-      document.body.appendChild(container);
+      const res = await fetch("/api/generate-catalog", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ businessId: business.id, settings: buildSettings() }),
+      });
 
-      const opt = {
-        margin: 0,
-        filename: `${(business.name || "catalogo").toLowerCase().replace(/\s+/g, "-")}_catalogo.pdf`,
-        image: { type: "jpeg" as const, quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
-      };
-
-      if (preview) {
-        const pdfBlob = await html2pdf().set(opt).from(container).outputPdf("blob");
-        const url = URL.createObjectURL(pdfBlob);
-        setPreviewUrl(url);
-        window.open(url, "_blank");
-      } else {
-        await html2pdf().set(opt).from(container).save();
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as any).error || `Erro ${res.status}`);
       }
 
-      document.body.removeChild(container);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      if (preview) {
+        window.open(url, "_blank");
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${(business.name || "catalogo").toLowerCase().replace(/\s+/g, "-")}_catalogo.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     } catch (err: any) {
       alert("Erro ao gerar PDF: " + err.message);
     } finally {
