@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { trackSignUp } from "@/app/lib/analytics";
+import { pixelCompleteRegistration } from "@/app/lib/meta-pixel";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -28,7 +29,10 @@ export default function AuthCallbackPage() {
         const plan = urlParams.get("plan");
         const nextPath = urlParams.get("next");
 
-        if (!existingBusiness) trackSignUp("google");
+        if (!existingBusiness) {
+          trackSignUp("google");
+          pixelCompleteRegistration();
+        }
         const target = nextPath || (existingBusiness ? "/dashboard" : "/onboarding");
         const redirectParams = new URLSearchParams();
         if (plan) redirectParams.set("plan", plan);

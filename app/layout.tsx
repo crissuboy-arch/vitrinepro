@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "./context/SupabaseAuthContext";
 import CookieConsent from "./components/CookieConsent";
 import GoogleAnalytics from "./components/GoogleAnalytics";
+import MetaPixel from "./components/MetaPixel";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -38,6 +39,7 @@ export default function RootLayout({
           {children}
           <CookieConsent />
           <GoogleAnalytics />
+          <MetaPixel />
         </AuthProvider>
       </body>
     </html>

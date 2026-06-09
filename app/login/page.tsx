@@ -8,6 +8,7 @@ import { useAuth } from "../context/SupabaseAuthContext";
 import { supabase } from "../lib/supabase";
 import { Eye, EyeOff } from "lucide-react";
 import { trackSignUp } from "@/app/lib/analytics";
+import { pixelLead, pixelCompleteRegistration } from "@/app/lib/meta-pixel";
 
 function getReadableError(message: string): string {
   if (!message) return "Ocorreu um erro. Tenta novamente.";
@@ -117,17 +118,19 @@ function LoginForm() {
             plan: "free",
           });
           trackSignUp("email");
+          pixelLead();
         }
 
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user) {
+          pixelCompleteRegistration();
           const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).maybeSingle();
-          
+
           let target = nextPath || (biz ? "/dashboard" : "/onboarding");
           const params = new URLSearchParams();
           if (plan) params.set("plan", plan);
-          
+
           const redirectUrl = params.toString() ? `${target}?${params.toString()}` : target;
           router.push(redirectUrl);
         } else {

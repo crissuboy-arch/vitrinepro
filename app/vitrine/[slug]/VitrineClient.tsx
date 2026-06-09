@@ -9,6 +9,7 @@ import BusinessChatWidget from "../../components/BusinessChatWidget";
 import AutomationPopup from "../../components/AutomationPopup";
 import { getCommunityByCountry } from "@/lib/communities";
 import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib/analytics";
+import { pixelContact } from "@/app/lib/meta-pixel";
 import SocialBar from "../../components/SocialBar";
 
 interface OpeningHour {
@@ -731,7 +732,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                     href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Vi a vossa vitrine no VitrinePro e gostaria de saber mais.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={closePopup}
+                    onClick={() => { closePopup(); trackWhatsAppClick(business.id, business.name); pixelContact(); }}
                     className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
                     style={{ background: "#25D366", color: "#fff" }}
                   >
@@ -802,6 +803,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 body: JSON.stringify({ business_id: business.id, event_type: "whatsapp_click" }),
               }).catch(() => {});
               trackWhatsAppClick(business.id, business.name);
+              pixelContact();
             }
           }}
           className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-[0_8px_30px_rgb(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all group duration-300"
@@ -1058,6 +1060,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                     href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => { trackWhatsAppClick(business.id, business.name); pixelContact(); }}
                     className="flex items-center justify-center gap-2 w-full py-3 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#20ba5a] active:scale-95 transition-all text-xs tracking-wider uppercase shadow-lg shadow-[#25D366]/10"
                   >
                     Falar via WhatsApp
