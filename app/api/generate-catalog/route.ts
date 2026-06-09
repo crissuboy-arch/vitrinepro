@@ -1,8 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
-import puppeteer from "puppeteer";
+import chromium from "@sparticuz/chromium-min";
+import puppeteer from "puppeteer-core";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+const CHROMIUM_REMOTE_URL =
+  "https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.tar";
 
 interface CatalogSettings {
   corCapa: string;
@@ -296,11 +300,17 @@ export async function POST(request: Request) {
 
   const htmlContent = buildHtml(biz, products || [], settings);
 
+  // Resolve Chromium: local override via env var (dev), else sparticuz download (Vercel/prod)
+  const executablePath =
+    process.env.CHROMIUM_EXECUTABLE_PATH ||
+    (await chromium.executablePath(CHROMIUM_REMOTE_URL));
+
   let browser;
   try {
     browser = await puppeteer.launch({
-      headless: "new" as any,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-web-security"],
+      args: chromium.args,
+      executablePath,
+      headless: true,
     });
 
     const page = await browser.newPage();
