@@ -27,6 +27,8 @@ import SocialProofBar from "@/components/landing/SocialProofBar";
 import PlansSection from "@/components/landing/PlansSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import FinalCTASection from "@/components/landing/FinalCTASection";
+import CatalogSection from "@/components/landing/CatalogSection";
+import MarketplaceSection from "@/components/landing/MarketplaceSection";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -403,7 +405,6 @@ export default function HomePage() {
       <HeroSection onCadastrar={handleCadastrarClick} />
       <StatsSection />
       <BusinessTypesSection />
-      <ShowcaseSection />
 
       {/* SEÇÃO COMUNIDADES */}
       <section className="py-16 md:py-24 bg-[#090E1A] border-b border-white/5 relative z-10">
@@ -497,6 +498,9 @@ export default function HomePage() {
 
       <ProblemSection />
       <SolutionSection />
+      <ShowcaseSection />
+      <CatalogSection onCadastrar={handleCadastrarClick} />
+      <MarketplaceSection />
       <VideoSection />
       <ComparisonSection />
       <StepsSection />
@@ -504,141 +508,48 @@ export default function HomePage() {
       <PlansSection onSelectPlan={handleSelectPlan} />
       <TestimonialsSection />
 
-      <section id="faq" className="py-24 md:py-32 bg-[#0F172A] border-b border-white/5 relative z-10">
-        <div className="max-w-3xl mx-auto px-4 space-y-16 animate-fade-in-up">
-          
+      <section id="faq" className="py-24 md:py-32 bg-[#0A0D14] border-b border-white/5 relative z-10">
+        <div className="max-w-3xl mx-auto px-4 space-y-16">
           <div className="text-center space-y-3">
-            <span className="text-[10px] font-bold text-[#C8A96B] uppercase tracking-widest bg-[#C8A96B]/5 px-3 py-1.5 rounded-full border border-[#C8A96B]/15">
-              Esclarecimentos
+            <span className="text-[10px] font-bold text-[#C9A96E] uppercase tracking-widest bg-[#C9A96E]/5 px-3 py-1.5 rounded-full border border-[#C9A96E]/15">
+              Dúvidas Frequentes
             </span>
-            <h2 className="text-3xl md:text-5xl font-bold font-display text-white leading-tight">
+            <h2 className="text-3xl md:text-5xl font-bold font-display text-[#F5F0E8] leading-tight">
               Perguntas Frequentes
             </h2>
-            <p className="text-slate-400 text-sm font-light">
-              Tudo o que precisas de saber sobre o funcionamento da VitrinePro.
+            <p className="text-[#A9B1C3] text-sm font-light">
+              Tudo o que precisa de saber antes de começar.
             </p>
           </div>
 
-          <div className="space-y-4">
-            <div className="bg-[#0F172A]/30 border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleFaq(0)} className="w-full p-5 text-left font-bold text-white flex items-center justify-between text-xs sm:text-sm cursor-pointer">
-                <span>1. Preciso de domínio próprio ou alojamento?</span>
-                <span className="text-[#C8A96B] text-lg font-bold">{faqOpenStates[0] ? "−" : "+"}</span>
-              </button>
-              {faqOpenStates[0] && (
-                <div className="px-5 pb-5 text-xs text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3 animate-fade-in-up">
-                  Não. A VitrinePro inclui alojamento gratuito e seguro. O seu negócio fica ativo de imediato sob o nosso domínio curto e limpo (exemplo: vitrine.pro/nome-do-seu-negocio), ideal para colar no Instagram.
-                </div>
-              )}
-            </div>
-
-            <div className="bg-[#0F172A]/30 border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleFaq(1)} className="w-full p-5 text-left font-bold text-white flex items-center justify-between text-xs sm:text-sm cursor-pointer">
-                <span>2. Tenho que pagar comissões sobre as minhas vendas?</span>
-                <span className="text-[#C8A96B] text-lg font-bold">{faqOpenStates[1] ? "−" : "+"}</span>
-              </button>
-              {faqOpenStates[1] && (
-                <div className="px-5 pb-5 text-xs text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3 animate-fade-in-up">
-                  Absolutamente nada. Nós não processamos pagamentos diretamente na plataforma e, por isso, não cobramos nenhuma comissão sobre as suas vendas. O cliente faz a escolha e entra em contacto pelo WhatsApp para pagar e fechar diretamente consigo.
-                </div>
-              )}
-            </div>
-
-            <div className="bg-[#0F172A]/30 border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleFaq(2)} className="w-full p-5 text-left font-bold text-white flex items-center justify-between text-xs sm:text-sm cursor-pointer">
-                <span>3. Como é que os clientes entram em contacto comigo?</span>
-                <span className="text-[#C8A96B] text-lg font-bold">{faqOpenStates[2] ? "−" : "+"}</span>
-              </button>
-              {faqOpenStates[2] && (
-                <div className="px-5 pb-5 text-xs text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3 animate-fade-in-up">
-                  O principal canal de contacto é o botão flutuante do WhatsApp, configurado diretamente para o seu telemóvel. No entanto, os utilizadores também podem clicar nos botões de chamada telefónica direta, e-mail e ligações para as suas redes sociais.
-                </div>
-              )}
-            </div>
-
-            <div className="bg-[#0F172A]/30 border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleFaq(3)} className="w-full p-5 text-left font-bold text-white flex items-center justify-between text-xs sm:text-sm cursor-pointer">
-                <span>4. Posso alterar as minhas informações depois de criar?</span>
-                <span className="text-[#C8A96B] text-lg font-bold">{faqOpenStates[3] ? "−" : "+"}</span>
-              </button>
-              {faqOpenStates[3] && (
-                <div className="px-5 pb-5 text-xs text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3 animate-fade-in-up">
-                  Sim, a qualquer momento! A VitrinePro inclui um painel de controlo (Dashboard) onde pode editar produtos, preços, descrições, fotos da galeria, horários e redes sociais em segundos, com atualização imediata no site.
-                </div>
-              )}
-            </div>
-
-            <div className="bg-[#0F172A]/30 border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleFaq(4)} className="w-full p-5 text-left font-bold text-white flex items-center justify-between text-xs sm:text-sm cursor-pointer">
-                <span>5. O que inclui o plano Grátis?</span>
-                <span className="text-[#C8A96B] text-lg font-bold">{faqOpenStates[4] ? "−" : "+"}</span>
-              </button>
-              {faqOpenStates[4] && (
-                <div className="px-5 pb-5 text-xs text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3 animate-fade-in-up">
-                  O plano gratuito é 100% gratuito para sempre e inclui: o seu mini-site personalizado, botão flutuante de WhatsApp, tabela de horários de funcionamento, morada com redirecionamento de mapa e exibição dos primeiros 3 produtos no catálogo.
-                </div>
-              )}
-            </div>
-
-            <div className="bg-[#0F172A]/30 border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleFaq(5)} className="w-full p-5 text-left font-bold text-white flex items-center justify-between text-xs sm:text-sm cursor-pointer">
-                <span>6. Como funciona o Plano Pro?</span>
-                <span className="text-[#C8A96B] text-lg font-bold">{faqOpenStates[5] ? "−" : "+"}</span>
-              </button>
-              {faqOpenStates[5] && (
-                <div className="px-5 pb-5 text-xs text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3 animate-fade-in-up">
-                  O plano Pro custa apenas €12/mês (ou R$39/mês) e desbloqueia funcionalidades avançadas: catálogo com produtos e serviços ilimitados, secção de avaliações e depoimentos de clientes (estrelas), galeria de imagens para portfólio completo e suporte dedicado.
-                </div>
-              )}
-            </div>
-
-            <div className="bg-[#0F172A]/30 border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleFaq(6)} className="w-full p-5 text-left font-bold text-white flex items-center justify-between text-xs sm:text-sm cursor-pointer">
-                <span>7. Posso usar a VitrinePro no telemóvel?</span>
-                <span className="text-[#C8A96B] text-lg font-bold">{faqOpenStates[6] ? "−" : "+"}</span>
-              </button>
-              {faqOpenStates[6] && (
-                <div className="px-5 pb-5 text-xs text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3 animate-fade-in-up">
-                  Sim. Tanto a visualização pública da sua vitrine quanto o seu painel de controlo privado (Dashboard) foram desenvolvidos com tecnologia mobile-first. Pode fazer a gestão completa da sua loja através de qualquer smartphone.
-                </div>
-              )}
-            </div>
-
-            <div className="bg-[#0F172A]/30 border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleFaq(7)} className="w-full p-5 text-left font-bold text-white flex items-center justify-between text-xs sm:text-sm cursor-pointer">
-                <span>8. Como adiciono avaliações de clientes?</span>
-                <span className="text-[#C8A96B] text-lg font-bold">{faqOpenStates[7] ? "−" : "+"}</span>
-              </button>
-              {faqOpenStates[7] && (
-                <div className="px-5 pb-5 text-xs text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3 animate-fade-in-up">
-                  No plano Pro, pode ir ao seu Dashboard privado e carregar avaliações manualmente, adicionando o nome do cliente, texto de feedback e a nota de 1 a 5 estrelas. Elas são exibidas no seu mini-site instantaneamente.
-                </div>
-              )}
-            </div>
-
-            <div className="bg-[#0F172A]/30 border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleFaq(8)} className="w-full p-5 text-left font-bold text-white flex items-center justify-between text-xs sm:text-sm cursor-pointer">
-                <span>9. Há algum período de fidelização?</span>
-                <span className="text-[#C8A96B] text-lg font-bold">{faqOpenStates[8] ? "−" : "+"}</span>
-              </button>
-              {faqOpenStates[8] && (
-                <div className="px-5 pb-5 text-xs text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3 animate-fade-in-up">
-                  Nenhum. Pode subscrever o plano Pro mensal e cancelar ou voltar para o plano Grátis a qualquer momento a partir das suas configurações de perfil, sem qualquer multa, fidelização ou burocracia.
-                </div>
-              )}
-            </div>
-
-            <div className="bg-[#0F172A]/30 border border-white/5 rounded-xl overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleFaq(9)} className="w-full p-5 text-left font-bold text-white flex items-center justify-between text-xs sm:text-sm cursor-pointer">
-                <span>10. Como é feito o pagamento do Plano Pro?</span>
-                <span className="text-[#C8A96B] text-lg font-bold">{faqOpenStates[9] ? "−" : "+"}</span>
-              </button>
-              {faqOpenStates[9] && (
-                <div className="px-5 pb-5 text-xs text-slate-400 leading-relaxed font-light border-t border-white/5 pt-3 animate-fade-in-up">
-                  Os pagamentos do Plano Pro são processados de forma 100% segura por gateways integrados, com suporte para Cartão de Crédito internacional ou nacional, além de métodos locais em Portugal e no Brasil.
-                </div>
-              )}
-            </div>
+          <div className="space-y-3">
+            {[
+              { q: "Preciso saber programar?", a: "Não. A VitrinePro foi criada para qualquer pessoa. Sem código, sem técnicos, sem complicações. Em poucos minutos o seu negócio está online." },
+              { q: "Posso usar no Instagram?", a: "Sim. O link da sua vitrine é perfeito para colocar na bio do Instagram. Em vez de posts com preços por DM, o cliente vê tudo organizado num único link." },
+              { q: "Posso divulgar no WhatsApp?", a: "Sim. O link fica pronto para partilhar em grupos, conversas e status do WhatsApp. Os clientes acedem diretamente à vitrine com produtos, serviços e botão de contacto." },
+              { q: "Serve para restaurante?", a: "Perfeitamente. Crie o menu com fotos, preços e descrições. Os clientes consultam antes de ligar e pedem diretamente pelo WhatsApp." },
+              { q: "Serve para salão de beleza?", a: "Sim. Publique os serviços com preços, galeria de trabalhos realizados, avaliações de clientes e horários. Os clientes marcam pelo WhatsApp." },
+              { q: "Serve para loja?", a: "Sim. Qualquer negócio local pode ter uma vitrine: lojas de roupa, artesanato, produtos personalizados, mercearias, lojas de informática, etc." },
+              { q: "Tem plano grátis?", a: "Sim. O plano Grátis é para sempre e inclui vitrine com link público, até 3 produtos, botão WhatsApp, horários e localização. Upgrade quando quiser." },
+              { q: "Posso cancelar?", a: "Sim, a qualquer momento. Sem contratos, sem fidelizações. Se cancelar, o seu negócio fica no plano Grátis — nunca perde os dados." },
+              { q: "Posso editar depois?", a: "Sempre. O dashboard permite editar produtos, fotos, preços, descrições, horários e contactos em segundos. As alterações ficam visíveis de imediato." },
+              { q: "O catálogo PDF está incluído?", a: "O catálogo PDF está disponível nos planos Pro (€12/mês) e Business (€29/mês). Gera um PDF elegante dos seus produtos em segundos, pronto para enviar pelo WhatsApp." },
+            ].map((item, i) => (
+              <div key={i} className="bg-[#0F172A]/50 border border-white/5 rounded-xl overflow-hidden transition-all">
+                <button
+                  onClick={() => toggleFaq(i)}
+                  className="w-full px-5 py-4 text-left font-semibold text-[#F5F0E8] flex items-center justify-between text-xs sm:text-sm cursor-pointer hover:bg-white/[0.02] transition-colors"
+                >
+                  <span>{i + 1}. {item.q}</span>
+                  <span className="text-[#C9A96E] text-lg font-bold flex-shrink-0 ml-4">{faqOpenStates[i] ? "−" : "+"}</span>
+                </button>
+                {faqOpenStates[i] && (
+                  <div className="px-5 pb-5 text-xs text-[#A9B1C3] leading-relaxed font-light border-t border-white/5 pt-3">
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </section>

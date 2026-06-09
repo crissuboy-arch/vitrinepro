@@ -1,96 +1,124 @@
-import { IconCheck, IconX } from "@tabler/icons-react";
-
 const ROWS = [
-  { feature: "Presença online profissional",  instagram: false, vitrine: true },
-  { feature: "Preços visíveis aos clientes",  instagram: false, vitrine: true },
-  { feature: "Aparece no Google",             instagram: false, vitrine: true },
-  { feature: "Galeria de produtos/serviços",  instagram: false, vitrine: true },
-  { feature: "Chatbot IA 24h incluído",        instagram: false, vitrine: true },
-  { feature: "Analytics de visitas",          instagram: false, vitrine: true },
-  { feature: "Botão WhatsApp directo",        instagram: true,  vitrine: true },
-  { feature: "Depoimentos de clientes",       instagram: false, vitrine: true },
-  { feature: "Localização no mapa",           instagram: false, vitrine: true },
-  { feature: "Pronto em 5 minutos",           instagram: false, vitrine: true },
-  { feature: "Sem programadores",             instagram: false, vitrine: true },
-  { feature: "€12/mês (vs €500+ site)",       instagram: false, vitrine: true },
+  {
+    feature: "Link profissional",
+    instagram: "Link na bio genérico, sem identidade",
+    vitrine: "URL próprio vitrinepro.pt/vitrine/seu-negocio",
+  },
+  {
+    feature: "Produtos organizados",
+    instagram: "Posts espalhados no feed, sem ordem",
+    vitrine: "Catálogo com fotos, nomes e preços visíveis",
+  },
+  {
+    feature: "Serviços com preços",
+    instagram: "\"Preço por DM\" afasta clientes",
+    vitrine: "Tabela de serviços com preços públicos",
+  },
+  {
+    feature: "Botão WhatsApp direto",
+    instagram: "Link genérico na bio, sem contexto",
+    vitrine: "Botão flutuante vai direto ao número configurado",
+  },
+  {
+    feature: "Catálogo PDF",
+    instagram: "Não existe — apenas posts e stories",
+    vitrine: "Gera PDF profissional dos produtos em segundos",
+  },
+  {
+    feature: "Avaliações de clientes",
+    instagram: "Comentários misturados, difíceis de filtrar",
+    vitrine: "Secção dedicada de avaliações com estrelas",
+  },
+  {
+    feature: "Localização no mapa",
+    instagram: "Sem mapa integrado — só texto na bio",
+    vitrine: "Mapa integrado com redirecionamento para Google Maps",
+  },
+  {
+    feature: "Horários de funcionamento",
+    instagram: "Apenas no campo bio limitado",
+    vitrine: "Tabela completa dia a dia com horários de abertura",
+  },
+  {
+    feature: "Aparece no Google",
+    instagram: "Perfil indexado mas sem SEO local",
+    vitrine: "Página otimizada com schema, cidade e categoria",
+  },
+  {
+    feature: "Marketplace local",
+    instagram: "Não existe diretório por cidade/categoria",
+    vitrine: "Aparece no explorar por cidade, categoria e ranking",
+  },
+  {
+    feature: "Curtidas e favoritos",
+    instagram: "Likes em posts, não no negócio",
+    vitrine: "Clientes curtem e guardam o negócio diretamente",
+  },
+  {
+    feature: "Partilhas",
+    instagram: "Story share desaparece em 24h",
+    vitrine: "Link permanente partilhável no WhatsApp e redes sociais",
+  },
+  {
+    feature: "Ranking social",
+    instagram: "Sem ranking — só alcance pago",
+    vitrine: "Engagement real sobe o negócio no ranking orgânico",
+  },
+  {
+    feature: "Analytics e Pixel",
+    instagram: "Dados básicos de insights por conta profissional",
+    vitrine: "Google Analytics + Meta Pixel integrados e RGPD",
+  },
 ];
 
 export default function ComparisonSection() {
   return (
-    <section id="comparacao" className="py-24 md:py-32 bg-[#090E1A] border-b border-white/5 relative z-10">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
+    <section id="comparacao" className="py-24 md:py-32 bg-[#08090F] border-b border-white/5 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-14">
 
-        {/* Header */}
         <div className="text-center space-y-3">
-          <span className="text-[10px] font-bold text-[#C8A96B] uppercase tracking-widest bg-[#C8A96B]/5 px-3 py-1.5 rounded-full border border-[#C8A96B]/15">
+          <span className="text-[10px] font-bold text-[#C9A96E] uppercase tracking-widest bg-[#C9A96E]/5 px-3 py-1.5 rounded-full border border-[#C9A96E]/15">
             Comparação
           </span>
-          <h2 className="text-3xl md:text-5xl font-bold font-display text-white leading-tight">
+          <h2 className="text-3xl md:text-5xl font-bold font-display text-[#F5F0E8] leading-tight">
             Instagram vs VitrinePro
           </h2>
-          <p className="text-slate-400 text-sm md:text-base font-light max-w-xl mx-auto">
+          <p className="text-[#A9B1C3] text-sm md:text-base font-light max-w-xl mx-auto">
             O Instagram é ótimo para conteúdo. Mas não substitui uma presença profissional.
           </p>
         </div>
 
-        {/* Visual 2-column comparison */}
-        {/* overflow-x-auto allows scroll on narrow screens; mt-6 gives room for the badge above */}
         <div className="overflow-x-auto">
-          <div className="rounded-2xl border border-white/5 shadow-2xl min-w-[560px]">
-
-            {/* Column headers */}
-            <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] text-center">
-              <div className="p-5 bg-[#1E293B] text-xs font-bold text-slate-300 uppercase tracking-widest border-b border-white/5 rounded-tl-2xl">
-                Funcionalidade
+          <div className="rounded-2xl border border-white/5 shadow-2xl overflow-hidden min-w-[600px]">
+            {/* Table header */}
+            <div className="grid grid-cols-[1fr_1fr_1fr] bg-[#1E293B]/40">
+              <div className="px-5 py-4 text-xs font-bold text-[#A9B1C3] uppercase tracking-wider">Funcionalidade</div>
+              <div className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 border-l border-white/5">
+                <span className="text-base">📷</span> Instagram
               </div>
-              <div className="p-5 bg-[#1E293B]/80 border-b border-white/5 border-l border-white/5">
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-2xl">📸</span>
-                  <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">Instagram</span>
-                  <span className="text-[9px] text-red-400 font-semibold">Apenas social</span>
-                </div>
-              </div>
-              <div className="p-5 bg-[#C8A96B]/10 border-b border-[#C8A96B]/30 border-l border-[#C8A96B]/20 rounded-tr-2xl relative">
-                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 text-[8px] font-black uppercase tracking-widest bg-[#C8A96B] text-[#0F172A] rounded-full shadow whitespace-nowrap z-10">
-                  ✦ Melhor opção
-                </span>
-                <div className="flex flex-col items-center gap-1 mt-1">
-                  <span className="text-2xl">🏪</span>
-                  <span className="text-xs font-bold text-[#C8A96B] uppercase tracking-widest">VitrinePro</span>
-                  <span className="text-[9px] text-[#C8A96B] font-semibold">Vitrine profissional</span>
-                </div>
+              <div className="px-5 py-4 text-xs font-bold text-[#C9A96E] uppercase tracking-wider flex items-center gap-2 border-l border-white/5">
+                <span className="text-base">✦</span> VitrinePro
               </div>
             </div>
 
-            {/* Rows */}
-            {ROWS.map((row, idx) => (
+            {ROWS.map((row, i) => (
               <div
-                key={idx}
-                className={`grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] border-b border-white/5 last:border-0 hover:bg-white/[0.01] transition-colors ${idx % 2 === 0 ? "" : "bg-white/[0.01]"}`}
+                key={i}
+                className={`grid grid-cols-[1fr_1fr_1fr] border-t border-white/5 hover:bg-white/[0.02] transition-colors ${i % 2 === 0 ? "bg-[#0F172A]/30" : "bg-[#0A0D14]/50"}`}
               >
-                <div className="px-5 py-3.5 text-xs font-medium text-slate-300">{row.feature}</div>
-
-                {/* Instagram */}
-                <div className="px-5 py-3.5 flex justify-center items-center border-l border-white/5 bg-[#1E293B]/20">
-                  {row.instagram
-                    ? <IconCheck className="w-5 h-5 text-green-500 stroke-[2.5]" />
-                    : <IconX className="w-5 h-5 text-red-500/70 stroke-[2.5]" />
-                  }
+                <div className="px-5 py-4 text-xs font-semibold text-[#F5F0E8]">{row.feature}</div>
+                <div className="px-5 py-4 text-xs text-slate-500 border-l border-white/5 flex items-start gap-2">
+                  <span className="text-red-500 flex-shrink-0 mt-0.5">✗</span>
+                  <span>{row.instagram}</span>
                 </div>
-
-                {/* VitrinePro */}
-                <div className="px-5 py-3.5 flex justify-center items-center bg-[#C8A96B]/10 border-l border-[#C8A96B]/20">
-                  <IconCheck className="w-5 h-5 text-[#C8A96B] stroke-[3]" />
+                <div className="px-5 py-4 text-xs text-slate-300 border-l border-white/5 flex items-start gap-2">
+                  <span className="text-[#C9A96E] flex-shrink-0 mt-0.5">✓</span>
+                  <span>{row.vitrine}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Bottom label */}
-        <p className="text-center text-slate-500 text-xs">
-          O Instagram continua útil para publicar conteúdo — a VitrinePro é a sua casa profissional.
-        </p>
 
       </div>
     </section>

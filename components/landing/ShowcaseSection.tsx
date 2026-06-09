@@ -46,11 +46,12 @@ export default function ShowcaseSection() {
           <span className="text-[10px] font-bold text-[#C8A96B] uppercase tracking-widest bg-[#C8A96B]/5 px-3 py-1.5 rounded-full border border-[#C8A96B]/15">
             Exemplos reais
           </span>
-          <h2 className="text-3xl md:text-5xl font-bold font-display text-white leading-tight">
-            Como fica a sua vitrine
+          <h2 className="text-3xl md:text-5xl font-bold font-display text-[#F5F0E8] leading-tight">
+            A sua vitrine vai ficar{" "}
+            <span className="text-[#C9A96E] italic">assim.</span>
           </h2>
-          <p className="text-slate-400 text-sm md:text-base font-light max-w-xl mx-auto">
-            Veja vitrines reais publicadas por negócios em Portugal.
+          <p className="text-[#A9B1C3] text-sm md:text-base font-light max-w-xl mx-auto">
+            Exemplos de como fica uma vitrine profissional na VitrinePro.
           </p>
         </div>
 
