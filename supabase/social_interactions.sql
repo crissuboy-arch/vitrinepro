@@ -116,23 +116,30 @@ CREATE TRIGGER trg_view_count_inc
 -- ── 8. RLS policies ────────────────────────────────────────────
 ALTER TABLE public.business_likes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "likes_read_all"
+DROP POLICY IF EXISTS "likes_read_all"    ON public.business_likes;
+DROP POLICY IF EXISTS "likes_insert_own"  ON public.business_likes;
+DROP POLICY IF EXISTS "likes_delete_own"  ON public.business_likes;
+
+CREATE POLICY "likes_read_all"
   ON public.business_likes FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "likes_insert_own"
+CREATE POLICY "likes_insert_own"
   ON public.business_likes FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "likes_delete_own"
+CREATE POLICY "likes_delete_own"
   ON public.business_likes FOR DELETE
   USING (auth.uid() = user_id);
 
 ALTER TABLE public.business_shares ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "shares_read_all"
+DROP POLICY IF EXISTS "shares_read_all"   ON public.business_shares;
+DROP POLICY IF EXISTS "shares_insert_all" ON public.business_shares;
+
+CREATE POLICY "shares_read_all"
   ON public.business_shares FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "shares_insert_all"
+CREATE POLICY "shares_insert_all"
   ON public.business_shares FOR INSERT WITH CHECK (true);
 
 -- ── 9. Ranking score function ───────────────────────────────────
