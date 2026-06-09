@@ -9,6 +9,7 @@ import BusinessChatWidget from "../../components/BusinessChatWidget";
 import AutomationPopup from "../../components/AutomationPopup";
 import { getCommunityByCountry } from "@/lib/communities";
 import { trackVitrineView, trackWhatsAppClick } from "@/app/lib/analytics";
+import SocialBar from "../../components/SocialBar";
 
 interface OpeningHour {
   day: string;
@@ -50,6 +51,10 @@ interface Business {
   owner_name?: string;
   owner_photo?: string;
   owner_bio?: string;
+  like_count?: number;
+  favorite_count?: number;
+  share_count?: number;
+  view_count?: number;
 }
 
 interface Product {
@@ -559,6 +564,10 @@ export default function VitrineClient({ slug }: { slug: string }) {
             owner_name: data.owner_name || "",
             owner_photo: data.owner_photo || "",
             owner_bio: data.owner_bio || "",
+            like_count:     data.like_count     ?? 0,
+            favorite_count: data.favorite_count ?? 0,
+            share_count:    data.share_count    ?? 0,
+            view_count:     data.view_count     ?? 0,
           });
 
           if (productsRes.data) {
@@ -1257,16 +1266,16 @@ export default function VitrineClient({ slug }: { slug: string }) {
               </div>
             )}
 
-            {/* ── Favourite button ── */}
-            <button
-              onClick={toggleFavorite}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all border"
-              style={isFavorited
-                ? { background: "#EF444415", borderColor: "#EF4444", color: "#EF4444" }
-                : { background: "transparent", borderColor: "rgba(255,255,255,0.1)", color: "rgba(148,163,184,1)" }}
-            >
-              {isFavorited ? "❤️ Guardado nos favoritos" : "🤍 Guardar negócio"}
-            </button>
+            {/* ── Social Bar: Like · Favorite · Share · Views ── */}
+            <SocialBar
+              businessId={business.id}
+              businessName={business.name}
+              businessSlug={business.slug}
+              initialLikeCount={business.like_count ?? 0}
+              initialFavoriteCount={business.favorite_count ?? 0}
+              initialShareCount={business.share_count ?? 0}
+              initialViewCount={business.view_count ?? 0}
+            />
 
             {/* Invite button */}
             <button

@@ -245,8 +245,15 @@ export default function ExplorarPage() {
       }
     }
 
-    // Premium businesses first
-    result.sort((a, b) => (b.premium ? 1 : 0) - (a.premium ? 1 : 0));
+    // Ranking: premium plan bonus (200pts) + engagement score
+    const score = (b: any) =>
+      (b.plan === "pro" || b.plan === "premium" || b.plan === "business" ? 200 : 0) +
+      (b.view_count     ?? 0) * 1 +
+      (b.like_count     ?? 0) * 5 +
+      (b.favorite_count ?? 0) * 10 +
+      (b.share_count    ?? 0) * 3 +
+      Math.round((b.rating_average ?? 0) * 20);
+    result.sort((a, b) => score(b) - score(a));
 
     return result;
   }, [displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity]);
