@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@sparticuz/chromium-min": "^149.0.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
@@ -16,11 +18,14 @@
     "firebase": "^12.12.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.17.0",
+    "motion": "^12.40.0",
     "next": "16.2.4",
     "puppeteer": "^25.1.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "stripe": "^22.2.0"
+    "react-pageflip": "^2.0.3",
+    "stripe": "^22.2.0",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -28,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.184.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "sharp": "^0.34.5",

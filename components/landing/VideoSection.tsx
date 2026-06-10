@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from "react";
+import { Typewriter } from "@/components/ui/typewriter";
 
 export default function VideoSection() {
   const [playing, setPlaying] = useState(false);
@@ -13,9 +14,26 @@ export default function VideoSection() {
           <span className="text-[10px] font-bold text-[#C9A96E] uppercase tracking-widest bg-[#C9A96E]/5 px-3 py-1.5 rounded-full border border-[#C9A96E]/15">
             Veja em ação
           </span>
-          <h2 className="text-3xl md:text-5xl font-bold font-display text-[#F5F0E8] leading-tight">
-            Veja como criar a sua vitrine<br className="hidden md:block" />
-            em menos de 1 minuto.
+          <h2 style={{
+            fontFamily: "serif",
+            fontSize: "clamp(28px, 4vw, 48px)",
+            fontWeight: 700,
+            color: "#f5f0e8",
+            lineHeight: 1.2,
+            textAlign: "center",
+          }}>
+            Veja como criar a sua vitrine{" "}
+            <br />
+            em menos de{" "}
+            <span style={{ color: "#c9a96e", fontStyle: "italic" }}>
+              <Typewriter
+                words={["1 minuto.", "5 passos.", "segundos.", "instantes."]}
+                speed={80}
+                delayBetweenWords={2000}
+                cursor={true}
+                cursorChar="|"
+              />
+            </span>
           </h2>
           <p className="text-[#A9B1C3] text-sm md:text-base font-light max-w-xl mx-auto">
             Do cadastro ao link pronto para colocar no Instagram.

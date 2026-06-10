@@ -1,12 +1,12 @@
 import Link from "next/link";
 
 const MOCK_BUSINESSES = [
-  { emoji: "💅", name: "Estúdio Bella", category: "Beleza", city: "Lisboa", views: "1.2k", likes: 84, favs: 37, plan: "Pro ✦" },
-  { emoji: "🍔", name: "Hambúrguer Art", category: "Restaurante", city: "Porto", views: "3.1k", likes: 156, favs: 72, plan: "Pro ✦" },
-  { emoji: "💈", name: "Corte Fino", category: "Barbearia", city: "Braga", views: "890", likes: 63, favs: 28, plan: "Free" },
-  { emoji: "⚡", name: "VoltMaster", category: "Eletricista", city: "Faro", views: "540", likes: 41, favs: 19, plan: "Business" },
-  { emoji: "🔧", name: "Canalizações Silva", category: "Canalizador", city: "Coimbra", views: "320", likes: 22, favs: 11, plan: "Free" },
-  { emoji: "🍰", name: "Doce Segredo", category: "Pastelaria", city: "Setúbal", views: "2.4k", likes: 198, favs: 91, plan: "Pro ✦" },
+  { emoji: "💅", name: "Estúdio Bella", category: "Beleza", city: "Lisboa", views: "1.2k", likes: 84, favs: 37, plan: "Pro ✦", image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80" },
+  { emoji: "🍔", name: "Hambúrguer Art", category: "Restaurante", city: "Porto", views: "3.1k", likes: 156, favs: 72, plan: "Pro ✦", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80" },
+  { emoji: "💈", name: "Corte Fino", category: "Barbearia", city: "Braga", views: "890", likes: 63, favs: 28, plan: "Free", image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&q=80" },
+  { emoji: "⚡", name: "VoltMaster", category: "Eletricista", city: "Faro", views: "540", likes: 41, favs: 19, plan: "Business", image: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=400&q=80" },
+  { emoji: "🔧", name: "Canalizações Silva", category: "Canalizador", city: "Coimbra", views: "320", likes: 22, favs: 11, plan: "Free", image: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&q=80" },
+  { emoji: "🍰", name: "Doce Segredo", category: "Pastelaria", city: "Setúbal", views: "2.4k", likes: 198, favs: 91, plan: "Pro ✦", image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&q=80" },
 ];
 
 export default function MarketplaceSection() {
@@ -67,8 +67,22 @@ export default function MarketplaceSection() {
                 className="bg-[#0F172A]/70 border border-white/5 hover:border-[#C9A96E]/20 rounded-2xl overflow-hidden hover:-translate-y-1 transition-all group"
               >
                 {/* Cover */}
-                <div className="h-20 bg-gradient-to-br from-[#1E293B] to-[#0F172A] flex items-center justify-center relative">
-                  <span className="text-4xl">{b.emoji}</span>
+                <div className="h-[120px] relative overflow-hidden bg-[#0F172A]">
+                  <img
+                    src={b.image}
+                    alt={b.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-[400ms] ease-in-out group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.35)" }} />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span
+                      className="text-3xl flex items-center justify-center"
+                      style={{ background: "rgba(0,0,0,0.5)", borderRadius: "50%", padding: "8px", lineHeight: 1 }}
+                    >
+                      {b.emoji}
+                    </span>
+                  </div>
                   {b.plan !== "Free" && (
                     <span className="absolute top-2 right-2 text-[9px] font-bold text-[#C9A96E] bg-[#C9A96E]/10 border border-[#C9A96E]/25 px-2 py-0.5 rounded-full">
                       {b.plan}

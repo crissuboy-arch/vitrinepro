@@ -2,7 +2,7 @@ const ROWS = [
   {
     feature: "Link profissional",
     instagram: "Link na bio genérico, sem identidade",
-    vitrine: "URL próprio vitrinepro.pt/vitrine/seu-negocio",
+    vitrine: "URL próprio vitrinepro.com/vitrine/seu-negocio",
   },
   {
     feature: "Produtos organizados",

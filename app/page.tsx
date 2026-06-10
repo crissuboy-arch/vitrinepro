@@ -26,8 +26,10 @@ import StepsSection from "@/components/landing/StepsSection";
 import SocialProofBar from "@/components/landing/SocialProofBar";
 import PlansSection from "@/components/landing/PlansSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import AnimatedTestimonialsSection from "@/components/sections/TestimonialsSection";
 import FinalCTASection from "@/components/landing/FinalCTASection";
 import CatalogSection from "@/components/landing/CatalogSection";
+import CatalogFlipbook from "@/components/sections/CatalogFlipbook";
 import MarketplaceSection from "@/components/landing/MarketplaceSection";
 
 const playfair = Playfair_Display({
@@ -499,12 +501,13 @@ export default function HomePage() {
       <ProblemSection />
       <SolutionSection />
       <ShowcaseSection />
-      <CatalogSection onCadastrar={handleCadastrarClick} />
+      <CatalogFlipbook onCadastrar={handleCadastrarClick} />
       <MarketplaceSection />
       <VideoSection />
       <ComparisonSection />
       <StepsSection />
       <SocialProofBar />
+      <AnimatedTestimonialsSection />
       <PlansSection onSelectPlan={handleSelectPlan} />
       <TestimonialsSection />
 

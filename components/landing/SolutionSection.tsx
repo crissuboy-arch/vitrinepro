@@ -52,23 +52,29 @@ export default function SolutionSection() {
             <div className="absolute inset-0 bg-[#C9A96E]/8 blur-[50px] rounded-3xl" />
             <div className="relative bg-[#0F172A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
               {/* Header */}
-              <div className="h-24 bg-gradient-to-r from-[#1E293B] to-[#0F172A] flex items-end px-5 pb-3 relative">
-                <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-[#C9A96E]/20 to-transparent" />
-                <div className="flex items-end gap-3 relative z-10">
-                  <div className="w-14 h-14 rounded-xl bg-[#C9A96E]/15 border border-[#C9A96E]/30 flex items-center justify-center text-2xl -mb-4">
-                    🍔
+              <div className="h-24 relative overflow-hidden" style={{ background: "#1E293B" }}>
+                <img
+                  src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&q=80"
+                  alt="Corte Fino Barber"
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.45)" }} />
+                <div className="absolute inset-0 flex items-end px-5 pb-3">
+                  <div className="w-14 h-14 rounded-xl bg-[#C9A96E]/15 border border-[#C9A96E]/30 flex items-center justify-center text-2xl -mb-4 relative z-10">
+                    💈
                   </div>
                 </div>
               </div>
               <div className="px-5 pt-7 pb-5 space-y-3">
                 <div>
-                  <div className="text-sm font-bold text-[#F5F0E8]">Hambúrguer Artesanal</div>
-                  <div className="text-xs text-[#A9B1C3]">🍔 Restaurante · Porto</div>
+                  <div className="text-sm font-bold text-[#F5F0E8]">Corte Fino Barber</div>
+                  <div className="text-xs text-[#A9B1C3]">💈 Barbearia · Porto</div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { n: "Bacon Cheddar", p: "€10.90" },
-                    { n: "Veggie Burger", p: "€9.50" },
+                    { n: "Corte Clássico", p: "€12.00" },
+                    { n: "Corte + Barba", p: "€18.00" },
                   ].map((item) => (
                     <div key={item.n} className="bg-[#1E293B]/60 border border-white/5 rounded-lg p-2.5">
                       <div className="text-[10px] font-semibold text-[#F5F0E8]">{item.n}</div>
