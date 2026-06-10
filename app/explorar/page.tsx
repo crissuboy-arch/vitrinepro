@@ -478,7 +478,7 @@ function ExplorarCard({ biz }: { biz: any }) {
         {biz.cover ? (
           <img
             src={biz.cover}
-            alt=""
+            alt={`Capa de ${biz.name}`}
             className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
           />
         ) : (
@@ -517,7 +517,7 @@ function ExplorarCard({ biz }: { biz: any }) {
           <div className="flex gap-3">
             <div className="w-10 h-10 rounded-full bg-slate-950 border-2 border-slate-800 flex items-center justify-center text-lg overflow-hidden relative -mt-8 z-20 shadow-xl flex-shrink-0">
               {biz.logo && biz.logo.startsWith("http") ? (
-                <img src={biz.logo} alt="" className="w-full h-full object-cover" />
+                <img src={biz.logo} alt={`Logo de ${biz.name}`} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-sm">{biz.logo}</span>
               )}

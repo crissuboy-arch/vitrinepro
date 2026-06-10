@@ -13,12 +13,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/categorias`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${siteUrl}/cidades`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${siteUrl}/lojas`, changeFrequency: "daily", priority: 0.8 },
-    { url: `${siteUrl}/dashboard`, changeFrequency: "monthly", priority: 0.4 },
     { url: `${siteUrl}/plano-business`, changeFrequency: "weekly", priority: 0.9 },
   ];
 
   let businessRoutes: MetadataRoute.Sitemap = [];
-  let seoRoutes: MetadataRoute.Sitemap = [];
+  const seoRoutes: MetadataRoute.Sitemap = [];
 
   try {
     const supabase = createClient(

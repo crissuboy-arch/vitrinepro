@@ -696,7 +696,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
             >
               <div className="flex items-center gap-2">
                 {business.logo && business.logo.startsWith("http") ? (
-                  <img src={business.logo} alt="" className="w-9 h-9 rounded-xl object-cover" />
+                  <img src={business.logo} alt={`Logo de ${business.name}`} className="w-9 h-9 rounded-xl object-cover" />
                 ) : (
                   <span className="text-2xl">{business.logo || "🏪"}</span>
                 )}
@@ -1255,7 +1255,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-[#C8A96B]/10 border border-[#C8A96B]/20 flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
                     {business.owner_photo
-                      ? <img src={business.owner_photo} alt="" className="w-full h-full object-cover" />
+                      ? <img src={business.owner_photo} alt={`Foto de ${business.owner_name || "fundador(a)"}`} className="w-full h-full object-cover" />
                       : "👤"}
                   </div>
                   <div className="min-w-0">
@@ -1348,7 +1348,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
               >
                 <div className="h-20 bg-slate-800 overflow-hidden relative">
                   {biz.cover_url
-                    ? <img src={biz.cover_url} alt="" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform" />
+                    ? <img src={biz.cover_url} alt={`Capa de ${biz.name}`} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform" />
                     : <div className="w-full h-full flex items-center justify-center text-2xl">🏪</div>}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent" />
                 </div>

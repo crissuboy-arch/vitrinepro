@@ -246,7 +246,7 @@ export default async function CityCategoryPage({ params }: CityPageProps) {
                       <div className="flex gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden relative -mt-9 shadow-lg flex-shrink-0">
                           {business.logo_url ? (
-                            <img src={business.logo_url} alt="" className="w-full h-full object-cover" />
+                            <img src={business.logo_url} alt={`Logo de ${business.name}`} className="w-full h-full object-cover" />
                           ) : (
                             <span className="text-sm">🏪</span>
                           )}

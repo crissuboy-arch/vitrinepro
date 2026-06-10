@@ -16,15 +16,43 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const siteUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://vitrinepro.pt").replace(/\/$/, "");
+const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+const bingVerification = process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION;
+
+const SITE_TITLE = "VitrinePro - Coloque seu negócio na frente de quem compra";
+const SITE_DESCRIPTION =
+  "A sua vitrine digital para negócios locais ganharem visibilidade, contactos e clientes sem depender de anúncios pagos.";
+
 export const metadata: Metadata = {
-  title: "VitrinePro - Coloque seu negócio na frente de quem compra",
-  description: "A sua vitrine digital para negócios locais ganharem visibilidade, contactos e clientes sem depender de anúncios pagos.",
-  verification: {
-    google: "google-site-verification-placeholder-token",
+  metadataBase: new URL(siteUrl),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  applicationName: "VitrinePro",
+  openGraph: {
+    type: "website",
+    siteName: "VitrinePro",
+    locale: "pt_PT",
+    url: siteUrl,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [{ url: "/og-default.png", width: 1200, height: 630, alt: "VitrinePro" }],
   },
-  other: {
-    "msvalidate.01": "bing-webmaster-tools-placeholder-token",
-  }
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/og-default.png"],
+  },
+  // Verification tokens come from env vars; the placeholders were removed.
+  ...(googleVerification || bingVerification
+    ? {
+        verification: {
+          ...(googleVerification ? { google: googleVerification } : {}),
+          ...(bingVerification ? { other: { "msvalidate.01": bingVerification } } : {}),
+        },
+      }
+    : {}),
 };
 
 export default function RootLayout({

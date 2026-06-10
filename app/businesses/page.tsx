@@ -357,7 +357,7 @@ export default function BusinessesPage() {
                     <div className="flex items-center justify-between">
                       <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-2xl overflow-hidden relative">
                         {biz.logo && biz.logo.startsWith("http") ? (
-                          <img src={biz.logo} alt="" className="w-full h-full object-cover" />
+                          <img src={biz.logo} alt={`Logo de ${biz.name}`} className="w-full h-full object-cover" />
                         ) : (
                           <span>{biz.logo}</span>
                         )}
@@ -607,7 +607,7 @@ function BusinessCard({ biz }: { biz: any }) {
             {/* Logo circle overlapping cover */}
             <div className="w-10 h-10 rounded-full bg-slate-950 border-2 border-slate-800 flex items-center justify-center text-lg overflow-hidden relative -mt-8 z-20 shadow-xl flex-shrink-0">
               {biz.logo && biz.logo.startsWith("http") ? (
-                <img src={biz.logo} alt="" className="w-full h-full object-cover" />
+                <img src={biz.logo} alt={`Logo de ${biz.name}`} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-sm">{biz.logo}</span>
               )}

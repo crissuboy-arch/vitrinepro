@@ -266,7 +266,7 @@ function BusinessMinisite({ business, reviews }: { business: Business; reviews: 
               onClick={() => setCurrentSlide(i)}
               className={`relative flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${i === currentSlide ? "border-[#C8A96B]" : "border-transparent opacity-60 hover:opacity-100"}`}
             >
-              <Image src={img} alt="" fill className="object-cover" />
+              <Image src={img} alt={`${business.name} — foto ${i + 1}`} fill className="object-cover" />
             </button>
           ))}
         </div>
