@@ -41,12 +41,11 @@ export default function TestimonialsSection() {
               marginBottom: "16px",
             }}
           >
-            Os resultados que os nossos{" "}
-            <span style={{ color: "#c9a96e", fontStyle: "italic" }}>clientes</span>{" "}
-            já têm
+            Negócios locais em Portugal que deixaram de ser{" "}
+            <span style={{ color: "#c9a96e", fontStyle: "italic" }}>invisíveis online.</span>
           </h2>
           <p style={{ color: "#888", fontSize: "15px", maxWidth: "480px", lineHeight: 1.7 }}>
-            Negócios locais em Portugal que deixaram de ser invisíveis online.
+            Empresas reais. Resultados reais. Clientes reais.
           </p>
         </motion.div>
 

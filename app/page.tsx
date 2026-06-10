@@ -25,9 +25,9 @@ import ComparisonSection from "@/components/landing/ComparisonSection";
 import StepsSection from "@/components/landing/StepsSection";
 import SocialProofBar from "@/components/landing/SocialProofBar";
 import PlansSection from "@/components/landing/PlansSection";
-import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import AnimatedTestimonialsSection from "@/components/sections/TestimonialsSection";
 import FinalCTASection from "@/components/landing/FinalCTASection";
+import VideoCtaSection from "@/components/landing/VideoCtaSection";
 import CatalogSection from "@/components/landing/CatalogSection";
 import CatalogFlipbook from "@/components/sections/CatalogFlipbook";
 import MarketplaceSection from "@/components/landing/MarketplaceSection";
@@ -504,12 +504,12 @@ export default function HomePage() {
       <CatalogFlipbook onCadastrar={handleCadastrarClick} />
       <MarketplaceSection />
       <VideoSection />
+      <VideoCtaSection onCadastrar={handleCadastrarClick} />
       <ComparisonSection />
       <StepsSection />
       <SocialProofBar />
       <AnimatedTestimonialsSection />
       <PlansSection onSelectPlan={handleSelectPlan} />
-      <TestimonialsSection />
 
       <section id="faq" className="py-24 md:py-32 bg-[#0A0D14] border-b border-white/5 relative z-10">
         <div className="max-w-3xl mx-auto px-4 space-y-16">
