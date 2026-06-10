@@ -308,13 +308,19 @@ export async function POST(request: Request) {
   let browser;
   try {
     browser = await puppeteer.launch({
-      args: chromium.args,
+      args: [
+        ...chromium.args,
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+      ],
+      defaultViewport: chromium.defaultViewport,
       executablePath,
-      headless: true,
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "load" });
+    await page.setContent(htmlContent, { waitUntil: "networkidle0", timeout: 30000 });
     await page.emulateMediaType("screen");
 
     const pdf = await page.pdf({
