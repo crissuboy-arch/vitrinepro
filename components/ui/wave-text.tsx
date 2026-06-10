@@ -1,5 +1,4 @@
 "use client";
-import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
 
 interface AnimatedTextProps {
@@ -10,7 +9,7 @@ interface AnimatedTextProps {
 export function WaveText({ text = "Hover me", className = "" }: AnimatedTextProps) {
   return (
     <motion.span
-      className={cn("inline-block cursor-pointer", className)}
+      className={`inline-block cursor-pointer${className ? ` ${className}` : ""}`}
       whileHover="hover"
       initial="initial"
     >
