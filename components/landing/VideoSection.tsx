@@ -54,8 +54,8 @@ export default function VideoSection() {
                 }}
               />
 
-              {/* Fake step sequence */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {/* Fake step sequence — decorative, hidden on small screens */}
+              <div className="absolute inset-0 items-center justify-center pointer-events-none hidden sm:flex">
                 <div className="grid grid-cols-5 gap-3 opacity-15 px-8">
                   {["🔑 Registo", "🏪 Negócio", "🛍️ Produtos", "📱 Partilha", "🎉 Clientes"].map((s) => (
                     <div key={s} className="bg-white/10 rounded-xl p-3 text-center text-xs text-white/60 font-medium">

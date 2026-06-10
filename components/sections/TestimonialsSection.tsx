@@ -8,7 +8,7 @@ const thirdColumn = testimonialsList.slice(6, 9);
 
 export default function TestimonialsSection() {
   return (
-    <section style={{ background: "#080b12", padding: "80px 0", position: "relative" }}>
+    <section id="depoimentos" style={{ background: "#080b12", padding: "80px 0", position: "relative" }}>
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -44,7 +44,7 @@ export default function CatalogFlipbook({ onCadastrar }: Props) {
     setMounted(true);
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
-    window.addEventListener("resize", check);
+    window.addEventListener("resize", check, { passive: true });
     import("react-pageflip").then((mod) => {
       // mod.default is the HTMLFlipBook class – wrap in arrow to avoid
       // React treating it as a functional-state updater
@@ -57,11 +57,13 @@ export default function CatalogFlipbook({ onCadastrar }: Props) {
   const prevPage = () => bookRef.current?.pageFlip?.()?.flipPrev?.();
   const nextPage = () => bookRef.current?.pageFlip?.()?.flipNext?.();
 
-  // usePortrait is always false — landscape 2-page mode — so pageW is always half the visible area
+  // On mobile: arrows go below the book, so pageW uses full available width (minus 48px side padding)
+  // On desktop: arrows are beside the book, so keep 450px per page
+  const containerW = typeof window !== "undefined" ? window.innerWidth : 768;
   const pageW = isMobile
-    ? Math.max(Math.floor(((typeof window !== "undefined" ? window.innerWidth : 768) - 120) / 2), 160)
+    ? Math.max(Math.floor((containerW - 48) / 2), 130)
     : 450;
-  const pageH = 580;
+  const pageH = isMobile ? Math.max(Math.round(pageW * 1.45), 280) : 580;
   // Spread label: ghost+cover=1, appL+appR=2, mainL+mainR=3, backCover+ghost=4
   const displayPage = Math.floor(currentPage / 2) + 1;
   const displayTotal = TOTAL_PAGES / 2; // 4 spreads
@@ -391,48 +393,92 @@ export default function CatalogFlipbook({ onCadastrar }: Props) {
         </div>
 
         {/* Flipbook row */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexWrap: "nowrap" }}>
-          <ArrowBtn dir="←" onClick={prevPage} />
-
-          {/* Flipbook or placeholder */}
-          <div style={{ borderRadius: 6, boxShadow: "0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,169,110,0.08)" }}>
-            {!mounted || !FlipBook ? (
-              <div style={{
-                width: 900, height: pageH, background: "#0f172a",
-                borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <span style={{ color: "#c9a96e", fontSize: 13 }}>A carregar catálogo…</span>
-              </div>
-            ) : (
-              <FlipBook
-                ref={bookRef}
-                width={pageW}
-                height={pageH}
-                size="fixed"
-                drawShadow={true}
-                flippingTime={700}
-                usePortrait={false}
-                startPage={0}
-                showCover={false}
-                maxShadowOpacity={0.5}
-                mobileScrollSupport={true}
-                onFlip={onFlip}
-                style={{ cursor: "pointer" }}
-              >
-                {ghostPage}
-                {coverPage}
-                {appetizersLeft}
-                {appetizersRight}
-                {mainLeft}
-                {mainRight}
-                {backCover}
-                {ghostPage}
-              </FlipBook>
-            )}
+        {isMobile ? (
+          /* Mobile: book full width, arrows stacked below */
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <div style={{ borderRadius: 6, boxShadow: "0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,169,110,0.08)", width: pageW * 2 + 1, maxWidth: "100%" }}>
+              {!mounted || !FlipBook ? (
+                <div style={{
+                  width: pageW * 2, height: pageH, background: "#0f172a",
+                  borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <span style={{ color: "#c9a96e", fontSize: 13 }}>A carregar…</span>
+                </div>
+              ) : (
+                <FlipBook
+                  ref={bookRef}
+                  width={pageW}
+                  height={pageH}
+                  size="fixed"
+                  drawShadow={true}
+                  flippingTime={600}
+                  usePortrait={false}
+                  startPage={0}
+                  showCover={false}
+                  maxShadowOpacity={0.4}
+                  mobileScrollSupport={true}
+                  onFlip={onFlip}
+                  style={{ cursor: "pointer" }}
+                >
+                  {ghostPage}
+                  {coverPage}
+                  {appetizersLeft}
+                  {appetizersRight}
+                  {mainLeft}
+                  {mainRight}
+                  {backCover}
+                  {ghostPage}
+                </FlipBook>
+              )}
+            </div>
+            {/* Mobile arrows below */}
+            <div style={{ display: "flex", gap: 16 }}>
+              <ArrowBtn dir="←" onClick={prevPage} />
+              <ArrowBtn dir="→" onClick={nextPage} />
+            </div>
           </div>
-
-          <ArrowBtn dir="→" onClick={nextPage} />
-        </div>
+        ) : (
+          /* Desktop: arrows beside the book */
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
+            <ArrowBtn dir="←" onClick={prevPage} />
+            <div style={{ borderRadius: 6, boxShadow: "0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,169,110,0.08)" }}>
+              {!mounted || !FlipBook ? (
+                <div style={{
+                  width: pageW * 2, height: pageH, background: "#0f172a",
+                  borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <span style={{ color: "#c9a96e", fontSize: 13 }}>A carregar catálogo…</span>
+                </div>
+              ) : (
+                <FlipBook
+                  ref={bookRef}
+                  width={pageW}
+                  height={pageH}
+                  size="fixed"
+                  drawShadow={true}
+                  flippingTime={700}
+                  usePortrait={false}
+                  startPage={0}
+                  showCover={false}
+                  maxShadowOpacity={0.5}
+                  mobileScrollSupport={true}
+                  onFlip={onFlip}
+                  style={{ cursor: "pointer" }}
+                >
+                  {ghostPage}
+                  {coverPage}
+                  {appetizersLeft}
+                  {appetizersRight}
+                  {mainLeft}
+                  {mainRight}
+                  {backCover}
+                  {ghostPage}
+                </FlipBook>
+              )}
+            </div>
+            <ArrowBtn dir="→" onClick={nextPage} />
+          </div>
+        )}
 
         {/* Page indicator */}
         <div style={{ textAlign: "center", marginTop: 18 }}>

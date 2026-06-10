@@ -155,6 +155,7 @@ export default function DashboardPage() {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [toast, setToast] = useState("");
   const [showCatalogModal, setShowCatalogModal] = useState(false);
+  const [showCatalogUpgradeModal, setShowCatalogUpgradeModal] = useState(false);
 
   // Auto-dismiss toast after 4s
   useEffect(() => {
@@ -1079,6 +1080,45 @@ export default function DashboardPage() {
                 </a>
               </div>
             )}
+
+            {/* Catalog Editor Card */}
+            <div
+              onClick={() => {
+                const isPaid = business?.plan === "pro" || business?.plan === "premium" || business?.plan === "business"
+                if (isPaid) {
+                  router.push("/dashboard/catalogo")
+                } else {
+                  setShowCatalogUpgradeModal(true)
+                }
+              }}
+              className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl cursor-pointer hover:border-[#C8A96B]/40 transition-colors group"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📄</span>
+                  <div>
+                    <h3 className="font-semibold text-[#C8A96B] text-sm">Catálogo Digital</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Editor de catálogo profissional</p>
+                  </div>
+                </div>
+                {!(business?.plan === "pro" || business?.plan === "premium" || business?.plan === "business") && (
+                  <span className="text-[10px] font-bold text-[#0a0d14] bg-[#c9a96e] px-2 py-0.5 rounded-full">PRO</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 leading-relaxed mb-4">
+                Cria um catálogo elegante com capa, produtos e preços. Partilha online ou exporta em PDF.
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex gap-3 text-[10px] text-gray-600">
+                  <span>✓ Flipbook interativo</span>
+                  <span>✓ Exportar PDF</span>
+                </div>
+                <span className="text-xs text-[#C8A96B] font-semibold group-hover:translate-x-1 transition-transform inline-block">
+                  Abrir →
+                </span>
+              </div>
+            </div>
+
           </div>
         </div>
       </main>
@@ -1741,6 +1781,34 @@ export default function DashboardPage() {
           plan={business.plan || "free"}
           onClose={() => setShowCatalogModal(false)}
         />
+      )}
+
+      {/* CATALOG UPGRADE MODAL */}
+      {showCatalogUpgradeModal && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0f172a] border border-[#C8A96B]/30 rounded-2xl p-10 max-w-md w-full text-center shadow-2xl">
+            <div className="text-4xl mb-4">📄</div>
+            <h2 className="font-display text-xl font-bold text-[#f5f0e8] mb-3">Catálogo Digital</h2>
+            <p className="text-sm text-gray-400 leading-relaxed mb-8">
+              O editor de catálogos está disponível nos planos Pro e Business.<br />
+              Actualiza agora para criar o teu catálogo profissional.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowCatalogUpgradeModal(false)}
+                className="px-5 py-2.5 border border-gray-700 text-gray-400 rounded-lg text-sm hover:text-white transition-colors"
+              >
+                Fechar
+              </button>
+              <button
+                onClick={() => { setShowCatalogUpgradeModal(false); handleUpgrade("pro"); }}
+                className="px-6 py-2.5 bg-[#c9a96e] text-[#0a0d14] rounded-lg text-sm font-bold hover:bg-[#d4b87e] transition-colors"
+              >
+                Actualizar para Pro →
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toast notification */}

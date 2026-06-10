@@ -194,7 +194,7 @@ export default function CatalogEditorPage() {
         body: JSON.stringify({ catalogId: catalog.id, businessId: catalog.business_id }),
       })
 
-      if (!res.ok) { showToast("Exportação ainda não disponível", false); return }
+      if (!res.ok) { showToast("Erro ao exportar PDF.", false); return }
 
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
@@ -204,9 +204,37 @@ export default function CatalogEditorPage() {
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      showToast("Exportação ainda não disponível", false)
+      showToast("Erro ao exportar PDF.", false)
     } finally {
       setExporting(false)
+    }
+  }
+
+  // ── Public toggle ─────────────────────────────────────────────────────────────
+
+  const handleTogglePublic = async () => {
+    if (!catalog.id) { showToast("Guarda o catálogo primeiro.", false); return }
+    const newPublico = !catalog.publico
+    let newSlug = catalog.slug
+    if (newPublico && !newSlug) {
+      const rand = Math.random().toString(36).substring(2, 6)
+      newSlug = (catalog.capa.nome || catalog.nome)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") + "-" + rand
+    }
+    setCatalog(prev => ({ ...prev, publico: newPublico, slug: newSlug }))
+    const { error } = await supabase
+      .from("catalogs")
+      .update({ publico: newPublico, slug: newSlug })
+      .eq("id", catalog.id)
+    if (error) {
+      showToast("Erro ao actualizar.", false)
+      setCatalog(prev => ({ ...prev, publico: !newPublico }))
+    } else {
+      showToast(newPublico ? "Catálogo tornado público!" : "Catálogo definido como privado.")
     }
   }
 
@@ -326,6 +354,39 @@ export default function CatalogEditorPage() {
             {label}
           </button>
         ))}
+      </div>
+
+      {/* Public toggle bar */}
+      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "10px 24px", background: catalog.publico ? "rgba(34,197,94,0.04)" : "transparent", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={handleTogglePublic}>
+          <div style={{ width: "44px", height: "24px", background: catalog.publico ? "#22c55e" : "rgba(255,255,255,0.1)", borderRadius: "12px", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+            <div style={{ position: "absolute", top: "3px", left: catalog.publico ? "23px" : "3px", width: "18px", height: "18px", background: "#fff", borderRadius: "50%", transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }} />
+          </div>
+          <span style={{ fontSize: "13px", color: catalog.publico ? "#22c55e" : "#666", fontWeight: 600, transition: "color 0.2s" }}>
+            {catalog.publico ? "Catálogo público" : "Tornar público"}
+          </span>
+        </div>
+
+        {catalog.publico && catalog.slug && (
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto" }}>
+            <span style={{ fontSize: "12px", color: "#555", fontFamily: "monospace" }}>
+              vitrinepro.com/catalogo/{catalog.slug}
+            </span>
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(`https://vitrinepro.com/catalogo/${catalog.slug}`)
+                  showToast("Link copiado!")
+                } catch {
+                  showToast("Erro ao copiar", false)
+                }
+              }}
+              style={{ padding: "5px 12px", background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.3)", color: "#c9a96e", borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: 700 }}
+            >
+              Copiar link
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content area */}

@@ -187,7 +187,7 @@ export function HeroCarrossel() {
           {/* Items */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: v.items.length === 2 ? "1fr 1fr" : "1fr 1fr 1fr",
+            gridTemplateColumns: v.items.length === 2 ? "1fr 1fr" : "repeat(auto-fit, minmax(72px, 1fr))",
             gap: "6px",
             margin: "12px 0",
           }}>
@@ -197,8 +197,9 @@ export function HeroCarrossel() {
                 borderRadius: "8px",
                 padding: "8px 10px",
                 border: "1px solid rgba(255,255,255,0.08)",
+                minWidth: 0,
               }}>
-                <div style={{ fontSize: "11px", color: "#ccc", fontWeight: 500 }}>{item.nome}</div>
+                <div style={{ fontSize: "11px", color: "#ccc", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.nome}</div>
                 <div style={{ fontSize: "13px", color: "#c9a96e", fontWeight: 700, marginTop: "2px" }}>{item.preco}</div>
               </div>
             ))}
@@ -226,11 +227,11 @@ export function HeroCarrossel() {
           </div>
 
           {/* Stats */}
-          <div style={{ display: "flex", gap: "14px", fontSize: "11px", color: "#666" }}>
-            <span>👁 {v.visitas} visitas</span>
-            <span>❤️ {v.curtidas} curtidas</span>
-            <span>⭐ {v.favoritos} favoritos</span>
-            <span>↗ {v.partilhas} partilhas</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", fontSize: "11px", color: "#666" }}>
+            <span>👁 {v.visitas}</span>
+            <span>❤️ {v.curtidas}</span>
+            <span>⭐ {v.favoritos}</span>
+            <span>↗ {v.partilhas}</span>
           </div>
         </div>
       </div>
