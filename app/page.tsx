@@ -23,7 +23,6 @@ import SolutionSection from "@/components/landing/SolutionSection";
 import VideoSection from "@/components/landing/VideoSection";
 import ComparisonSection from "@/components/landing/ComparisonSection";
 import StepsSection from "@/components/landing/StepsSection";
-import SocialProofBar from "@/components/landing/SocialProofBar";
 import PlansSection from "@/components/landing/PlansSection";
 import AnimatedTestimonialsSection from "@/components/sections/TestimonialsSection";
 import FinalCTASection from "@/components/landing/FinalCTASection";
@@ -507,7 +506,6 @@ export default function HomePage() {
       <VideoCtaSection onCadastrar={handleCadastrarClick} />
       <ComparisonSection />
       <StepsSection />
-      <SocialProofBar />
       <AnimatedTestimonialsSection />
       <PlansSection onSelectPlan={handleSelectPlan} />
 
