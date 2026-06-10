@@ -7,7 +7,7 @@ export const runtime = "nodejs"
 export const maxDuration = 60
 
 const CHROMIUM_REMOTE_URL =
-  "https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.tar"
+  "https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar"
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -134,19 +134,14 @@ export async function POST(request: Request) {
       (await chromium.executablePath(CHROMIUM_REMOTE_URL))
 
     browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-      ],
-      defaultViewport: chromium.defaultViewport,
+      args: chromium.args,
+      defaultViewport: { width: 794, height: 1123 },
       executablePath,
-      headless: chromium.headless,
+      headless: true,
     })
 
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: "load", timeout: 30000 })
+    await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 25000 })
     await page.emulateMediaType("print")
 
     const pdf = await page.pdf({
