@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WaveText } from "@/components/ui/wave-text";
 
 interface VideoCtaSectionProps {
   onCadastrar: (e: React.MouseEvent) => void;
@@ -28,13 +29,13 @@ export default function VideoCtaSection({ onCadastrar }: VideoCtaSectionProps) {
             onClick={onCadastrar}
             className="w-full sm:w-auto px-9 py-4 bg-[#C9A96E] hover:bg-[#D4BB82] text-[#0A0D14] font-bold rounded-xl text-xs uppercase tracking-widest transition-all duration-300 shadow-[0_8px_24px_rgba(201,169,110,0.15)] hover:shadow-[0_12px_40px_rgba(201,169,110,0.45)] active:scale-95 cursor-pointer"
           >
-            Criar minha vitrine grátis →
+            <WaveText text="Criar minha vitrine grátis →" />
           </button>
           <Link
             href="/businesses"
             className="w-full sm:w-auto px-9 py-4 border border-white/15 hover:border-[#C9A96E]/40 text-[#F5F0E8] hover:text-[#C9A96E] font-semibold rounded-xl text-xs uppercase tracking-widest transition-all duration-300 text-center"
           >
-            Ver exemplo ao vivo
+            <WaveText text="Ver exemplo ao vivo" />
           </Link>
         </div>
       </div>

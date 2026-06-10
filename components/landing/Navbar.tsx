@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { WaveText } from "@/components/ui/wave-text";
 
 interface NavbarProps {
   onCadastrar: (e: React.MouseEvent) => void;
@@ -61,7 +62,7 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
             onClick={onCadastrar}
             className="px-5 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-[10px] font-bold rounded-lg uppercase tracking-widest active:scale-95 transition-all shadow-[0_4px_20px_rgba(200,169,107,0.15)] cursor-pointer"
           >
-            Criar vitrine grátis
+            <WaveText text="Criar vitrine grátis" />
           </button>
         </div>
       </div>

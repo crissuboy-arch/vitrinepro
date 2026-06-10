@@ -1,6 +1,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { HeroCarrossel } from "@/components/ui/hero-carrossel";
+import { WaveText } from "@/components/ui/wave-text";
 
 const GlobeBackground = dynamic(
   () => import("@/components/ui/globe-hero").then((m) => ({ default: m.GlobeBackground })),
@@ -74,13 +75,13 @@ export default function HeroSection({ onCadastrar }: HeroSectionProps) {
               onClick={onCadastrar}
               className="w-full sm:w-auto px-9 py-4 bg-[#C9A96E] hover:bg-[#D4BB82] text-[#0A0D14] font-bold rounded-xl shadow-[0_8px_30px_rgba(201,169,110,0.28)] active:scale-95 transition-all text-sm tracking-wide cursor-pointer"
             >
-              Criar minha vitrine grátis →
+              <WaveText text="Criar minha vitrine grátis →" />
             </button>
             <Link
               href="/businesses"
               className="w-full sm:w-auto px-9 py-4 bg-transparent hover:bg-white/5 text-[#F5F0E8] font-semibold rounded-xl border border-white/15 hover:border-[#C9A96E]/40 text-center transition-all text-sm"
             >
-              Ver exemplo ao vivo
+              <WaveText text="Ver exemplo ao vivo" />
             </Link>
           </div>
 
