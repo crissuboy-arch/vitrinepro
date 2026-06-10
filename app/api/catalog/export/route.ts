@@ -3,29 +3,36 @@ import { createClient } from '@supabase/supabase-js'
 
 export const maxDuration = 60
 
+// M12: step tracers only run outside production so we don't flood Vercel logs
+// (and leak catalog IDs/names) on every export. Real failures still use console.error.
+const isProd = process.env.NODE_ENV === 'production'
+const log = (...args: unknown[]) => {
+  if (!isProd) console.log(...args)
+}
+
 export async function POST(req: NextRequest) {
-  console.log('=== CATALOG EXPORT STARTED ===')
+  log('=== CATALOG EXPORT STARTED ===')
 
   try {
     // STEP 1 - Parse body
-    console.log('Step 1: Parsing body...')
+    log('Step 1: Parsing body...')
     const body = await req.json()
     const { catalogId } = body
-    console.log('catalogId:', catalogId)
+    log('catalogId:', catalogId)
 
     if (!catalogId) {
       return NextResponse.json({ error: 'catalogId missing' }, { status: 400 })
     }
 
     // STEP 2 - Supabase
-    console.log('Step 2: Connecting Supabase...')
+    log('Step 2: Connecting Supabase...')
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
     // STEP 3 - Fetch catalog
-    console.log('Step 3: Fetching catalog...')
+    log('Step 3: Fetching catalog...')
     const { data: catalog, error: dbError } = await supabase
       .from('catalogs')
       .select('*')
@@ -33,46 +40,46 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (dbError) {
-      console.log('DB Error:', dbError)
+      console.error('[CATALOG EXPORT] DB error:', dbError.message)
       return NextResponse.json({ error: 'DB error', detail: dbError.message }, { status: 500 })
     }
 
     if (!catalog) {
-      console.log('Catalog not found')
+      log('Catalog not found')
       return NextResponse.json({ error: 'Catalog not found' }, { status: 404 })
     }
 
-    console.log('Catalog found:', catalog.nome)
+    log('Catalog found:', catalog.nome)
 
     // STEP 4 - Load Chromium
-    console.log('Step 4: Loading Chromium...')
+    log('Step 4: Loading Chromium...')
     let chromium: any
     let puppeteer: any
 
     try {
       chromium = require('@sparticuz/chromium-min')
       puppeteer = require('puppeteer-core')
-      console.log('Chromium loaded OK')
+      log('Chromium loaded OK')
     } catch (e: any) {
-      console.log('Chromium load error:', e.message)
+      console.error('[CATALOG EXPORT] Chromium load error:', e.message)
       return NextResponse.json({ error: 'Chromium load failed', detail: e.message }, { status: 500 })
     }
 
     // STEP 5 - Get executable path
-    console.log('Step 5: Getting executable path...')
+    log('Step 5: Getting executable path...')
     let executablePath: string
     try {
       executablePath = await chromium.executablePath(
         'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
       )
-      console.log('Executable path:', executablePath)
+      log('Executable path:', executablePath)
     } catch (e: any) {
-      console.log('executablePath error:', e.message)
+      console.error('[CATALOG EXPORT] executablePath error:', e.message)
       return NextResponse.json({ error: 'executablePath failed', detail: e.message }, { status: 500 })
     }
 
     // STEP 6 - Launch browser
-    console.log('Step 6: Launching browser...')
+    log('Step 6: Launching browser...')
     let browser: any
     try {
       browser = await puppeteer.launch({
@@ -81,14 +88,14 @@ export async function POST(req: NextRequest) {
         executablePath,
         headless: true,
       })
-      console.log('Browser launched OK')
+      log('Browser launched OK')
     } catch (e: any) {
-      console.log('Browser launch error:', e.message)
+      console.error('[CATALOG EXPORT] Browser launch error:', e.message)
       return NextResponse.json({ error: 'Browser launch failed', detail: e.message }, { status: 500 })
     }
 
     // STEP 7 - Generate HTML
-    console.log('Step 7: Generating HTML...')
+    log('Step 7: Generating HTML...')
     const cores = catalog.cores || {}
     const capa = catalog.capa || {}
     const paginas = catalog.paginas || []
@@ -127,7 +134,7 @@ ${paginas.map((p: any, i: number) => `
 </html>`
 
     // STEP 8 - Render PDF
-    console.log('Step 8: Rendering PDF...')
+    log('Step 8: Rendering PDF...')
     let pdf: Buffer
     try {
       const page = await browser.newPage()
@@ -138,18 +145,18 @@ ${paginas.map((p: any, i: number) => `
         margin: { top: '0', right: '0', bottom: '0', left: '0' }
       })
       await browser.close()
-      console.log('PDF generated, size:', pdf.length, 'bytes')
+      log('PDF generated, size:', pdf.length, 'bytes')
     } catch (e: any) {
-      console.log('PDF render error:', e.message)
+      console.error('[CATALOG EXPORT] PDF render error:', e.message)
       await browser.close().catch(() => {})
       return NextResponse.json({ error: 'PDF render failed', detail: e.message }, { status: 500 })
     }
 
     // STEP 9 - Return PDF
-    console.log('Step 9: Returning PDF...')
+    log('Step 9: Returning PDF...')
     const nomeFicheiro = (capa.nome || 'catalogo').toLowerCase().replace(/\s+/g, '-')
 
-    return new NextResponse(pdf, {
+    return new NextResponse(new Uint8Array(pdf), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${nomeFicheiro}_catalogo.pdf"`,
@@ -157,7 +164,7 @@ ${paginas.map((p: any, i: number) => `
     })
 
   } catch (e: any) {
-    console.log('=== UNHANDLED ERROR ===', e.message, e.stack)
+    console.error('[CATALOG EXPORT] Unhandled error:', e.message)
     return NextResponse.json({
       error: 'Unhandled error',
       detail: e.message,

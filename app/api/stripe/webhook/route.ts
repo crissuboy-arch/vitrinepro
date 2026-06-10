@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
+// M12: only emit verbose logs outside production to avoid leaking IDs/PII in Vercel logs.
+const isProd = process.env.NODE_ENV === "production";
+const log = (...args: unknown[]) => {
+  if (!isProd) console.log(...args);
+};
+
 // Service role client — bypasses RLS so the plan update always succeeds
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,23 +24,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
   }
 
+  // C1: never process an unsigned webhook. If the signing secret is missing we
+  // refuse the request instead of trusting arbitrary, unverified JSON.
+  if (!endpointSecret) {
+    console.error("[STRIPE WEBHOOK] STRIPE_WEBHOOK_SECRET not set — refusing unverified webhook");
+    return NextResponse.json({ error: "Webhook signing secret not configured" }, { status: 503 });
+  }
+
   const stripe = new Stripe(stripeKey);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let event: any;
 
   try {
-    if (endpointSecret) {
-      const signature = request.headers.get("stripe-signature");
-      if (!signature) {
-        return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 });
-      }
-      const rawBody = await request.text();
-      event = stripe.webhooks.constructEvent(rawBody, signature, endpointSecret);
-    } else {
-      console.warn("[STRIPE WEBHOOK] STRIPE_WEBHOOK_SECRET not set — skipping signature verification");
-      event = await request.json();
+    const signature = request.headers.get("stripe-signature");
+    if (!signature) {
+      return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 });
     }
+    const rawBody = await request.text();
+    event = stripe.webhooks.constructEvent(rawBody, signature, endpointSecret);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Signature verification failed";
     console.error("[STRIPE WEBHOOK] Signature error:", msg);
@@ -44,7 +52,7 @@ export async function POST(request: Request) {
   const supabase = getSupabaseAdmin();
 
   try {
-    console.log(`[STRIPE WEBHOOK] Event: ${event.type}`);
+    log(`[STRIPE WEBHOOK] Event: ${event.type}`);
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
@@ -58,10 +66,10 @@ export async function POST(request: Request) {
 
       const subscriptionId = typeof session.subscription === "string"
         ? session.subscription
-        : (session.subscription as any)?.id ?? null;
+        : session.subscription?.id ?? null;
       const customerId = typeof session.customer === "string" ? session.customer : null;
 
-      console.log(`[STRIPE WEBHOOK] Updating plan '${planId}' for business ${businessId} (sub: ${subscriptionId})`);
+      log(`[STRIPE WEBHOOK] Updating plan '${planId}' for business ${businessId} (sub: ${subscriptionId})`);
       const { error } = await supabase
         .from("businesses")
         .update({
@@ -77,7 +85,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      console.log(`[STRIPE WEBHOOK] Plan updated successfully`);
+      log(`[STRIPE WEBHOOK] Plan updated successfully`);
     } else if (event.type === "invoice.payment_succeeded") {
       // Renewals: subscription metadata contains businessId + planId
       // (set via subscription_data.metadata in checkout session creation)
@@ -90,7 +98,7 @@ export async function POST(request: Request) {
         const planId = subscription.metadata?.planId;
 
         if (businessId && planId) {
-          console.log(`[STRIPE WEBHOOK] Renewal: updating plan '${planId}' for business ${businessId}`);
+          log(`[STRIPE WEBHOOK] Renewal: updating plan '${planId}' for business ${businessId}`);
           const { error } = await supabase
             .from("businesses")
             .update({ plan: planId })
@@ -108,14 +116,14 @@ export async function POST(request: Request) {
       if (businessId) {
         if (subscription.cancel_at_period_end && subscription.cancel_at) {
           const cancelAt = new Date(subscription.cancel_at * 1000).toISOString();
-          console.log(`[STRIPE WEBHOOK] Subscription cancel scheduled for business ${businessId} at ${cancelAt}`);
+          log(`[STRIPE WEBHOOK] Subscription cancel scheduled for business ${businessId} at ${cancelAt}`);
           await supabase
             .from("businesses")
             .update({ subscription_cancel_at: cancelAt })
             .eq("id", businessId);
         } else if (!subscription.cancel_at_period_end) {
           // Reactivated — clear scheduled cancellation
-          console.log(`[STRIPE WEBHOOK] Subscription reactivated for business ${businessId}`);
+          log(`[STRIPE WEBHOOK] Subscription reactivated for business ${businessId}`);
           await supabase
             .from("businesses")
             .update({ subscription_cancel_at: null })
@@ -128,7 +136,7 @@ export async function POST(request: Request) {
       const businessId = subscription.metadata?.businessId;
 
       if (businessId) {
-        console.log(`[STRIPE WEBHOOK] Subscription deleted for business ${businessId} — downgrading to free`);
+        log(`[STRIPE WEBHOOK] Subscription deleted for business ${businessId} — downgrading to free`);
         await supabase
           .from("businesses")
           .update({ plan: "free", stripe_subscription_id: null, subscription_cancel_at: null })

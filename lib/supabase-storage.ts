@@ -1,10 +1,22 @@
 import { supabase } from "@/app/lib/supabase";
 
+// A2: only allow real image types and cap the size, so SVGs/HTML/binaries
+// can't be uploaded to the public buckets and storage can't be abused.
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
 /**
  * Uploads a file to a specific Supabase storage bucket.
  */
 async function uploadFile(bucketName: string, file: File, businessId: string): Promise<string> {
-  const fileExt = file.name.split(".").pop() || "jpg";
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    throw new Error("Tipo de ficheiro não permitido. Usa imagens JPG, PNG, WEBP ou GIF.");
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error("Ficheiro demasiado grande. O limite é 5 MB.");
+  }
+
+  const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const filePath = `${businessId}/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
   
   const { error: uploadError } = await supabase.storage
