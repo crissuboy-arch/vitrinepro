@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef, type CSSProperties } from "react"
 
 const vitrines = [
   {
@@ -59,31 +59,65 @@ const vitrines = [
   },
 ]
 
+const controlBtn: CSSProperties = {
+  background: "transparent",
+  border: "none",
+  cursor: "pointer",
+  color: "#c9a96e",
+  fontSize: "20px",
+  lineHeight: 1,
+  padding: "2px 8px",
+  borderRadius: "6px",
+}
+
 export function HeroCarrossel() {
   const [atual, setAtual] = useState(0)
   const [animating, setAnimating] = useState(false)
+  const [paused, setPaused] = useState(false)
+  const touchStartX = useRef<number | null>(null)
+
+  // Cross-fade then swap the active slide.
+  const change = useCallback((next: (prev: number) => number) => {
+    setAnimating(true)
+    setTimeout(() => {
+      setAtual(next)
+      setAnimating(false)
+    }, 400)
+  }, [])
+
+  const goNext = useCallback(() => change((p) => (p + 1) % vitrines.length), [change])
+  const goPrev = useCallback(() => change((p) => (p - 1 + vitrines.length) % vitrines.length), [change])
+  const goTo = useCallback((i: number) => change(() => i), [change])
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setAnimating(true)
-      setTimeout(() => {
-        setAtual((prev) => (prev + 1) % vitrines.length)
-        setAnimating(false)
-      }, 400)
-    }, 3500)
+    if (paused) return
+    const timer = setInterval(goNext, 3500)
     return () => clearInterval(timer)
-  }, [])
+  }, [paused, goNext])
 
   const v = vitrines[atual]
 
   return (
-    <div style={{
-      width: "100%",
-      maxWidth: "580px",
-      margin: "0 auto",
-      transition: "opacity 0.4s ease",
-      opacity: animating ? 0 : 1,
-    }}>
+    <div
+      role="region"
+      aria-roledescription="carrossel"
+      aria-label="Vitrines em destaque"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX }}
+      onTouchEnd={(e) => {
+        if (touchStartX.current === null) return
+        const dx = e.changedTouches[0].clientX - touchStartX.current
+        if (Math.abs(dx) > 40) { if (dx < 0) goNext(); else goPrev() }
+        touchStartX.current = null
+      }}
+      style={{
+        width: "100%",
+        maxWidth: "580px",
+        margin: "0 auto",
+      }}
+    >
+      <div style={{ transition: "opacity 0.4s ease", opacity: animating ? 0 : 1 }}>
       {/* Browser top bar */}
       <div style={{
         background: "#1e2433",
@@ -235,23 +269,52 @@ export function HeroCarrossel() {
           </div>
         </div>
       </div>
+      </div>
 
-      {/* Dot indicators */}
-      <div style={{ display: "flex", justifyContent: "center", gap: "6px", marginTop: "12px" }}>
-        {vitrines.map((_, i) => (
-          <div
-            key={i}
-            onClick={() => setAtual(i)}
-            style={{
-              width: i === atual ? "20px" : "6px",
-              height: "6px",
-              borderRadius: "3px",
-              background: i === atual ? "#c9a96e" : "rgba(201,169,110,0.3)",
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-            }}
-          />
-        ))}
+      {/* Controls: prev · dots · next */}
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px", marginTop: "12px" }}>
+        <button
+          type="button"
+          onClick={goPrev}
+          aria-label="Vitrine anterior"
+          className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a96e]"
+          style={controlBtn}
+        >
+          <span aria-hidden="true">‹</span>
+        </button>
+
+        <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
+          {vitrines.map((vit, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => goTo(i)}
+              aria-label={`Mostrar ${vit.nome}`}
+              aria-current={i === atual ? "true" : undefined}
+              className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a96e]"
+              style={{
+                width: i === atual ? "20px" : "6px",
+                height: "6px",
+                borderRadius: "3px",
+                background: i === atual ? "#c9a96e" : "rgba(201,169,110,0.3)",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+              }}
+            />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={goNext}
+          aria-label="Próxima vitrine"
+          className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a96e]"
+          style={controlBtn}
+        >
+          <span aria-hidden="true">›</span>
+        </button>
       </div>
     </div>
   )

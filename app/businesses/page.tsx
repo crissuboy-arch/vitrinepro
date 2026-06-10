@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
@@ -99,19 +99,23 @@ export default function BusinessesPage() {
   const [dbCities, setDbCities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeAd, setActiveAd] = useState(0);
+  const [adsPaused, setAdsPaused] = useState(false);
+  const adTouchStartX = useRef<number | null>(null);
+  const goPrevAd = () => setActiveAd((prev) => (prev - 1 + ads.length) % ads.length);
+  const goNextAd = () => setActiveAd((prev) => (prev + 1) % ads.length);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Automatic carousel rotation
+  // Automatic carousel rotation (pauses on hover/touch)
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || adsPaused) return;
     const interval = setInterval(() => {
       setActiveAd((prev) => (prev + 1) % ads.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, [mounted]);
+  }, [mounted, adsPaused]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -277,7 +281,21 @@ export default function BusinessesPage() {
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 py-8 space-y-12">
         
         {/* Ads / Highlights Carousel Section */}
-        <section className="relative h-64 sm:h-80 md:h-96 w-full rounded-3xl overflow-hidden border border-white/5 shadow-2xl bg-slate-900/60">
+        <section
+          className="relative h-64 sm:h-80 md:h-96 w-full rounded-3xl overflow-hidden border border-white/5 shadow-2xl bg-slate-900/60"
+          role="region"
+          aria-roledescription="carrossel"
+          aria-label="Destaques e novidades"
+          onMouseEnter={() => setAdsPaused(true)}
+          onMouseLeave={() => setAdsPaused(false)}
+          onTouchStart={(e) => { adTouchStartX.current = e.touches[0].clientX; }}
+          onTouchEnd={(e) => {
+            if (adTouchStartX.current === null) return;
+            const dx = e.changedTouches[0].clientX - adTouchStartX.current;
+            if (Math.abs(dx) > 40) { if (dx < 0) goNextAd(); else goPrevAd(); }
+            adTouchStartX.current = null;
+          }}
+        >
           {ads.map((ad, idx) => (
             <div
               key={ad.id}
@@ -326,13 +344,32 @@ export default function BusinessesPage() {
               <button
                 key={idx}
                 onClick={() => setActiveAd(idx)}
-                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C8A96B] ${
                   idx === activeAd ? "bg-[#C8A96B] w-6" : "bg-white/30"
                 }`}
                 aria-label={`Ir para anúncio ${idx + 1}`}
+                aria-current={idx === activeAd ? "true" : undefined}
               />
             ))}
           </div>
+
+          {/* Prev / Next controls */}
+          <button
+            type="button"
+            onClick={goPrevAd}
+            aria-label="Anúncio anterior"
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 flex items-center justify-center rounded-full bg-slate-950/60 text-white text-xl leading-none hover:bg-[#C8A96B] hover:text-[#0F172A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C8A96B] transition-colors backdrop-blur-sm"
+          >
+            <span aria-hidden="true">‹</span>
+          </button>
+          <button
+            type="button"
+            onClick={goNextAd}
+            aria-label="Próximo anúncio"
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 flex items-center justify-center rounded-full bg-slate-950/60 text-white text-xl leading-none hover:bg-[#C8A96B] hover:text-[#0F172A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C8A96B] transition-colors backdrop-blur-sm"
+          >
+            <span aria-hidden="true">›</span>
+          </button>
         </section>
 
         {/* Featured Premium Listings Section */}
@@ -347,7 +384,7 @@ export default function BusinessesPage() {
               </div>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {featuredBusinesses.map((biz) => (
                 <Link
                   key={biz.id}
