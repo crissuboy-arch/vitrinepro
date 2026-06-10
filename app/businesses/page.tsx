@@ -124,7 +124,8 @@ export default function BusinessesPage() {
             .from('businesses')
             .select('*')
             .eq('published', true)
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false })
+            .limit(200), // cap query — avoid fetching unbounded rows
           supabase.from("categories").select("id, name, icon").eq("is_active", true),
           supabase.from("cities").select("id, name, country").eq("is_active", true),
         ]);

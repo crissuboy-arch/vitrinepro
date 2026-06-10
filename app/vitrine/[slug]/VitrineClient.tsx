@@ -5,7 +5,9 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
-import BusinessChatWidget from "../../components/BusinessChatWidget";
+import dynamic from "next/dynamic";
+// Floating chat widget — lazy-loaded (not needed for first paint).
+const BusinessChatWidget = dynamic(() => import("../../components/BusinessChatWidget"), { ssr: false });
 import AutomationPopup from "../../components/AutomationPopup";
 import { getCommunityByCountry } from "@/lib/communities";
 import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib/analytics";

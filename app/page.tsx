@@ -5,9 +5,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "./lib/supabase";
-import ChatWidget from "./components/ChatWidget";
-import RefPopup from "./components/RefPopup";
-import LeadCapturePopup from "./components/LeadCapturePopup";
+import dynamic from "next/dynamic";
+
+// Overlay widgets are non-critical — lazy-load them so they stay out of the initial bundle.
+const ChatWidget = dynamic(() => import("./components/ChatWidget"), { ssr: false });
+const RefPopup = dynamic(() => import("./components/RefPopup"), { ssr: false });
+const LeadCapturePopup = dynamic(() => import("./components/LeadCapturePopup"), { ssr: false });
 
 // Google Fonts
 import { Playfair_Display, DM_Sans } from "next/font/google";
