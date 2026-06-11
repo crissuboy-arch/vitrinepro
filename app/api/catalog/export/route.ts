@@ -112,40 +112,245 @@ export async function POST(req: NextRequest) {
 
     // STEP 7 - Generate HTML
     log('Step 7: Generating HTML...')
+
+    // Fetch business contact + hours for the back cover (best-effort)
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('phone, whatsapp, address, opening_hours, schedule')
+      .eq('id', catalog.business_id)
+      .single()
+
     const cores = catalog.cores || {}
     const capa = catalog.capa || {}
     const paginas = catalog.paginas || []
+    const capaImagem = capa.imagem || null
+    const capaLogo = capa.logo || null
+    const telefone = capa.telefone || business?.phone || business?.whatsapp || ''
+    const morada = capa.morada || business?.address || ''
+    const horarios = business?.opening_hours || business?.schedule || []
 
     const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { width: 794px; font-family: Georgia, serif; background: white; }
-.page { width: 794px; min-height: 1123px; position: relative; page-break-after: always; overflow: hidden; }
-.page:last-child { page-break-after: auto; }
+  @page { margin: 0; size: A4; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: white;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 210mm;
+    height: 297mm;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* CAPA */
+  .cover {
+    width: 100%;
+    height: 100%;
+    background: ${cores.secundaria || '#0a0d14'};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px;
+    position: relative;
+  }
+  .cover-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cover-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+  .cover-content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+  .cover-logo {
+    width: 100px; height: 100px; border-radius: 50%; object-fit: contain;
+    border: 2px solid ${cores.principal || '#c9a96e'}; margin-bottom: 32px;
+  }
+  .cover-label {
+    font-size: 10px; letter-spacing: 0.35em; color: ${cores.principal || '#c9a96e'};
+    text-transform: uppercase; margin-bottom: 20px;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 300;
+  }
+  .cover-title {
+    font-size: 56px; font-weight: 700; color: ${cores.titulos || '#f5f0e8'};
+    line-height: 1.1; margin-bottom: 16px; font-family: Georgia, serif;
+  }
+  .cover-subtitle {
+    font-size: 16px; color: ${cores.principal || '#c9a96e'}; margin-bottom: 12px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .cover-slogan {
+    font-size: 14px; color: rgba(255,255,255,0.55); font-style: italic;
+    max-width: 320px; line-height: 1.6;
+  }
+  .cover-divider { width: 60px; height: 2px; background: ${cores.principal || '#c9a96e'}; margin: 24px auto; }
+  .cover-footer {
+    position: absolute; bottom: 32px; font-size: 10px; letter-spacing: 0.25em;
+    color: rgba(255,255,255,0.35); font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  /* PÁGINAS PRODUTO */
+  .product-page { width: 100%; height: 100%; display: flex; }
+  .product-left {
+    width: 42%; background: ${cores.secundaria || '#0a0d14'}; padding: 48px 36px;
+    display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden;
+  }
+  .product-number {
+    position: absolute; top: 20px; right: 20px; font-size: 88px; font-weight: 700;
+    color: ${cores.principal || '#c9a96e'}; opacity: 0.08; line-height: 1; font-family: Georgia, serif;
+  }
+  .product-badge {
+    display: inline-block; font-size: 9px; letter-spacing: 0.2em; color: ${cores.principal || '#c9a96e'};
+    border: 1px solid ${cores.principal || '#c9a96e'}; padding: 3px 10px; border-radius: 2px;
+    text-transform: uppercase; margin-bottom: 16px; width: fit-content;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .product-name {
+    font-size: 28px; font-weight: 700; color: ${cores.titulos || '#f5f0e8'};
+    line-height: 1.2; margin-bottom: 16px; font-family: Georgia, serif;
+  }
+  .product-line { width: 40px; height: 2px; background: ${cores.principal || '#c9a96e'}; margin-bottom: 16px; }
+  .product-desc {
+    font-size: 13px; color: rgba(255,255,255,0.55); line-height: 1.7; margin-bottom: 32px;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 300;
+  }
+  .product-price-wrap { display: flex; align-items: flex-start; gap: 4px; margin-top: auto; }
+  .product-currency {
+    font-size: 18px; color: ${cores.precos || cores.principal || '#c9a96e'}; margin-top: 8px; font-family: Georgia, serif;
+  }
+  .product-price {
+    font-size: 52px; font-weight: 700; color: ${cores.precos || cores.principal || '#c9a96e'};
+    line-height: 1; font-family: Georgia, serif;
+  }
+  .product-right { width: 58%; position: relative; overflow: hidden; background: #f5f0e8; }
+  .product-img { width: 100%; height: 100%; object-fit: cover; }
+  .product-no-img {
+    width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #f5f0e8 0%, #ede8dd 100%);
+  }
+  .product-no-img-emoji { font-size: 80px; margin-bottom: 16px; opacity: 0.4; }
+  .product-no-img-name { font-size: 18px; color: #999; font-family: Georgia, serif; }
+
+  /* RODAPÉ DE PÁGINA */
+  .page-footer {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 36px;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+    background: rgba(0,0,0,0.3); font-size: 9px; color: rgba(255,255,255,0.35);
+    letter-spacing: 0.1em; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  /* CONTRACAPA */
+  .backcover {
+    width: 100%; height: 100%; background: ${cores.secundaria || '#0a0d14'};
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 56px 64px; position: relative;
+  }
+  .backcover-title { font-size: 30px; font-weight: 700; color: ${cores.titulos || '#f5f0e8'}; margin-bottom: 10px; font-family: Georgia, serif; }
+  .backcover-name { font-size: 18px; color: ${cores.principal || '#c9a96e'}; margin-bottom: 32px; }
+  .backcover-divider { width: 60px; height: 1px; background: ${cores.principal || '#c9a96e'}; margin: 0 auto 32px; }
+  .contact-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; text-align: left; }
+  .contact-item {
+    font-size: 13px; color: rgba(255,255,255,0.65); display: flex; align-items: center; gap: 10px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .contact-icon { font-size: 14px; width: 20px; text-align: center; }
+  .hours-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 32px; text-align: left; }
+  .hours-item { font-size: 11px; color: rgba(255,255,255,0.5); font-family: 'Helvetica Neue', Arial, sans-serif; }
+  .hours-day { font-weight: 600; color: rgba(255,255,255,0.7); }
+  .backcover-footer {
+    position: absolute; bottom: 24px; font-size: 10px; color: rgba(255,255,255,0.25);
+    font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; align-items: center; gap: 6px;
+  }
+  .vitrinepro-badge { color: ${cores.principal || '#c9a96e'}; font-weight: 600; }
 </style>
 </head>
 <body>
-<div class="page" style="background:${cores.secundaria || '#0a0d14'};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px;">
-  <div style="font-size:12px;letter-spacing:0.3em;color:${cores.principal || '#c9a96e'};text-transform:uppercase;margin-bottom:16px;">Catálogo Oficial · 2026</div>
-  <h1 style="font-size:52px;font-weight:700;color:${cores.titulos || '#f5f0e8'};margin-bottom:16px;">${capa.nome || 'O Meu Negócio'}</h1>
-  <div style="font-size:16px;color:${cores.principal || '#c9a96e'};">${capa.categoria || ''} · ${capa.cidade || ''}</div>
-  ${capa.slogan ? `<div style="font-size:14px;color:rgba(255,255,255,0.6);font-style:italic;margin-top:12px;">${capa.slogan}</div>` : ''}
+
+<!-- CAPA -->
+<div class="page">
+  <div class="cover">
+    ${capaImagem ? `<img class="cover-bg" src="${capaImagem}" alt="capa" /><div class="cover-overlay"></div>` : ''}
+    <div class="cover-content">
+      ${capaLogo ? `<img class="cover-logo" src="${capaLogo}" alt="logo" />` : ''}
+      <div class="cover-label">Catálogo Oficial · 2026</div>
+      <h1 class="cover-title">${capa.nome || 'O Meu Negócio'}</h1>
+      <div class="cover-subtitle">${capa.categoria || ''} · ${capa.cidade || ''}</div>
+      ${capa.slogan ? `<div class="cover-divider"></div><div class="cover-slogan">${capa.slogan}</div>` : '<div class="cover-divider"></div>'}
+    </div>
+    <div class="cover-footer">MENU 2026</div>
+  </div>
 </div>
-${paginas.map((p: any, i: number) => `
-<div class="page" style="background:${cores.fundo || '#ffffff'};padding:48px 56px;">
-  <h2 style="font-size:36px;font-weight:700;color:${cores.titulos || '#0a0d14'};margin-bottom:16px;">${p.titulo || ''}</h2>
-  ${p.descricao ? `<p style="font-size:15px;color:#555;line-height:1.7;margin-bottom:24px;">${p.descricao}</p>` : ''}
-  ${p.preco ? `<div style="font-size:42px;font-weight:700;color:${cores.precos || '#c9a96e'};">${p.preco}</div>` : ''}
-  <div style="position:absolute;bottom:24px;right:56px;font-size:11px;color:#aaa;">${i + 2}</div>
+
+<!-- PÁGINAS DE PRODUTOS -->
+${paginas.map((p: { titulo?: string; descricao?: string; preco?: string; imagem?: string; destaque?: boolean }, i: number) => `
+<div class="page">
+  <div class="product-page">
+    <div class="product-left">
+      <div class="product-number">${String(i + 1).padStart(2, '0')}</div>
+      ${p.destaque ? '<div class="product-badge">⭐ Destaque</div>' : ''}
+      <div class="product-name">${p.titulo || 'Produto'}</div>
+      <div class="product-line"></div>
+      ${p.descricao ? `<div class="product-desc">${p.descricao}</div>` : ''}
+      ${p.preco ? `
+      <div class="product-price-wrap">
+        <div class="product-price">${p.preco}</div>
+      </div>` : ''}
+    </div>
+    <div class="product-right">
+      ${p.imagem
+        ? `<img class="product-img" src="${p.imagem}" alt="${p.titulo || ''}" />`
+        : `<div class="product-no-img">
+            <div class="product-no-img-emoji">🍽️</div>
+            <div class="product-no-img-name">${p.titulo || ''}</div>
+           </div>`
+      }
+      <div class="page-footer">
+        <span>${capa.nome || ''}</span>
+        <span>${i + 2}</span>
+      </div>
+    </div>
+  </div>
 </div>`).join('')}
-<div class="page" style="background:${cores.secundaria || '#0a0d14'};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px;">
-  <div style="font-size:28px;font-weight:700;color:${cores.titulos || '#f5f0e8'};margin-bottom:12px;">${capa.nome || ''}</div>
-  <div style="font-size:14px;color:${cores.principal || '#c9a96e'};">vitrinepro.com/catalogo/${catalog.slug || ''}</div>
-  <div style="margin-top:40px;font-size:12px;color:rgba(255,255,255,0.3);">Gerado pela VitrinePro</div>
+
+<!-- CONTRACAPA -->
+<div class="page">
+  <div class="backcover">
+    ${capaImagem ? `<img class="cover-bg" src="${capaImagem}" alt="capa" /><div class="cover-overlay" style="background:rgba(0,0,0,0.7);"></div>` : ''}
+    <div class="cover-content">
+      ${capaLogo ? `<img class="cover-logo" src="${capaLogo}" alt="logo" />` : ''}
+      <div class="backcover-title">Obrigado pela sua visita</div>
+      <div class="backcover-name">${capa.nome || ''}</div>
+      <div class="backcover-divider"></div>
+
+      <div class="contact-grid">
+        ${telefone ? `<div class="contact-item"><span class="contact-icon">📞</span>${telefone}</div>` : ''}
+        ${morada ? `<div class="contact-item"><span class="contact-icon">📍</span>${morada}</div>` : ''}
+        <div class="contact-item"><span class="contact-icon">🌐</span>vitrinepro.com/catalogo/${catalog.slug || ''}</div>
+      </div>
+
+      ${horarios && horarios.length > 0 ? `
+      <div class="backcover-divider"></div>
+      <div class="hours-grid">
+        ${horarios.map((h: { dia?: string; day?: string; abertura?: string; open?: string; fecho?: string; close?: string }) => `
+        <div class="hours-item">
+          <span class="hours-day">${h.dia || h.day || ''}</span><br/>
+          ${h.abertura || h.open || ''} – ${h.fecho || h.close || ''}
+        </div>`).join('')}
+      </div>` : ''}
+    </div>
+
+    <div class="backcover-footer">
+      <span>Feito com ♥ pela</span>
+      <span class="vitrinepro-badge">VitrinePro</span>
+    </div>
+  </div>
 </div>
+
 </body>
 </html>`
 
