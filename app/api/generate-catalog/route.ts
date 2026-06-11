@@ -5,8 +5,10 @@ import puppeteer from "puppeteer-core";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+// @sparticuz/chromium-min@149 ↔ Chromium 149. Packs are arch-specific now
+// (the single-file `-pack.tar` was removed); Vercel functions run on x64.
 const CHROMIUM_REMOTE_URL =
-  "https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.tar";
+  "https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.x64.tar";
 
 interface CatalogSettings {
   corCapa: string;
@@ -51,10 +53,6 @@ function buildHtml(biz: any, products: any[], settings: CatalogSettings): string
   const horas: any[] = Array.isArray(biz.opening_hours) ? biz.opening_hours : [];
   const horasAbertas = horas.filter((h) => !h.closed && h.open && h.close);
 
-  // Encode font names for Google Fonts URL
-  const gfTitle = fonteTitulo.replace(/ /g, "+");
-  const gfBody = fonteCorpo.replace(/ /g, "+");
-
   const produtosFeatured = products[0];
   const produtosRest = products.slice(1);
 
@@ -62,9 +60,6 @@ function buildHtml(biz: any, products: any[], settings: CatalogSettings): string
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=${gfTitle}:wght@400;700&family=${gfBody}:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: '${fonteCorpo}', sans-serif; background: #fff; width: 794px; }
@@ -300,27 +295,23 @@ export async function POST(request: Request) {
 
   const htmlContent = buildHtml(biz, products || [], settings);
 
-  // Resolve Chromium: local override via env var (dev), else sparticuz download (Vercel/prod)
-  const executablePath =
-    process.env.CHROMIUM_EXECUTABLE_PATH ||
-    (await chromium.executablePath(CHROMIUM_REMOTE_URL));
-
   let browser;
   try {
+    const executablePath =
+      process.env.CHROMIUM_EXECUTABLE_PATH ||
+      (await chromium.executablePath(CHROMIUM_REMOTE_URL));
+
+    // @sparticuz/chromium-min@149 dropped `defaultViewport`/`headless`; the binary
+    // is the headless-shell, so use headless: "shell" + an explicit A4 viewport.
     browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-      ],
-      defaultViewport: chromium.defaultViewport,
+      args: chromium.args,
+      defaultViewport: { width: 794, height: 1123 },
       executablePath,
-      headless: chromium.headless,
+      headless: "shell",
     });
 
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0", timeout: 30000 });
+    await page.setContent(htmlContent, { waitUntil: "domcontentloaded", timeout: 25000 });
     await page.emulateMediaType("screen");
 
     const pdf = await page.pdf({
@@ -337,6 +328,10 @@ export async function POST(request: Request) {
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[generate-catalog] PDF generation failed:", msg);
+    return Response.json({ error: "Erro ao gerar PDF." }, { status: 500 });
   } finally {
     if (browser) await browser.close();
   }
