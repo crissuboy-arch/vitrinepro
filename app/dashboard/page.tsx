@@ -1081,6 +1081,22 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* Content Calendar Card */}
+            <div
+              onClick={() => router.push("/dashboard/calendario")}
+              className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl cursor-pointer hover:border-[#C8A96B]/40 transition-colors group"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📅</span>
+                  <div>
+                    <h3 className="font-semibold text-[#C8A96B] text-sm">Calendário de Conteúdo</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Planeie e organize as suas publicações</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Catalog Editor Card */}
             <div
               onClick={() => {
