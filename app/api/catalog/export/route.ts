@@ -71,7 +71,9 @@ export async function POST(req: NextRequest) {
     let puppeteer: any
 
     try {
-      chromium = require('@sparticuz/chromium-min')
+      // .default: with CJS require, the @sparticuz/chromium-min class lives on
+      // `.default` (without it, chromium.executablePath/args are undefined → 500).
+      chromium = require('@sparticuz/chromium-min').default
       puppeteer = require('puppeteer-core')
       log('Chromium loaded OK')
     } catch (e: any) {
@@ -84,7 +86,7 @@ export async function POST(req: NextRequest) {
     let executablePath: string
     try {
       executablePath = await chromium.executablePath(
-        'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
+        'https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.x64.tar'
       )
       log('Executable path:', executablePath)
     } catch (e: any) {
@@ -100,7 +102,7 @@ export async function POST(req: NextRequest) {
         args: chromium.args,
         defaultViewport: { width: 794, height: 1123 },
         executablePath,
-        headless: true,
+        headless: 'shell',
       })
       log('Browser launched OK')
     } catch (e: any) {
