@@ -1,8 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import Image from "next/image";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import { getCommunityByCountry } from "@/lib/communities";
@@ -63,8 +62,12 @@ const communitiesList = [
   { slug: "brasileira", name: "Brasileira", icon: "🇧🇷", country: "Brasil" },
   { slug: "angolana", name: "Angolana", icon: "🇦🇴", country: "Angola" },
   { slug: "cabo-verdiana", name: "Cabo-Verdiana", icon: "🇨🇻", country: "Cabo Verde" },
-  { slug: "francesa", name: "Francesa", icon: "🇫🇷", country: "França" }
+  { slug: "francesa", name: "Francesa", icon: "🇫🇷", country: "França" },
+  { slug: "portuguesa", name: "Portuguesa", icon: "🇵🇹", country: "Portugal" }
 ];
+
+const PAGE_SIZE = 9;
+const FAV_KEY = "vp_favorites";
 
 export default function ExplorarPage() {
   const [mounted, setMounted] = useState(false);
@@ -76,6 +79,20 @@ export default function ExplorarPage() {
   const [dbCategories, setDbCategories] = useState<any[]>([]);
   const [dbCities, setDbCities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Social + feed state
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [likedSet, setLikedSet] = useState<Set<string>>(new Set());
+  const [favSet, setFavSet] = useState<Set<string>>(new Set());
+  const [likeOverrides, setLikeOverrides] = useState<Record<string, number>>({});
+  const [shareOverrides, setShareOverrides] = useState<Record<string, number>>({});
+  const [toast, setToast] = useState("");
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(""), 2200);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -95,6 +112,14 @@ export default function ExplorarPage() {
       setSearchQuery(q);
     }
 
+    // Favorites live only in localStorage (no login required)
+    try {
+      const raw = localStorage.getItem(FAV_KEY);
+      if (raw) setFavSet(new Set(JSON.parse(raw)));
+    } catch {
+      /* ignore */
+    }
+
     const loadData = async () => {
       try {
         const [bizRes, catsRes, citiesRes] = await Promise.all([
@@ -107,14 +132,18 @@ export default function ExplorarPage() {
           supabase.from("cities").select("id, name, country").eq("is_active", true),
         ]);
 
-        if (bizRes.data) {
-          setRealBusinesses(bizRes.data);
-        }
-        if (catsRes.data) {
-          setDbCategories(catsRes.data);
-        }
-        if (citiesRes.data) {
-          setDbCities(citiesRes.data);
+        if (bizRes.data) setRealBusinesses(bizRes.data);
+        if (catsRes.data) setDbCategories(catsRes.data);
+        if (citiesRes.data) setDbCities(citiesRes.data);
+
+        // Pre-load the current user's likes in one query (RLS allows reading all)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: myLikes } = await supabase
+            .from("business_likes")
+            .select("business_id")
+            .eq("user_id", session.user.id);
+          if (myLikes) setLikedSet(new Set(myLikes.map((r: any) => r.business_id)));
         }
       } catch (error) {
         console.error("[EXPLORAR] Error loading data:", error);
@@ -153,6 +182,75 @@ export default function ExplorarPage() {
       window.history.pushState({}, "", url.pathname + url.search);
     }
   };
+
+  // ── Social handlers ──────────────────────────────────────────────────────
+  const toggleLike = useCallback(async (biz: any) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      showToast("Faz login para curtir ❤️");
+      return;
+    }
+    try {
+      const res = await fetch("/api/social", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ business_id: biz.id, action: "toggle_like" }),
+      });
+      if (!res.ok) {
+        showToast("Não foi possível curtir agora.");
+        return;
+      }
+      const json = await res.json();
+      setLikedSet((prev) => {
+        const next = new Set(prev);
+        if (json.liked) next.add(biz.id);
+        else next.delete(biz.id);
+        return next;
+      });
+      setLikeOverrides((prev) => ({ ...prev, [biz.id]: json.like_count ?? 0 }));
+    } catch {
+      showToast("Erro de ligação. Tenta novamente.");
+    }
+  }, [showToast]);
+
+  const shareBiz = useCallback(async (biz: any) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://vitrinepro.pt";
+    const url = `${origin}/vitrine/${biz.slug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("Link copiado! ↗");
+    } catch {
+      showToast("Não foi possível copiar o link.");
+    }
+    // Record the share (anonymous) — best-effort
+    fetch("/api/social", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ business_id: biz.id, action: "record_share", platform: "link" }),
+    }).catch(() => {});
+    setShareOverrides((prev) => ({
+      ...prev,
+      [biz.id]: (prev[biz.id] ?? biz.share_count ?? 0) + 1,
+    }));
+  }, [showToast]);
+
+  const toggleFav = useCallback((biz: any) => {
+    setFavSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(biz.id)) next.delete(biz.id);
+      else next.add(biz.id);
+      try {
+        localStorage.setItem(FAV_KEY, JSON.stringify([...next]));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+    showToast(favSet.has(biz.id) ? "Removido dos favoritos" : "Guardado nos favoritos ⭐");
+  }, [favSet, showToast]);
 
   const displayBusinesses = useMemo(() => {
     const categoryMap = new Map(dbCategories.map((c) => [c.id, c]));
@@ -197,6 +295,10 @@ export default function ExplorarPage() {
         slug: b.slug,
         country: b.country || b.owner_origin_country || "",
         owner_origin_country: b.owner_origin_country || "",
+        view_count: b.view_count ?? 0,
+        like_count: b.like_count ?? 0,
+        share_count: b.share_count ?? 0,
+        favorite_count: b.favorite_count ?? 0,
       };
     });
   }, [realBusinesses, dbCategories, dbCities]);
@@ -204,7 +306,6 @@ export default function ExplorarPage() {
   const filteredBusinesses = useMemo(() => {
     let result = [...displayBusinesses];
 
-    // Search query filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
@@ -216,17 +317,14 @@ export default function ExplorarPage() {
       );
     }
 
-    // Category filter
     if (selectedCategory !== "Todas") {
       result = result.filter((b) => b.category.toLowerCase() === selectedCategory.toLowerCase());
     }
 
-    // City filter
     if (selectedCity !== "Todas as Cidades") {
       result = result.filter((b) => b.city.toLowerCase() === selectedCity.toLowerCase());
     }
 
-    // Community filter (owner origin country)
     if (selectedCommunity !== "todas") {
       const activeComm = communitiesList.find((c) => c.slug === selectedCommunity);
       if (activeComm && activeComm.country) {
@@ -239,27 +337,49 @@ export default function ExplorarPage() {
             (selectedCommunity === "brasileira" && origin.includes("brasil")) ||
             (selectedCommunity === "angolana" && origin.includes("angola")) ||
             (selectedCommunity === "cabo-verdiana" && origin.includes("cabo")) ||
-            (selectedCommunity === "francesa" && origin.includes("fran"))
+            (selectedCommunity === "francesa" && origin.includes("fran")) ||
+            (selectedCommunity === "portuguesa" && origin.includes("portug"))
           );
         });
       }
     }
 
-    // Ranking: premium plan bonus (200pts) + engagement score
+    // Ranking: premium bonus (200pts) + engagement score
     const score = (b: any) =>
-      (b.plan === "pro" || b.plan === "premium" || b.plan === "business" ? 200 : 0) +
-      (b.view_count     ?? 0) * 1 +
-      (b.like_count     ?? 0) * 5 +
+      (b.premium ? 200 : 0) +
+      (b.view_count ?? 0) * 1 +
+      (b.like_count ?? 0) * 5 +
       (b.favorite_count ?? 0) * 10 +
-      (b.share_count    ?? 0) * 3 +
-      Math.round((b.rating_average ?? 0) * 20);
+      (b.share_count ?? 0) * 3 +
+      Math.round((b.rating ?? 0) * 20);
     result.sort((a, b) => score(b) - score(a));
 
     return result;
   }, [displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity]);
 
-  const featuredSlice = filteredBusinesses.filter((b) => b.premium).slice(0, 3);
-  const regularSlice = filteredBusinesses.filter((b) => !b.premium);
+  // Reset the visible window whenever the filters change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery, selectedCategory, selectedCity, selectedCommunity]);
+
+  const visibleBusinesses = filteredBusinesses.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredBusinesses.length;
+
+  // Infinite scroll — load PAGE_SIZE more when the sentinel enters the viewport
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((v) => v + PAGE_SIZE);
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, filteredBusinesses.length, visibleCount]);
 
   if (!mounted || loading) {
     return (
@@ -276,7 +396,7 @@ export default function ExplorarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-slate-100 flex flex-col font-sans select-none selection:bg-[#C8A96B] selection:text-[#0F172A]">
+    <div className="min-h-screen bg-[#050816] text-slate-100 flex flex-col font-sans selection:bg-[#C8A96B] selection:text-[#0F172A]">
       {/* Header */}
       <header className="border-b border-white/5 bg-[#0F172A]/70 backdrop-blur sticky top-0 z-55 transition-all">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -302,7 +422,7 @@ export default function ExplorarPage() {
 
       {/* Main Container */}
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 py-8 space-y-10">
-        
+
         {/* Banner Title */}
         <div className="text-center py-6 space-y-2">
           <h2 className="text-3xl md:text-5xl font-bold font-display text-white tracking-wide">
@@ -316,7 +436,7 @@ export default function ExplorarPage() {
         {/* Filter Controls Row */}
         <section className="bg-gray-900/60 border border-gray-800 rounded-3xl p-6 shadow-xl space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
+
             {/* Search Input */}
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -372,7 +492,7 @@ export default function ExplorarPage() {
 
           </div>
 
-          {/* Communities Selector Chips */}
+          {/* Communities Selector — pills with flags */}
           <div className="border-t border-gray-850 pt-5 space-y-2">
             <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
               Comunidade do Proprietário
@@ -381,14 +501,16 @@ export default function ExplorarPage() {
               {communitiesList.map((comm) => (
                 <button
                   key={comm.slug}
+                  type="button"
                   onClick={() => selectCommunityHandler(comm.slug)}
-                  className={`px-4 py-2 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-all duration-350 cursor-pointer ${
+                  aria-pressed={selectedCommunity === comm.slug}
+                  className={`px-4 py-2 text-xs font-semibold rounded-full border flex items-center gap-1.5 transition-all duration-300 cursor-pointer ${
                     selectedCommunity === comm.slug
-                      ? "bg-[#C8A96B] border-transparent text-[#0F172A] shadow-[0_4px_15px_rgba(200,169,107,0.25)] scale-102"
+                      ? "bg-[#C8A96B] border-transparent text-[#0F172A] shadow-[0_4px_15px_rgba(200,169,107,0.25)] scale-105"
                       : "bg-[#0F172A] border-gray-800 text-slate-300 hover:border-slate-700 hover:text-white"
                   }`}
                 >
-                  <span>{comm.icon}</span>
+                  <span className="text-base leading-none">{comm.icon}</span>
                   <span>{comm.name}</span>
                 </button>
               ))}
@@ -396,7 +518,7 @@ export default function ExplorarPage() {
           </div>
         </section>
 
-        {/* Directory Showcase Cards */}
+        {/* Masonry feed */}
         <section className="space-y-6">
           <div className="flex justify-between items-center px-2">
             <h3 className="font-display font-semibold text-lg text-white">
@@ -405,32 +527,30 @@ export default function ExplorarPage() {
           </div>
 
           {filteredBusinesses.length > 0 ? (
-            <div className="space-y-8">
-              {/* Featured section */}
-              {featuredSlice.length > 0 && (
-                <div className="space-y-4">
-                  <p className="text-xs font-bold text-[#C8A96B] uppercase tracking-widest flex items-center gap-1.5">
-                    <span>✦</span> Negócios em Destaque
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {featuredSlice.map((biz) => <ExplorarCard key={biz.id} biz={biz} />)}
-                  </div>
+            <>
+              <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
+                {visibleBusinesses.map((biz) => (
+                  <ExplorarCard
+                    key={biz.id}
+                    biz={biz}
+                    isLiked={likedSet.has(biz.id)}
+                    isFav={favSet.has(biz.id)}
+                    likeCount={likeOverrides[biz.id] ?? biz.like_count}
+                    shareCount={shareOverrides[biz.id] ?? biz.share_count}
+                    onLike={toggleLike}
+                    onShare={shareBiz}
+                    onFav={toggleFav}
+                  />
+                ))}
+              </div>
+
+              {/* Infinite scroll sentinel + spinner */}
+              {hasMore && (
+                <div ref={sentinelRef} className="flex items-center justify-center py-10">
+                  <div className="w-9 h-9 border-[3px] border-[#C8A96B] border-t-transparent rounded-full animate-spin"></div>
                 </div>
               )}
-              {/* Regular section */}
-              {regularSlice.length > 0 && (
-                <div className="space-y-4">
-                  {featuredSlice.length > 0 && (
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                      Todos os Negócios
-                    </p>
-                  )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {regularSlice.map((biz) => <ExplorarCard key={biz.id} biz={biz} />)}
-                  </div>
-                </div>
-              )}
-            </div>
+            </>
           ) : (
             <div className="text-center py-20 bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl space-y-6">
               <span className="text-5xl block">🏪</span>
@@ -463,30 +583,70 @@ export default function ExplorarPage() {
           <p className="text-[10px] text-slate-600 mt-2">© 2026 VitrinePro. Todos os direitos reservados.</p>
         </div>
       </footer>
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-2.5 rounded-full bg-[#0F172A] border border-[#C8A96B]/40 text-[#C8A96B] text-xs font-semibold shadow-2xl backdrop-blur">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
 
-function ExplorarCard({ biz }: { biz: any }) {
+function ExplorarCard({
+  biz,
+  isLiked,
+  isFav,
+  likeCount,
+  shareCount,
+  onLike,
+  onShare,
+  onFav,
+}: {
+  biz: any;
+  isLiked: boolean;
+  isFav: boolean;
+  likeCount: number;
+  shareCount: number;
+  onLike: (b: any) => void;
+  onShare: (b: any) => void;
+  onFav: (b: any) => void;
+}) {
+  const stop = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const btnBase =
+    "flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-bold transition-transform active:scale-90";
+  const btnStyle: React.CSSProperties = {
+    background: "rgba(0,0,0,0.6)",
+    backdropFilter: "blur(6px)",
+    WebkitBackdropFilter: "blur(6px)",
+    color: "#c9a96e",
+    border: "1px solid rgba(201,169,110,0.25)",
+  };
+
   return (
     <Link
       href={`/vitrine/${biz.slug}`}
-      className="group bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl overflow-hidden flex flex-col shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02]"
+      className="group block break-inside-avoid mb-4 bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:-translate-y-1"
     >
-      {/* Cover — 140px */}
-      <div className="relative h-[140px] w-full bg-slate-900 flex-shrink-0">
+      {/* Cover — natural aspect ratio (masonry) */}
+      <div className="relative w-full bg-slate-900">
         {biz.cover ? (
           <img
             src={biz.cover}
             alt={`Capa de ${biz.name}`}
-            className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
+            className="block w-full h-auto object-cover group-hover:scale-[1.03] transition-transform duration-700"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-950 opacity-40 flex items-center justify-center text-4xl">
-            {biz.logo && !biz.logo.startsWith("http") && biz.logo}
+          <div className="w-full aspect-[4/3] bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center text-5xl">
+            {biz.logo && !biz.logo.startsWith("http") ? biz.logo : "🏪"}
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-transparent to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/80 via-transparent to-transparent z-10" />
 
         {biz.premium && (
           <span className="absolute top-3 right-3 z-20 px-2 py-0.5 text-[8px] font-bold bg-[#C8A96B] text-[#0F172A] rounded-full uppercase tracking-wider shadow-md">
@@ -499,8 +659,10 @@ function ExplorarCard({ biz }: { biz: any }) {
           const comm = biz.owner_origin_country ? getCommunityByCountry(biz.owner_origin_country) : null;
           if (!comm) return null;
           return (
-            <span className="absolute top-3 left-3 z-20 px-2 py-0.5 text-[9px] font-bold rounded-full backdrop-blur-md"
-              style={{ background: `${comm.color}25`, color: comm.color, border: `1px solid ${comm.color}40` }}>
+            <span
+              className="absolute top-3 left-3 z-20 px-2 py-0.5 text-[9px] font-bold rounded-full backdrop-blur-md"
+              style={{ background: `${comm.color}25`, color: comm.color, border: `1px solid ${comm.color}40` }}
+            >
               {comm.icon} {comm.name}
             </span>
           );
@@ -509,44 +671,79 @@ function ExplorarCard({ biz }: { biz: any }) {
         <span className="absolute bottom-3 left-3 z-20 px-2.5 py-0.5 text-[9px] font-bold bg-[#0F172A]/80 border border-white/5 text-[#C8A96B] rounded-full uppercase tracking-wider backdrop-blur-md">
           {biz.category}
         </span>
+
+        {/* Social action buttons — bottom-right, reveal on hover (always visible on mobile) */}
+        <div className="absolute bottom-3 right-3 z-30 flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+          <button
+            type="button"
+            onClick={(e) => { stop(e); onFav(biz); }}
+            aria-label={isFav ? "Remover dos favoritos" : "Favoritar"}
+            className={btnBase}
+            style={btnStyle}
+            title="Favoritar"
+          >
+            <span style={{ opacity: isFav ? 1 : 0.55 }}>{isFav ? "★" : "☆"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { stop(e); onShare(biz); }}
+            aria-label="Partilhar"
+            className={btnBase}
+            style={btnStyle}
+            title="Partilhar"
+          >
+            ↗
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { stop(e); onLike(biz); }}
+            aria-label={isLiked ? "Descurtir" : "Curtir"}
+            className={btnBase}
+            style={btnStyle}
+            title="Curtir"
+          >
+            <span>{isLiked ? "❤️" : "🤍"}</span>
+            <span>{likeCount}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Info — 180px */}
-      <div className="p-5 h-[180px] flex flex-col justify-between">
-        <div className="space-y-3">
-          <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-slate-950 border-2 border-slate-800 flex items-center justify-center text-lg overflow-hidden relative -mt-8 z-20 shadow-xl flex-shrink-0">
-              {biz.logo && biz.logo.startsWith("http") ? (
-                <img src={biz.logo} alt={`Logo de ${biz.name}`} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-sm">{biz.logo}</span>
-              )}
-            </div>
-            <div className="min-w-0 pt-0.5">
-              <h4 className="font-display text-base font-bold text-white tracking-wide truncate group-hover:text-[#C8A96B] transition-colors leading-tight">
-                {biz.name}
-              </h4>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-slate-400">
-                <span>📍 {biz.city}</span>
-                {biz.country && (
-                  <span className="text-[#C8A96B]">• 🌍 {biz.country}</span>
-                )}
-              </div>
+      {/* Info */}
+      <div className="p-4 space-y-2.5">
+        <div className="flex gap-3">
+          <div className="w-10 h-10 rounded-full bg-slate-950 border-2 border-slate-800 flex items-center justify-center text-lg overflow-hidden relative -mt-8 z-20 shadow-xl flex-shrink-0">
+            {biz.logo && biz.logo.startsWith("http") ? (
+              <img src={biz.logo} alt={`Logo de ${biz.name}`} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-sm">{biz.logo}</span>
+            )}
+          </div>
+          <div className="min-w-0 pt-0.5">
+            <h4 className="font-display text-base font-bold text-white tracking-wide truncate group-hover:text-[#C8A96B] transition-colors leading-tight">
+              {biz.name}
+            </h4>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-slate-400">
+              <span>📍 {biz.city}</span>
+              {biz.country && <span className="text-[#C8A96B]">• 🌍 {biz.country}</span>}
             </div>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed font-light line-clamp-2">
-            {biz.description || "Empresa local com contacto direto via WhatsApp."}
-          </p>
         </div>
 
-        <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1 text-[#C8A96B]">
+        <p className="text-xs text-slate-400 leading-relaxed font-light line-clamp-2">
+          {biz.description || "Empresa local com contacto direto via WhatsApp."}
+        </p>
+
+        {/* Social stats line */}
+        <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between">
+          <div className="flex items-center gap-3 text-[11px] text-[#888]">
+            <span>👁 {biz.view_count}</span>
+            <span>❤️ {likeCount}</span>
+            <span>↗ {shareCount}</span>
+          </div>
+          <div className="flex items-center gap-1 text-[#C8A96B] text-xs">
             <span>★</span>
             <span className="font-bold text-slate-200">{biz.rating?.toFixed(1)}</span>
           </div>
-          <span className="font-bold text-[#C8A96B] bg-[#C8A96B]/5 group-hover:bg-[#C8A96B] group-hover:text-[#0F172A] border border-[#C8A96B]/20 group-hover:border-transparent px-3 py-1.5 rounded-xl transition-all text-[10px]">
-            Ver Vitrine →
-          </span>
         </div>
       </div>
     </Link>
