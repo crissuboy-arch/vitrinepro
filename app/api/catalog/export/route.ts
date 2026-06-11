@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     if (dbError) {
       console.error('[CATALOG EXPORT] DB error:', dbError.message)
-      return NextResponse.json({ error: 'DB error', detail: dbError.message }, { status: 500 })
+      return NextResponse.json({ error: 'Erro ao carregar o catálogo.' }, { status: 500 })
     }
 
     if (!catalog) {
@@ -50,6 +50,20 @@ export async function POST(req: NextRequest) {
     }
 
     log('Catalog found:', catalog.nome)
+
+    // Authorization: public catalogs (publico=true) are already viewable at
+    // /catalogo/[slug], so anyone may export them. Private/draft catalogs require
+    // a valid token AND ownership — this blocks exporting a catalog by id alone.
+    if (catalog.publico !== true) {
+      const token = req.headers.get('authorization')?.replace('Bearer ', '').trim()
+      if (!token) {
+        return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+      }
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+      if (authError || !user || user.id !== catalog.user_id) {
+        return NextResponse.json({ error: 'Não autorizado.' }, { status: 403 })
+      }
+    }
 
     // STEP 4 - Load Chromium
     log('Step 4: Loading Chromium...')
@@ -62,7 +76,7 @@ export async function POST(req: NextRequest) {
       log('Chromium loaded OK')
     } catch (e: any) {
       console.error('[CATALOG EXPORT] Chromium load error:', e.message)
-      return NextResponse.json({ error: 'Chromium load failed', detail: e.message }, { status: 500 })
+      return NextResponse.json({ error: 'Falha ao gerar o PDF.' }, { status: 500 })
     }
 
     // STEP 5 - Get executable path
@@ -75,7 +89,7 @@ export async function POST(req: NextRequest) {
       log('Executable path:', executablePath)
     } catch (e: any) {
       console.error('[CATALOG EXPORT] executablePath error:', e.message)
-      return NextResponse.json({ error: 'executablePath failed', detail: e.message }, { status: 500 })
+      return NextResponse.json({ error: 'Falha ao gerar o PDF.' }, { status: 500 })
     }
 
     // STEP 6 - Launch browser
@@ -91,7 +105,7 @@ export async function POST(req: NextRequest) {
       log('Browser launched OK')
     } catch (e: any) {
       console.error('[CATALOG EXPORT] Browser launch error:', e.message)
-      return NextResponse.json({ error: 'Browser launch failed', detail: e.message }, { status: 500 })
+      return NextResponse.json({ error: 'Falha ao gerar o PDF.' }, { status: 500 })
     }
 
     // STEP 7 - Generate HTML
@@ -149,7 +163,7 @@ ${paginas.map((p: any, i: number) => `
     } catch (e: any) {
       console.error('[CATALOG EXPORT] PDF render error:', e.message)
       await browser.close().catch(() => {})
-      return NextResponse.json({ error: 'PDF render failed', detail: e.message }, { status: 500 })
+      return NextResponse.json({ error: 'Falha ao gerar o PDF.' }, { status: 500 })
     }
 
     // STEP 9 - Return PDF
@@ -165,10 +179,6 @@ ${paginas.map((p: any, i: number) => `
 
   } catch (e: any) {
     console.error('[CATALOG EXPORT] Unhandled error:', e.message)
-    return NextResponse.json({
-      error: 'Unhandled error',
-      detail: e.message,
-      stack: e.stack
-    }, { status: 500 })
+    return NextResponse.json({ error: 'Erro inesperado.' }, { status: 500 })
   }
 }
