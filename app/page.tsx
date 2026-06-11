@@ -12,6 +12,29 @@ const ChatWidget = dynamic(() => import("./components/ChatWidget"), { ssr: false
 const RefPopup = dynamic(() => import("./components/RefPopup"), { ssr: false });
 const LeadCapturePopup = dynamic(() => import("./components/LeadCapturePopup"), { ssr: false });
 
+const FAQ_ITEMS = [
+  { q: "Preciso saber programar?", a: "Não. A VitrinePro foi criada para qualquer pessoa. Sem código, sem técnicos, sem complicações. Em poucos minutos o seu negócio está online." },
+  { q: "Posso usar no Instagram?", a: "Sim. O link da sua vitrine é perfeito para colocar na bio do Instagram. Em vez de posts com preços por DM, o cliente vê tudo organizado num único link." },
+  { q: "Posso divulgar no WhatsApp?", a: "Sim. O link fica pronto para partilhar em grupos, conversas e status do WhatsApp. Os clientes acedem diretamente à vitrine com produtos, serviços e botão de contacto." },
+  { q: "Serve para restaurante?", a: "Perfeitamente. Crie o menu com fotos, preços e descrições. Os clientes consultam antes de ligar e pedem diretamente pelo WhatsApp." },
+  { q: "Serve para salão de beleza?", a: "Sim. Publique os serviços com preços, galeria de trabalhos realizados, avaliações de clientes e horários. Os clientes marcam pelo WhatsApp." },
+  { q: "Serve para loja?", a: "Sim. Qualquer negócio local pode ter uma vitrine: lojas de roupa, artesanato, produtos personalizados, mercearias, lojas de informática, etc." },
+  { q: "Tem plano grátis?", a: "Sim. O plano Grátis é para sempre e inclui vitrine com link público, até 3 produtos, botão WhatsApp, horários e localização. Upgrade quando quiser." },
+  { q: "Posso cancelar?", a: "Sim, a qualquer momento. Sem contratos, sem fidelizações. Se cancelar, o seu negócio fica no plano Grátis — nunca perde os dados." },
+  { q: "Posso editar depois?", a: "Sempre. O dashboard permite editar produtos, fotos, preços, descrições, horários e contactos em segundos. As alterações ficam visíveis de imediato." },
+  { q: "O catálogo PDF está incluído?", a: "O catálogo PDF está disponível nos planos Pro (€12/mês) e Business (€29/mês). Gera um PDF elegante dos seus produtos em segundos, pronto para enviar pelo WhatsApp." },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
+};
+
 // Google Fonts
 import { Playfair_Display, DM_Sans } from "next/font/google";
 
@@ -513,6 +536,10 @@ export default function HomePage() {
       <PlansSection onSelectPlan={handleSelectPlan} />
 
       <section id="faq" className="py-24 md:py-32 bg-[#0A0D14] border-b border-white/5 relative z-10">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
         <div className="max-w-3xl mx-auto px-4 space-y-16">
           <div className="text-center space-y-3">
             <span className="text-[10px] font-bold text-[#C9A96E] uppercase tracking-widest bg-[#C9A96E]/5 px-3 py-1.5 rounded-full border border-[#C9A96E]/15">
@@ -527,18 +554,7 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-3">
-            {[
-              { q: "Preciso saber programar?", a: "Não. A VitrinePro foi criada para qualquer pessoa. Sem código, sem técnicos, sem complicações. Em poucos minutos o seu negócio está online." },
-              { q: "Posso usar no Instagram?", a: "Sim. O link da sua vitrine é perfeito para colocar na bio do Instagram. Em vez de posts com preços por DM, o cliente vê tudo organizado num único link." },
-              { q: "Posso divulgar no WhatsApp?", a: "Sim. O link fica pronto para partilhar em grupos, conversas e status do WhatsApp. Os clientes acedem diretamente à vitrine com produtos, serviços e botão de contacto." },
-              { q: "Serve para restaurante?", a: "Perfeitamente. Crie o menu com fotos, preços e descrições. Os clientes consultam antes de ligar e pedem diretamente pelo WhatsApp." },
-              { q: "Serve para salão de beleza?", a: "Sim. Publique os serviços com preços, galeria de trabalhos realizados, avaliações de clientes e horários. Os clientes marcam pelo WhatsApp." },
-              { q: "Serve para loja?", a: "Sim. Qualquer negócio local pode ter uma vitrine: lojas de roupa, artesanato, produtos personalizados, mercearias, lojas de informática, etc." },
-              { q: "Tem plano grátis?", a: "Sim. O plano Grátis é para sempre e inclui vitrine com link público, até 3 produtos, botão WhatsApp, horários e localização. Upgrade quando quiser." },
-              { q: "Posso cancelar?", a: "Sim, a qualquer momento. Sem contratos, sem fidelizações. Se cancelar, o seu negócio fica no plano Grátis — nunca perde os dados." },
-              { q: "Posso editar depois?", a: "Sempre. O dashboard permite editar produtos, fotos, preços, descrições, horários e contactos em segundos. As alterações ficam visíveis de imediato." },
-              { q: "O catálogo PDF está incluído?", a: "O catálogo PDF está disponível nos planos Pro (€12/mês) e Business (€29/mês). Gera um PDF elegante dos seus produtos em segundos, pronto para enviar pelo WhatsApp." },
-            ].map((item, i) => (
+            {FAQ_ITEMS.map((item, i) => (
               <div key={i} className="bg-[#0F172A]/50 border border-white/5 rounded-xl overflow-hidden transition-all">
                 <button
                   onClick={() => toggleFaq(i)}
