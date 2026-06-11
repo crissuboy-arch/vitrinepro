@@ -152,11 +152,29 @@ ${paginas.map((p: any, i: number) => `
     let pdf: Buffer
     try {
       const page = await browser.newPage()
-      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 25000 })
+      await page.setViewport({ width: 794, height: 1123 })
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 20000 })
+
+      // Wait for images (base64 data: URLs or remote) to load, max 3s, so they render in the PDF
+      await page.evaluate(() => {
+        return new Promise<void>((resolve) => {
+          const images = Array.from(document.images)
+          if (images.every((img) => img.complete)) { resolve(); return }
+          let loaded = 0
+          const check = () => { if (++loaded >= images.length) resolve() }
+          images.forEach((img) => {
+            img.addEventListener('load', check)
+            img.addEventListener('error', check)
+          })
+          setTimeout(resolve, 3000)
+        })
+      })
+
       pdf = await page.pdf({
         format: 'A4',
         printBackground: true,
-        margin: { top: '0', right: '0', bottom: '0', left: '0' }
+        margin: { top: '0', right: '0', bottom: '0', left: '0' },
+        preferCSSPageSize: false,
       })
       await browser.close()
       log('PDF generated, size:', pdf.length, 'bytes')
