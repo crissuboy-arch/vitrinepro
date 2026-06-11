@@ -779,74 +779,76 @@ export default function DashboardPage() {
         
         {/* Profile Card Banner */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-2xl relative">
-          <div className="h-44 w-full bg-gray-950 relative">
-            {business?.cover_url && isValidStorageUrl(business.cover_url) ? (
-              <img src={business.cover_url} alt="Cover" className="w-full h-full object-cover opacity-60" />
-            ) : (
-              <div
-                className="w-full h-full flex items-center justify-center text-4xl"
-                style={{ background: "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)" }}
-              >
-                {business?.category ? getCategoryIcon(business.category) : "🏪"}
+          {/* Cover + overlapping logo */}
+          <div className="relative">
+            <div className="h-44 w-full bg-gray-950 relative">
+              {business?.cover_url && isValidStorageUrl(business.cover_url) ? (
+                <img src={business.cover_url} alt="Cover" className="w-full h-full object-cover opacity-60" />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center text-4xl"
+                  style={{ background: "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)" }}
+                >
+                  {business?.category ? getCategoryIcon(business.category) : "🏪"}
+                </div>
+              )}
+
+              {/* Upload Cover button */}
+              <label className="absolute bottom-4 right-4 cursor-pointer bg-[#0f172a]/80 backdrop-blur px-3 py-1.5 border border-gray-700 hover:border-[#C8A96B] text-xs text-[#C8A96B] font-semibold rounded-lg transition-all">
+                {uploadingCover ? "Carregando..." : "Alterar Capa"}
+                <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+              </label>
+            </div>
+
+            {/* Logo Badge — overlaps the cover's bottom-left edge */}
+            <div className="absolute -bottom-12 left-6 sm:left-8 z-20 group">
+              <div className="w-24 h-24 rounded-2xl bg-gray-900 border-2 border-gray-800 flex items-center justify-center overflow-hidden shadow-xl bg-white/5 backdrop-blur">
+                {business?.logo_url ? (
+                  <img src={business.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  getLogoFallback(business?.name)
+                )}
               </div>
-            )}
-            
-            {/* Upload Cover button */}
-            <label className="absolute bottom-4 right-4 cursor-pointer bg-[#0f172a]/80 backdrop-blur px-3 py-1.5 border border-gray-700 hover:border-[#C8A96B] text-xs text-[#C8A96B] font-semibold rounded-lg transition-all">
-              {uploadingCover ? "Carregando..." : "Alterar Capa"}
-              <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
-            </label>
+              <label className="absolute inset-0 cursor-pointer bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs text-[#C8A96B] font-bold rounded-2xl transition-opacity">
+                {uploadingLogo ? "..." : "Carregar"}
+                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              </label>
+            </div>
           </div>
 
-          <div className="px-8 pb-8 pt-0 flex flex-col md:flex-row items-start md:items-end justify-between -mt-10 gap-6">
-            <div className="flex flex-col md:flex-row items-start md:items-end gap-4">
-              {/* Logo Badge */}
-              <div className="relative group z-10">
-                <div className="w-24 h-24 rounded-2xl bg-gray-900 border-2 border-gray-800 flex items-center justify-center overflow-hidden shadow-xl bg-white/5 backdrop-blur">
-                  {business?.logo_url ? (
-                    <img src={business.logo_url} alt="Logo" className="w-full h-full object-cover" />
-                  ) : (
-                    getLogoFallback(business?.name)
-                  )}
+          {/* Name + actions — BELOW the cover, cleared of the overlapping logo */}
+          <div className="px-6 sm:px-8 pb-8 pt-16 md:pt-6 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="md:pl-[112px] min-w-0">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-3xl font-display font-bold text-white leading-none">{business?.name}</h1>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
+                    business?.published ? "bg-green-950 border border-green-800 text-green-400" : "bg-red-950 border border-red-900 text-red-400"
+                  }`}>
+                    {business?.published ? "Público" : "Rascunho"}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 ${
+                    business?.plan === "pro" || business?.plan === "premium"
+                      ? "bg-[#C8A96B]/20 border border-[#C8A96B]/40 text-[#C8A96B]"
+                      : business?.plan === "business"
+                      ? "bg-purple-950 border border-purple-800 text-purple-400"
+                      : "bg-gray-800 border border-gray-700 text-gray-400"
+                  }`}>
+                    {(business?.plan === "pro" || business?.plan === "premium" || business?.plan === "business") && (
+                      <Sparkles className="w-2.5 h-2.5" />
+                    )}
+                    Plano: {business?.plan || "Free"}
+                  </span>
                 </div>
-                <label className="absolute inset-0 cursor-pointer bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs text-[#C8A96B] font-bold rounded-2xl transition-opacity">
-                  {uploadingLogo ? "..." : "Carregar"}
-                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                </label>
               </div>
-
-              <div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-3xl font-display font-bold text-white leading-none">{business?.name}</h1>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
-                      business?.published ? "bg-green-950 border border-green-800 text-green-400" : "bg-red-950 border border-red-900 text-red-400"
-                    }`}>
-                      {business?.published ? "Público" : "Rascunho"}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 ${
-                      business?.plan === "pro" || business?.plan === "premium"
-                        ? "bg-[#C8A96B]/20 border border-[#C8A96B]/40 text-[#C8A96B]"
-                        : business?.plan === "business"
-                        ? "bg-purple-950 border border-purple-800 text-purple-400"
-                        : "bg-gray-800 border border-gray-700 text-gray-400"
-                    }`}>
-                      {(business?.plan === "pro" || business?.plan === "premium" || business?.plan === "business") && (
-                        <Sparkles className="w-2.5 h-2.5" />
-                      )}
-                      Plano: {business?.plan || "Free"}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-400 mt-1 max-w-xl line-clamp-2">{business?.description || "Adicione uma breve descrição para o seu negócio..."}</p>
-                <div className="mt-2 text-xs text-[#C8A96B] flex items-center gap-4">
-                  <span>URL: <span className="text-gray-300">/vitrine/{business?.slug}</span></span>
-                </div>
+              <p className="text-sm text-gray-400 mt-1 max-w-xl line-clamp-2">{business?.description || "Adicione uma breve descrição para o seu negócio..."}</p>
+              <div className="mt-2 text-xs text-[#C8A96B] flex items-center gap-4">
+                <span>URL: <span className="text-gray-300">/vitrine/{business?.slug}</span></span>
               </div>
             </div>
 
             {/* Profile Action Toolbar */}
-            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto md:flex-shrink-0">
               <button
                 onClick={() => setShowEditModal(true)}
                 className="flex-1 md:flex-initial px-5 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors text-sm"
