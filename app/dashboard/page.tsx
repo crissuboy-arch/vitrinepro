@@ -10,6 +10,7 @@ import { getMyBusiness, updateBusiness } from "@/lib/business-actions";
 import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/lib/supabase-storage";
 import { Sparkles, Lock, Copy, Check, ExternalLink } from "lucide-react";
 import { trackCatalogPdfDownload } from "@/app/lib/analytics";
+import CoverEditorModal from "@/components/dashboard/CoverEditorModal";
 
 // Interfaces
 interface Category {
@@ -155,6 +156,7 @@ export default function DashboardPage() {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [toast, setToast] = useState("");
   const [showCatalogModal, setShowCatalogModal] = useState(false);
+  const [showCoverModal, setShowCoverModal] = useState(false);
   const [showCatalogUpgradeModal, setShowCatalogUpgradeModal] = useState(false);
 
   // Auto-dismiss toast after 4s
@@ -784,6 +786,13 @@ export default function DashboardPage() {
             <div className="h-44 w-full bg-gray-950 relative">
               {business?.cover_url && isValidStorageUrl(business.cover_url) ? (
                 <img src={business.cover_url} alt="Cover" className="w-full h-full object-cover opacity-60" />
+              ) : business?.cover_gradient ? (
+                <div
+                  className="w-full h-full flex items-center justify-center text-4xl"
+                  style={{ background: business.cover_gradient }}
+                >
+                  {business?.category ? getCategoryIcon(business.category) : "🏪"}
+                </div>
               ) : (
                 <div
                   className="w-full h-full flex items-center justify-center text-4xl"
@@ -793,11 +802,14 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Upload Cover button */}
-              <label className="absolute bottom-4 right-4 cursor-pointer bg-[#0f172a]/80 backdrop-blur px-3 py-1.5 border border-gray-700 hover:border-[#C8A96B] text-xs text-[#C8A96B] font-semibold rounded-lg transition-all">
-                {uploadingCover ? "Carregando..." : "Alterar Capa"}
-                <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
-              </label>
+              {/* Cover editor button (image / colour / gradient) */}
+              <button
+                type="button"
+                onClick={() => setShowCoverModal(true)}
+                className="absolute bottom-4 right-4 cursor-pointer bg-[#0f172a]/80 backdrop-blur px-3 py-1.5 border border-gray-700 hover:border-[#C8A96B] text-xs text-[#C8A96B] font-semibold rounded-lg transition-all"
+              >
+                Alterar Capa
+              </button>
             </div>
 
             {/* Logo Badge — overlaps the cover's bottom-left edge */}
@@ -874,6 +886,19 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {showCoverModal && business && (
+          <CoverEditorModal
+            businessId={business.id}
+            currentCoverUrl={business.cover_url}
+            currentGradient={business.cover_gradient}
+            onClose={() => setShowCoverModal(false)}
+            onSaved={(patch) => {
+              setBusiness((prev: any) => ({ ...prev, ...patch }));
+              setShowCoverModal(false);
+            }}
+          />
+        )}
 
         {/* Dashboard Grid Sections */}
         <div className="grid lg:grid-cols-3 gap-8">

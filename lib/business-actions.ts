@@ -23,6 +23,7 @@ export interface BusinessInput {
   opening_hours?: Record<string, unknown>;
   logo_url?: string;
   cover_url?: string;
+  cover_gradient?: string;
   published?: boolean;
   is_published?: boolean;
   category_id?: string;

@@ -30,6 +30,7 @@ interface Business {
   country?: string;
   logo?: string;
   cover?: string;
+  cover_gradient?: string;
   gallery?: string[];
   premium: boolean;
   plan?: string;
@@ -386,6 +387,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
               country: data.country || "Portugal",
               logo: data.logo_url || "",
               cover: data.cover_url || "",
+              cover_gradient: data.cover_gradient || "",
               gallery: galleryUrls,
               description: data.description || "",
               whatsApp: data.whatsapp || "",
@@ -458,6 +460,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
               country: data.country || "Portugal",
               logo: data.logo_url || "",
               cover: data.cover_url || "",
+              cover_gradient: data.cover_gradient || "",
               gallery: galleryUrls,
               description: data.description || "",
               whatsApp: data.whatsapp || "",
@@ -543,6 +546,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
             country: data.country || "Portugal",
             logo: data.logo_url || "",
             cover: data.cover_url || "",
+            cover_gradient: data.cover_gradient || "",
             gallery: galleryUrls,
             description: data.description || "",
             whatsApp: data.whatsapp || "",
@@ -859,6 +863,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
             className="object-cover"
             priority
           />
+        ) : business.cover_gradient ? (
+          <div className="w-full h-full" style={{ background: business.cover_gradient }} />
         ) : (
           <div className="w-full h-full bg-gradient-to-tr from-[#0F172A] to-slate-900"></div>
         )}
