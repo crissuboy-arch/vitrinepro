@@ -96,7 +96,7 @@ function buildHtml(biz: any, products: any[], settings: CatalogSettings): string
 
   /* GRID PRODUTOS */
   .produtos-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 0.5px solid #e0e0e0; }
-  .produto { border-right: 0.5px solid #e0e0e0; border-bottom: 0.5px solid #e0e0e0; }
+  .produto { border-right: 0.5px solid #e0e0e0; border-bottom: 0.5px solid #e0e0e0; page-break-inside: avoid; }
   .produto:nth-child(3n) { border-right: none; }
   .produto-img { height: 110px; background: #f5f0e8; display: flex; align-items: center; justify-content: center; font-size: 40px; border-bottom: 0.5px solid #e0e0e0; overflow: hidden; }
   .produto-img img { width: 100%; height: 100%; object-fit: cover; }
@@ -179,7 +179,7 @@ function buildHtml(biz: any, products: any[], settings: CatalogSettings): string
   </div>
   ${produtosRest.length > 0 ? `
   <div class="produtos-grid">
-    ${produtosRest.slice(0, 9).map((p: any) => `
+    ${produtosRest.map((p: any) => `
     <div class="produto">
       <div class="produto-img">
         ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : "📦"}

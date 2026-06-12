@@ -410,14 +410,17 @@ export default function DashboardPage() {
         country: editOwnerOriginCountry || editCountry,
         address: editAddress,
         whatsapp: editWhatsapp,
-        phone: editPhone || undefined,
-        email: editEmail || undefined,
-        instagram: editInstagram || undefined,
-        facebook: editFacebook || undefined,
-        tiktok: editTiktok || undefined,
-        youtube: editYoutube || undefined,
-        linkedin: editLinkedin || undefined,
-        website: editWebsite || undefined,
+        // Send trimmed values (empty string when cleared) so emptying a field
+        // actually persists. `editX || undefined` was dropped by PostgREST, leaving
+        // the old value in the DB — deleted socials kept showing on the public vitrine.
+        phone: editPhone.trim(),
+        email: editEmail.trim(),
+        instagram: editInstagram.trim(),
+        facebook: editFacebook.trim(),
+        tiktok: editTiktok.trim(),
+        youtube: editYoutube.trim(),
+        linkedin: editLinkedin.trim(),
+        website: editWebsite.trim(),
         opening_hours: editHours as any,
       });
 
