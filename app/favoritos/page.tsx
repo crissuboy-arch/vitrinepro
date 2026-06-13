@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import { getLocalFavoriteIds, removeLocalFavorite } from "@/lib/favorites";
 
 interface FavoriteBusiness {
   id: string;
@@ -19,6 +20,7 @@ interface FavoriteBusiness {
   owner_origin_country?: string;
   description?: string;
   favorite_id: string;
+  is_local?: boolean;
 }
 
 export default function FavoritosPage() {
@@ -34,31 +36,45 @@ export default function FavoritosPage() {
     if (!mounted) return;
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { router.push("/login?next=/favoritos"); return; }
-      setUser(session.user);
 
-      const { data } = await supabase
-        .from("favorites")
-        .select("id, business_id, businesses(*)")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false });
+      if (session?.user) {
+        setUser(session.user);
+        const { data } = await supabase
+          .from("favorites")
+          .select("id, business_id, businesses(*)")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false });
 
-      if (data) {
-        setFavorites(
-          data.map((f: any) => ({
-            ...f.businesses,
-            favorite_id: f.id,
-          }))
-        );
+        if (data) {
+          setFavorites(
+            data.map((f: any) => ({
+              ...f.businesses,
+              favorite_id: f.id,
+            }))
+          );
+        }
+      } else {
+        // Anonymous visitor — favorites live in localStorage (30 days).
+        const ids = getLocalFavoriteIds();
+        if (ids.length > 0) {
+          const { data } = await supabase.from("businesses").select("*").in("id", ids);
+          if (data) {
+            setFavorites(data.map((b: any) => ({ ...b, favorite_id: b.id, is_local: true })));
+          }
+        }
       }
       setLoading(false);
     };
     load();
   }, [mounted]);
 
-  const removeFavorite = async (favoriteId: string) => {
-    await supabase.from("favorites").delete().eq("id", favoriteId);
-    setFavorites(prev => prev.filter(f => f.favorite_id !== favoriteId));
+  const removeFavorite = async (biz: FavoriteBusiness) => {
+    if (biz.is_local) {
+      removeLocalFavorite(biz.id);
+    } else {
+      await supabase.from("favorites").delete().eq("id", biz.favorite_id);
+    }
+    setFavorites(prev => prev.filter(f => f.favorite_id !== biz.favorite_id));
   };
 
   if (!mounted || loading) {
@@ -117,7 +133,7 @@ export default function FavoritosPage() {
               <div key={biz.favorite_id} className="group bg-[#0F172A]/60 border border-white/5 hover:border-[#C8A96B]/30 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 relative">
                 {/* Remove button */}
                 <button
-                  onClick={() => removeFavorite(biz.favorite_id)}
+                  onClick={() => removeFavorite(biz)}
                   className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center bg-[#0F172A]/80 border border-red-500/30 text-red-400 hover:bg-red-900/40 rounded-full text-xs transition-colors"
                   aria-label="Remover dos favoritos"
                   title="Remover"

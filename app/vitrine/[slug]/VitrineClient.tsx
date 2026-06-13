@@ -13,6 +13,10 @@ import { getCommunityByCountry } from "@/lib/communities";
 import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib/analytics";
 import { pixelContact } from "@/app/lib/meta-pixel";
 import SocialBar from "../../components/SocialBar";
+import ReviewsSection from "@/components/reviews/ReviewsSection";
+import FavoriteButton from "@/components/FavoriteButton";
+import ShareButton from "@/components/ShareButton";
+import { vitrineUrl } from "@/lib/share";
 
 interface OpeningHour {
   day: string;
@@ -919,6 +923,12 @@ export default function VitrineClient({ slug }: { slug: string }) {
               <span className="text-slate-500 italic text-[11px]">Sem avaliações</span>
             )}
           </div>
+
+          {/* Engagement actions (favorite / share) */}
+          <div className="flex items-center justify-center sm:justify-start gap-3 mt-4">
+            <FavoriteButton businessId={business.id} initialCount={business.favorite_count ?? 0} variant="header" />
+            <ShareButton url={vitrineUrl(slug)} title={business.name} businessId={business.id} variant="header" />
+          </div>
         </div>
       </div>
 
@@ -1027,8 +1037,11 @@ export default function VitrineClient({ slug }: { slug: string }) {
               </div>
             )}
 
-            {/* Testimonials */}
-            {testimonials.length > 0 && (
+            {/* Reviews — real businesses get the interactive section; demo/exemplo keep mock testimonials */}
+            {slug !== "demo" && slug !== "exemplo" && (
+              <ReviewsSection businessId={business.id} businessName={business.name} />
+            )}
+            {(slug === "demo" || slug === "exemplo") && testimonials.length > 0 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold font-display text-white border-b border-slate-800 pb-3 flex items-center gap-2">
                   <span>⭐</span> Avaliações e Depoimentos

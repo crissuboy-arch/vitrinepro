@@ -64,3 +64,11 @@ export async function uploadGallery(file: File, businessId: string): Promise<str
 export async function uploadProductImage(file: File, businessId: string): Promise<string> {
   return uploadFile("vitrine-products", file, businessId);
 }
+
+/**
+ * Uploads a review photo to the 'vitrine-reviews' bucket (anonymous-friendly).
+ * The caller should treat failures as non-fatal (submit the review without a photo).
+ */
+export async function uploadReviewPhoto(file: File, businessId: string): Promise<string> {
+  return uploadFile("vitrine-reviews", file, businessId);
+}

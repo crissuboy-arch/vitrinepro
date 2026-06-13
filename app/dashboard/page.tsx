@@ -11,6 +11,8 @@ import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/li
 import { Sparkles, Lock, Copy, Check, ExternalLink } from "lucide-react";
 import { trackCatalogPdfDownload } from "@/app/lib/analytics";
 import CoverEditorModal from "@/components/dashboard/CoverEditorModal";
+import ReviewsCard from "@/components/dashboard/ReviewsCard";
+import ShareSection from "@/components/dashboard/ShareSection";
 
 // Interfaces
 interface Category {
@@ -898,6 +900,20 @@ export default function DashboardPage() {
               setShowCoverModal(false);
             }}
           />
+        )}
+
+        {/* Avaliações (Feature 2) */}
+        {business && (
+          <div className="mb-8">
+            <ReviewsCard businessId={business.id} businessName={business.name} />
+          </div>
+        )}
+
+        {/* Partilhar (Feature 4) */}
+        {business && (
+          <div className="mb-8">
+            <ShareSection slug={business.slug} businessId={business.id} name={business.name} />
+          </div>
         )}
 
         {/* Dashboard Grid Sections */}
