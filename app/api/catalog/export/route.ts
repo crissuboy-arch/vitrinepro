@@ -125,6 +125,8 @@ export async function POST(req: NextRequest) {
     const paginas = catalog.paginas || []
     const capaImagem = capa.imagem || null
     const capaLogo = capa.logo || null
+    const corPrincipal = cores.principal || '#c9a96e'
+    const logoPosition = capa.logoPosition || 'center'
     const telefone = capa.telefone || business?.phone || business?.whatsapp || ''
     const morada = capa.morada || business?.address || ''
     const horarios = business?.opening_hours || business?.schedule || []
@@ -153,8 +155,8 @@ export async function POST(req: NextRequest) {
 
   /* CAPA */
   .cover {
-    width: 100%;
-    height: 100%;
+    width: 210mm;
+    height: 297mm;
     background: ${cores.secundaria || '#0a0d14'};
     display: flex;
     flex-direction: column;
@@ -163,8 +165,15 @@ export async function POST(req: NextRequest) {
     text-align: center;
     padding: 60px;
     position: relative;
+    overflow: hidden;
+    page-break-after: always;
+    page-break-inside: avoid;
   }
-  .cover-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cover-bg {
+    position: absolute; top: 0; left: 0;
+    width: 210mm; height: 297mm;
+    object-fit: cover; object-position: center center; display: block;
+  }
   .cover-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
   .cover-content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
   .cover-logo {
@@ -226,6 +235,22 @@ export async function POST(req: NextRequest) {
     font-size: 46px; font-weight: 700; color: ${cores.precos || cores.principal || '#c9a96e'};
     line-height: 1; font-family: Georgia, serif;
   }
+  .product-price-section {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    width: 100%; margin-top: 10px;
+  }
+  .product-price-label {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: ${corPrincipal}; margin-bottom: 10px; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .product-price-currency {
+    font-size: 26px; font-weight: 700; color: ${cores.precos || cores.principal || '#c9a96e'};
+    font-family: Georgia, serif; line-height: 1; margin-top: 6px;
+  }
+  .product-number-watermark {
+    font-size: 76px; font-weight: 700; color: ${cores.titulos || '#0a0d14'};
+    opacity: 0.07; line-height: 1; font-family: Georgia, serif;
+  }
 
   /* RODAPÉ DE PÁGINA */
   .page-footer {
@@ -266,8 +291,9 @@ export async function POST(req: NextRequest) {
 <div class="page">
   <div class="cover">
     ${capaImagem ? `<img class="cover-bg" src="${capaImagem}" alt="capa" /><div class="cover-overlay"></div>` : ''}
+    ${capaLogo && logoPosition !== 'center' ? `<img src="${capaLogo}" alt="logo" style="position:absolute; top:24px; ${logoPosition === 'top-right' ? 'right:24px' : 'left:24px'}; width:64px; height:64px; border-radius:50%; border:2px solid ${corPrincipal}; object-fit:cover; z-index:3;" />` : ''}
     <div class="cover-content">
-      ${capaLogo ? `<img class="cover-logo" src="${capaLogo}" alt="logo" />` : ''}
+      ${capaLogo && logoPosition === 'center' ? `<img src="${capaLogo}" alt="logo" style="width:100px; height:100px; border-radius:50%; border:3px solid ${corPrincipal}; object-fit:cover; margin-bottom:32px; display:block;" />` : ''}
       <div class="cover-label">Catálogo Oficial · 2026</div>
       <h1 class="cover-title">${capa.nome || 'O Meu Negócio'}</h1>
       <div class="cover-subtitle">${capa.categoria || ''} · ${capa.cidade || ''}</div>
@@ -286,14 +312,23 @@ ${paginas.map((p: { titulo?: string; descricao?: string; preco?: string; imagem?
         ? `<img class="product-img" src="${p.imagem}" alt="${p.titulo || ''}" />`
         : `<div class="product-no-img"><div class="product-no-img-emoji">🍽️</div></div>`
       }
-      <div class="product-number">${String(i + 1).padStart(2, '0')}</div>
     </div>
     <div class="product-body">
       ${p.destaque ? '<div class="product-badge">⭐ Destaque</div>' : ''}
       <div class="product-name">${p.titulo || 'Produto'}</div>
       <div class="product-line"></div>
       ${p.descricao ? `<div class="product-desc">${p.descricao}</div>` : ''}
-      ${p.preco ? `<div class="product-price">${p.preco}</div>` : ''}
+      ${p.preco ? `
+      <div class="product-price-section">
+        <div>
+          <div class="product-price-label">Preço</div>
+          <div style="display:flex;align-items:flex-start;gap:6px;">
+            <span class="product-price-currency">€</span>
+            <span class="product-price">${String(p.preco).replace(/€/g, '').replace(/EUR/gi, '').trim()}</span>
+          </div>
+        </div>
+        <div class="product-number-watermark">${String(i + 1).padStart(2, '0')}</div>
+      </div>` : ''}
     </div>
     <div class="page-footer">
       <span>${capa.nome || ''}</span>

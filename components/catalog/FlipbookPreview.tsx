@@ -17,6 +17,7 @@ export function FlipbookPreview({
   const [currentPage, setCurrentPage] = useState(0)
   const [animating, setAnimating] = useState(false)
   const cores = catalog.cores
+  const logoPosition = ((catalog.capa as { logoPosition?: "center" | "top-right" | "top-left" }).logoPosition) || "center"
 
   const pages: PageEntry[] = [
     { type: "capa" },
@@ -91,6 +92,23 @@ export function FlipbookPreview({
               />
             )}
             <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)" }} />
+            {catalog.capa?.logo && logoPosition !== "center" && (
+              <img
+                src={catalog.capa.logo}
+                alt="logo"
+                style={{
+                  position: "absolute",
+                  top: "20px",
+                  ...(logoPosition === "top-right" ? { right: "20px" } : { left: "20px" }),
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  border: `2px solid ${cores.principal || "#c9a96e"}`,
+                  zIndex: 2,
+                }}
+              />
+            )}
             <div style={{
               position: "relative",
               zIndex: 1,
@@ -102,7 +120,7 @@ export function FlipbookPreview({
               padding: "48px",
               textAlign: "center"
             }}>
-              {catalog.capa?.logo && (
+              {catalog.capa?.logo && logoPosition === "center" && (
                 <img
                   src={catalog.capa.logo}
                   alt="logo"

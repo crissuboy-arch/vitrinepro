@@ -73,6 +73,8 @@ const compressImage = (file: File, maxDim = 1280, quality = 0.82): Promise<strin
     reader.readAsDataURL(file)
   })
 
+type LogoPosition = 'center' | 'top-right' | 'top-left'
+
 const toSlug = (text: string, id: string): string =>
   (text || "catalogo").toLowerCase().normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -291,6 +293,9 @@ export default function CatalogEditorPage() {
       updatePage(target, { imagem: b64 })
     }
   }
+
+  const logoPosition: LogoPosition =
+    ((catalog.capa as { logoPosition?: LogoPosition }).logoPosition) || "center"
 
   // ── Loading ───────────────────────────────────────────────────────────────────
 
@@ -540,6 +545,25 @@ export default function CatalogEditorPage() {
                     {catalog.capa.imagem && (
                       <button onClick={() => setCatalog(prev => ({ ...prev, capa: { ...prev.capa, imagem: undefined } }))} style={{ fontSize: "11px", color: "#ef4444", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Remover</button>
                     )}
+                  </div>
+                </div>
+
+                {/* Logo position */}
+                <div>
+                  <label style={labelStyle}>Posição do Logo</label>
+                  <div style={{ display: "flex", gap: "18px", flexWrap: "wrap" }}>
+                    {([["center", "Centrado"], ["top-right", "Canto sup. direito"], ["top-left", "Canto sup. esquerdo"]] as [LogoPosition, string][]).map(([val, lbl]) => (
+                      <label key={val} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#ccc", cursor: "pointer" }}>
+                        <input
+                          type="radio"
+                          name="logoPosition"
+                          checked={logoPosition === val}
+                          onChange={() => setCatalog(prev => ({ ...prev, capa: { ...prev.capa, logoPosition: val } as typeof prev.capa }))}
+                          style={{ accentColor: "#c9a96e" }}
+                        />
+                        {lbl}
+                      </label>
+                    ))}
                   </div>
                 </div>
 
