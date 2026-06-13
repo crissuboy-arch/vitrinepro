@@ -204,7 +204,7 @@ export default function CatalogEditorPage() {
     setSharing(true)
     const slug = catalog.slug || catalog.id || ""
     try {
-      await navigator.clipboard.writeText(`https://vitrinepro.com/catalogo/${slug}`)
+      await navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_APP_URL || 'https://vitrinepro.com'}/catalogo/${slug}`)
       showToast("Link copiado!")
     } catch {
       showToast("Erro ao copiar link", false)
@@ -410,12 +410,12 @@ export default function CatalogEditorPage() {
         {catalog.publico && catalog.slug && (
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto" }}>
             <span style={{ fontSize: "12px", color: "#555", fontFamily: "monospace" }}>
-              vitrinepro.com/catalogo/{catalog.slug}
+              {`${process.env.NEXT_PUBLIC_APP_URL || 'https://vitrinepro.com'}/catalogo/${catalog.slug}`}
             </span>
             <button
               onClick={async () => {
                 try {
-                  await navigator.clipboard.writeText(`https://vitrinepro.com/catalogo/${catalog.slug}`)
+                  await navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_APP_URL || 'https://vitrinepro.com'}/catalogo/${catalog.slug}`)
                   showToast("Link copiado!")
                 } catch {
                   showToast("Erro ao copiar", false)

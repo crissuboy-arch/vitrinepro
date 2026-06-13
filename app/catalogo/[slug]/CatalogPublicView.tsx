@@ -4,6 +4,7 @@ import type { Catalog } from "@/types/catalog"
 
 export default function CatalogPublicView({ catalog }: { catalog: Catalog }) {
   const corPrincipal = catalog.cores?.principal || '#c9a96e'
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://vitrinepro.com'
 
   return (
     <div style={{ minHeight: '100vh', background: '#080b12', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -17,10 +18,10 @@ export default function CatalogPublicView({ catalog }: { catalog: Catalog }) {
         backdropFilter: 'blur(10px)',
         position: 'sticky', top: 0, zIndex: 10,
       }}>
-        <a href="https://vitrinepro.com" style={{ fontFamily: 'Georgia,serif', fontSize: '20px', fontWeight: 700, color: '#c9a96e', textDecoration: 'none' }}>
+        <a href={APP_URL} style={{ fontFamily: 'Georgia,serif', fontSize: '20px', fontWeight: 700, color: '#c9a96e', textDecoration: 'none' }}>
           VitrinePro
         </a>
-        <a href="https://vitrinepro.com/register" style={{
+        <a href={`${APP_URL}/register`} style={{
           background: '#c9a96e', color: '#0a0d14',
           padding: '8px 20px', borderRadius: '6px',
           fontSize: '13px', fontWeight: 600, textDecoration: 'none',
@@ -70,7 +71,7 @@ export default function CatalogPublicView({ catalog }: { catalog: Catalog }) {
         <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', flexWrap: 'wrap', fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
           <span>📄 {catalog.paginas?.length || 0} produtos</span>
           <span>📅 Catálogo 2026</span>
-          <span>🌐 vitrinepro.com</span>
+          <span>🌐 {APP_URL.replace(/^https?:\/\//, '')}</span>
         </div>
       </div>
 
@@ -122,7 +123,7 @@ export default function CatalogPublicView({ catalog }: { catalog: Catalog }) {
         borderTop: '1px solid rgba(255,255,255,0.05)', width: '100%',
       }}>
         Feito com ♥ pela{' '}
-        <a href="https://vitrinepro.com" style={{ color: '#c9a96e', textDecoration: 'none', fontWeight: 600 }}>
+        <a href={APP_URL} style={{ color: '#c9a96e', textDecoration: 'none', fontWeight: 600 }}>
           VitrinePro
         </a>
       </footer>

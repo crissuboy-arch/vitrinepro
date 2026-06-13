@@ -142,6 +142,7 @@ export async function POST(req: NextRequest) {
     const fundoClaro = isLightColor(cores.fundo || '#ffffff')
     const textoTitulo = fundoClaro ? '#0a0d14' : '#f5f0e8'
     const textoCorpo = fundoClaro ? 'rgba(10,13,20,0.72)' : 'rgba(245,240,232,0.72)'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vitrinepro.com'
     const telefone = capa.telefone || business?.phone || business?.whatsapp || ''
     const morada = capa.morada || business?.address || ''
     const horarios = business?.opening_hours || business?.schedule || []
@@ -371,7 +372,7 @@ ${paginas.map((p: { titulo?: string; descricao?: string; preco?: string; imagem?
       <div class="contact-grid">
         ${telefone ? `<div class="contact-item"><span class="contact-icon">📞</span>${telefone}</div>` : ''}
         ${morada ? `<div class="contact-item"><span class="contact-icon">📍</span>${morada}</div>` : ''}
-        <div class="contact-item"><span class="contact-icon">🌐</span>vitrinepro.com/catalogo/${catalog.slug || ''}</div>
+        <div class="contact-item"><span class="contact-icon">🌐</span>${appUrl}/catalogo/${catalog.slug || ''}</div>
       </div>
 
       ${horarios && horarios.length > 0 ? `
