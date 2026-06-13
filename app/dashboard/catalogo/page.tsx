@@ -43,6 +43,36 @@ const fileToBase64 = (file: File): Promise<string> =>
     reader.readAsDataURL(file)
   })
 
+// Compress/resize before base64 so the data URL stays small (~150-250KB). Fixes
+// blank product images in the exported PDF (huge full-res base64 didn't decode in
+// time for puppeteer's page.pdf) and keeps the catalog row light.
+const compressImage = (file: File, maxDim = 1280, quality = 0.82): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = reject
+    reader.onload = () => {
+      const img = new Image()
+      img.onerror = reject
+      img.onload = () => {
+        let width = img.width
+        let height = img.height
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) { height = Math.round((height * maxDim) / width); width = maxDim }
+          else { width = Math.round((width * maxDim) / height); height = maxDim }
+        }
+        const canvas = document.createElement("canvas")
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext("2d")
+        if (!ctx) { resolve(reader.result as string); return }
+        ctx.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL("image/jpeg", quality))
+      }
+      img.src = reader.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+
 const toSlug = (text: string, id: string): string =>
   (text || "catalogo").toLowerCase().normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -252,7 +282,9 @@ export default function CatalogEditorPage() {
     setCatalog(prev => ({ ...prev, paginas: prev.paginas.filter(p => p.id !== id) }))
 
   const handleFileUpload = async (file: File, target: "logo" | "imagem" | string) => {
-    const b64 = await fileToBase64(file)
+    let b64: string
+    try { b64 = await compressImage(file) }
+    catch { b64 = await fileToBase64(file) }
     if (target === "logo" || target === "imagem") {
       setCatalog(prev => ({ ...prev, capa: { ...prev.capa, [target]: b64 } }))
     } else {

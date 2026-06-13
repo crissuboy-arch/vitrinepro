@@ -194,47 +194,38 @@ export async function POST(req: NextRequest) {
     color: rgba(255,255,255,0.35); font-family: 'Helvetica Neue', Arial, sans-serif;
   }
 
-  /* PÁGINAS PRODUTO */
-  .product-page { width: 100%; height: 100%; display: flex; }
-  .product-left {
-    width: 42%; background: ${cores.secundaria || '#0a0d14'}; padding: 48px 36px;
-    display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden;
-  }
-  .product-number {
-    position: absolute; top: 20px; right: 20px; font-size: 88px; font-weight: 700;
-    color: ${cores.principal || '#c9a96e'}; opacity: 0.08; line-height: 1; font-family: Georgia, serif;
-  }
-  .product-badge {
-    display: inline-block; font-size: 9px; letter-spacing: 0.2em; color: ${cores.principal || '#c9a96e'};
-    border: 1px solid ${cores.principal || '#c9a96e'}; padding: 3px 10px; border-radius: 2px;
-    text-transform: uppercase; margin-bottom: 16px; width: fit-content;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-  }
-  .product-name {
-    font-size: 28px; font-weight: 700; color: ${cores.titulos || '#f5f0e8'};
-    line-height: 1.2; margin-bottom: 16px; font-family: Georgia, serif;
-  }
-  .product-line { width: 40px; height: 2px; background: ${cores.principal || '#c9a96e'}; margin-bottom: 16px; }
-  .product-desc {
-    font-size: 13px; color: rgba(255,255,255,0.55); line-height: 1.7; margin-bottom: 32px;
-    font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 300;
-  }
-  .product-price-wrap { display: flex; align-items: flex-start; gap: 4px; margin-top: auto; }
-  .product-currency {
-    font-size: 18px; color: ${cores.precos || cores.principal || '#c9a96e'}; margin-top: 8px; font-family: Georgia, serif;
-  }
-  .product-price {
-    font-size: 52px; font-weight: 700; color: ${cores.precos || cores.principal || '#c9a96e'};
-    line-height: 1; font-family: Georgia, serif;
-  }
-  .product-right { width: 58%; position: relative; overflow: hidden; background: #f5f0e8; }
-  .product-img { width: 100%; height: 100%; object-fit: cover; }
+  /* PÁGINAS PRODUTO — coluna única, imagem ACIMA do título (igual à pré-visualização) */
+  .product-page { width: 100%; height: 100%; display: flex; flex-direction: column; background: ${cores.fundo || '#ffffff'}; position: relative; }
+  .product-photo { width: 100%; height: 48%; position: relative; overflow: hidden; background: #f5f0e8; flex-shrink: 0; }
+  .product-img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .product-no-img {
-    width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
     background: linear-gradient(135deg, #f5f0e8 0%, #ede8dd 100%);
   }
-  .product-no-img-emoji { font-size: 80px; margin-bottom: 16px; opacity: 0.4; }
-  .product-no-img-name { font-size: 18px; color: #999; font-family: Georgia, serif; }
+  .product-no-img-emoji { font-size: 96px; opacity: 0.35; }
+  .product-number {
+    position: absolute; top: 18px; left: 28px; font-size: 60px; font-weight: 700; color: #ffffff;
+    opacity: 0.9; line-height: 1; font-family: Georgia, serif; text-shadow: 0 2px 10px rgba(0,0,0,0.45);
+  }
+  .product-body { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 44px 56px; }
+  .product-badge {
+    display: inline-block; font-size: 10px; letter-spacing: 0.2em; color: ${cores.principal || '#c9a96e'};
+    border: 1px solid ${cores.principal || '#c9a96e'}; padding: 4px 12px; border-radius: 2px;
+    text-transform: uppercase; margin-bottom: 20px; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .product-name {
+    font-size: 38px; font-weight: 700; color: ${cores.titulos || '#0a0d14'};
+    line-height: 1.15; margin-bottom: 18px; font-family: Georgia, serif;
+  }
+  .product-line { width: 56px; height: 3px; background: ${cores.principal || '#c9a96e'}; margin-bottom: 22px; }
+  .product-desc {
+    font-size: 15px; color: ${cores.titulos || '#333'}; opacity: 0.7; line-height: 1.8; margin-bottom: 28px;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 300; max-width: 92%;
+  }
+  .product-price {
+    font-size: 46px; font-weight: 700; color: ${cores.precos || cores.principal || '#c9a96e'};
+    line-height: 1; font-family: Georgia, serif;
+  }
 
   /* RODAPÉ DE PÁGINA */
   .page-footer {
@@ -290,29 +281,23 @@ export async function POST(req: NextRequest) {
 ${paginas.map((p: { titulo?: string; descricao?: string; preco?: string; imagem?: string; destaque?: boolean }, i: number) => `
 <div class="page">
   <div class="product-page">
-    <div class="product-left">
+    <div class="product-photo">
+      ${p.imagem
+        ? `<img class="product-img" src="${p.imagem}" alt="${p.titulo || ''}" />`
+        : `<div class="product-no-img"><div class="product-no-img-emoji">🍽️</div></div>`
+      }
       <div class="product-number">${String(i + 1).padStart(2, '0')}</div>
+    </div>
+    <div class="product-body">
       ${p.destaque ? '<div class="product-badge">⭐ Destaque</div>' : ''}
       <div class="product-name">${p.titulo || 'Produto'}</div>
       <div class="product-line"></div>
       ${p.descricao ? `<div class="product-desc">${p.descricao}</div>` : ''}
-      ${p.preco ? `
-      <div class="product-price-wrap">
-        <div class="product-price">${p.preco}</div>
-      </div>` : ''}
+      ${p.preco ? `<div class="product-price">${p.preco}</div>` : ''}
     </div>
-    <div class="product-right">
-      ${p.imagem
-        ? `<img class="product-img" src="${p.imagem}" alt="${p.titulo || ''}" />`
-        : `<div class="product-no-img">
-            <div class="product-no-img-emoji">🍽️</div>
-            <div class="product-no-img-name">${p.titulo || ''}</div>
-           </div>`
-      }
-      <div class="page-footer">
-        <span>${capa.nome || ''}</span>
-        <span>${i + 2}</span>
-      </div>
+    <div class="page-footer">
+      <span>${capa.nome || ''}</span>
+      <span>${i + 2}</span>
     </div>
   </div>
 </div>`).join('')}
@@ -362,20 +347,28 @@ ${paginas.map((p: { titulo?: string; descricao?: string; preco?: string; imagem?
       await page.setViewport({ width: 794, height: 1123 })
       await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 20000 })
 
-      // Wait for images (base64 data: URLs or remote) to load, max 3s, so they render in the PDF
-      await page.evaluate(() => {
-        return new Promise<void>((resolve) => {
-          const images = Array.from(document.images)
-          if (images.every((img) => img.complete)) { resolve(); return }
-          let loaded = 0
-          const check = () => { if (++loaded >= images.length) resolve() }
-          images.forEach((img) => {
-            img.addEventListener('load', check)
-            img.addEventListener('error', check)
+      // Wait until every image is fully DECODED (not just "complete") before the PDF
+      // snapshot. Large base64 data: URLs report complete=true before they are decoded,
+      // so page.pdf() was capturing them un-painted → blank product images.
+      await page.evaluate(async () => {
+        const imgs = Array.from(document.images)
+        const settle = (img: HTMLImageElement) =>
+          new Promise<void>((res) => {
+            const finish = () => {
+              if (img.decode) img.decode().then(() => res()).catch(() => res())
+              else res()
+            }
+            if (img.complete && img.naturalWidth > 0) { finish(); return }
+            img.addEventListener('load', finish)
+            img.addEventListener('error', () => res())
           })
-          setTimeout(resolve, 3000)
-        })
+        await Promise.race([
+          Promise.all(imgs.map(settle)),
+          new Promise<void>((res) => setTimeout(res, 8000)),
+        ])
       })
+      // Extra settle so decoded images are committed to the next paint.
+      await new Promise((r) => setTimeout(r, 250))
 
       pdf = await page.pdf({
         format: 'A4',
