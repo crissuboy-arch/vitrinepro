@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
     const fundoClaro = isLightColor(cores.fundo || '#ffffff')
     const textoTitulo = fundoClaro ? '#0a0d14' : '#f5f0e8'
     const textoCorpo = fundoClaro ? 'rgba(10,13,20,0.72)' : 'rgba(245,240,232,0.72)'
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vitrinepro.com'
+    const appUrl = process.env.NEXT_PUBLIC_CATALOG_URL || 'https://vitrine.vitriodigital.com'
     const telefone = capa.telefone || business?.phone || business?.whatsapp || ''
     const morada = capa.morada || business?.address || ''
     const horarios = business?.opening_hours || business?.schedule || []

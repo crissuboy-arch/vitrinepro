@@ -35,6 +35,7 @@ export async function generateMetadata({
     openGraph: {
       title: `Catálogo ${catalog.capa.nome}`,
       description: desc,
+      url: `${process.env.NEXT_PUBLIC_CATALOG_URL || 'https://vitrine.vitriodigital.com'}/catalogo/${slug}`,
       images: catalog.capa.imagem ? [{ url: catalog.capa.imagem }] : [],
     },
   }

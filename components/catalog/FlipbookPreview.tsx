@@ -326,7 +326,7 @@ export function FlipbookPreview({
               color: cores.principal || "#c9a96e",
               marginBottom: "32px"
             }}>
-              {`${process.env.NEXT_PUBLIC_APP_URL || 'https://vitrinepro.com'}/catalogo/${catalog.slug || "o-seu-negocio"}`}
+              {`${process.env.NEXT_PUBLIC_CATALOG_URL || 'https://vitrine.vitriodigital.com'}/catalogo/${catalog.slug || "o-seu-negocio"}`}
             </div>
             <div style={{
               height: "1px",

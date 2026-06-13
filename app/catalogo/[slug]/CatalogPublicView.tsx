@@ -4,7 +4,7 @@ import type { Catalog } from "@/types/catalog"
 
 export default function CatalogPublicView({ catalog }: { catalog: Catalog }) {
   const corPrincipal = catalog.cores?.principal || '#c9a96e'
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://vitrinepro.com'
+  const APP_URL = process.env.NEXT_PUBLIC_CATALOG_URL || 'https://vitrine.vitriodigital.com'
 
   return (
     <div style={{ minHeight: '100vh', background: '#080b12', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
