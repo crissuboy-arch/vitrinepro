@@ -7,6 +7,17 @@ type PageEntry =
   | { type: "pagina"; data: CatalogPagina }
   | { type: "contracapa" }
 
+// Pick a readable text colour for the internal pages from the background luminance.
+function isLightColor(hex: string): boolean {
+  const c = (hex || "").replace("#", "")
+  if (c.length < 6) return true
+  const r = parseInt(c.slice(0, 2), 16)
+  const g = parseInt(c.slice(2, 4), 16)
+  const b = parseInt(c.slice(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.6
+}
+
 export function FlipbookPreview({
   catalog,
   fullscreen = false,
@@ -18,6 +29,10 @@ export function FlipbookPreview({
   const [animating, setAnimating] = useState(false)
   const cores = catalog.cores
   const logoPosition = ((catalog.capa as { logoPosition?: "center" | "top-right" | "top-left" }).logoPosition) || "center"
+  const mostrarNome = (catalog.capa as { mostrarNome?: boolean }).mostrarNome !== false
+  const fundoClaro = isLightColor(cores.fundo || "#ffffff")
+  const textoTitulo = fundoClaro ? "#0a0d14" : "#f5f0e8"
+  const textoCorpo = fundoClaro ? "rgba(10,13,20,0.72)" : "rgba(245,240,232,0.72)"
 
   const pages: PageEntry[] = [
     { type: "capa" },
@@ -143,23 +158,27 @@ export function FlipbookPreview({
               }}>
                 Catálogo Oficial · 2026
               </div>
-              <h1 style={{
-                fontFamily: "Georgia, serif",
-                fontSize: fullscreen ? "48px" : "36px",
-                fontWeight: 700,
-                color: cores.titulos || "#f5f0e8",
-                lineHeight: 1.1,
-                marginBottom: "14px"
-              }}>
-                {catalog.capa?.nome || "Nome do Negócio"}
-              </h1>
-              <div style={{
-                fontSize: "14px",
-                color: cores.principal || "#c9a96e",
-                marginBottom: "10px"
-              }}>
-                {catalog.capa?.categoria} · {catalog.capa?.cidade}
-              </div>
+              {mostrarNome && (
+                <>
+                  <h1 style={{
+                    fontFamily: "Georgia, serif",
+                    fontSize: fullscreen ? "48px" : "36px",
+                    fontWeight: 700,
+                    color: cores.titulos || "#f5f0e8",
+                    lineHeight: 1.1,
+                    marginBottom: "14px"
+                  }}>
+                    {catalog.capa?.nome || "Nome do Negócio"}
+                  </h1>
+                  <div style={{
+                    fontSize: "14px",
+                    color: cores.principal || "#c9a96e",
+                    marginBottom: "10px"
+                  }}>
+                    {catalog.capa?.categoria} · {catalog.capa?.cidade}
+                  </div>
+                </>
+              )}
               {catalog.capa?.slogan && (
                 <div style={{
                   fontSize: "13px",
@@ -224,7 +243,7 @@ export function FlipbookPreview({
                 fontFamily: "Georgia, serif",
                 fontSize: fullscreen ? "32px" : "26px",
                 fontWeight: 700,
-                color: cores.titulos || "#0a0d14",
+                color: textoTitulo,
                 marginBottom: "14px",
                 lineHeight: 1.2
               }}>
@@ -243,8 +262,8 @@ export function FlipbookPreview({
               {currentData.data.descricao && (
                 <p style={{
                   fontSize: "14px",
-                  color: cores.titulos || "#333",
-                  opacity: 0.75,
+                  color: textoCorpo,
+                  opacity: 1,
                   lineHeight: 1.7,
                   marginBottom: "24px"
                 }}>

@@ -10,6 +10,18 @@ const log = (...args: unknown[]) => {
   if (!isProd) console.log(...args)
 }
 
+// Pick a readable text colour for the internal pages from the background
+// luminance, so the text never ends up the same colour as the background.
+function isLightColor(hex: string): boolean {
+  const c = (hex || '').replace('#', '')
+  if (c.length < 6) return true
+  const r = parseInt(c.slice(0, 2), 16)
+  const g = parseInt(c.slice(2, 4), 16)
+  const b = parseInt(c.slice(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.6
+}
+
 export async function POST(req: NextRequest) {
   log('=== CATALOG EXPORT STARTED ===')
 
@@ -127,6 +139,9 @@ export async function POST(req: NextRequest) {
     const capaLogo = capa.logo || null
     const corPrincipal = cores.principal || '#c9a96e'
     const logoPosition = capa.logoPosition || 'center'
+    const fundoClaro = isLightColor(cores.fundo || '#ffffff')
+    const textoTitulo = fundoClaro ? '#0a0d14' : '#f5f0e8'
+    const textoCorpo = fundoClaro ? 'rgba(10,13,20,0.72)' : 'rgba(245,240,232,0.72)'
     const telefone = capa.telefone || business?.phone || business?.whatsapp || ''
     const morada = capa.morada || business?.address || ''
     const horarios = business?.opening_hours || business?.schedule || []
@@ -223,12 +238,12 @@ export async function POST(req: NextRequest) {
     text-transform: uppercase; margin-bottom: 20px; font-family: 'Helvetica Neue', Arial, sans-serif;
   }
   .product-name {
-    font-size: 38px; font-weight: 700; color: ${cores.titulos || '#0a0d14'};
+    font-size: 38px; font-weight: 700; color: ${textoTitulo};
     line-height: 1.15; margin-bottom: 18px; font-family: Georgia, serif;
   }
   .product-line { width: 56px; height: 3px; background: ${cores.principal || '#c9a96e'}; margin-bottom: 22px; }
   .product-desc {
-    font-size: 15px; color: ${cores.titulos || '#333'}; opacity: 0.7; line-height: 1.8; margin-bottom: 28px;
+    font-size: 15px; color: ${textoCorpo}; opacity: 1; line-height: 1.8; margin-bottom: 28px;
     font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 300; max-width: 92%;
   }
   .product-price {
@@ -295,9 +310,15 @@ export async function POST(req: NextRequest) {
     <div class="cover-content">
       ${capaLogo && logoPosition === 'center' ? `<img src="${capaLogo}" alt="logo" style="width:100px; height:100px; border-radius:50%; border:3px solid ${corPrincipal}; object-fit:cover; margin-bottom:32px; display:block;" />` : ''}
       <div class="cover-label">Catálogo Oficial · 2026</div>
+      ${capa.mostrarNome !== false ? `
       <h1 class="cover-title">${capa.nome || 'O Meu Negócio'}</h1>
+      <div class="cover-divider"></div>
       <div class="cover-subtitle">${capa.categoria || ''} · ${capa.cidade || ''}</div>
-      ${capa.slogan ? `<div class="cover-divider"></div><div class="cover-slogan">${capa.slogan}</div>` : '<div class="cover-divider"></div>'}
+      ${capa.slogan ? `<div class="cover-slogan">"${capa.slogan}"</div>` : ''}
+      ` : `
+      <div class="cover-divider"></div>
+      ${capa.slogan ? `<div class="cover-slogan">"${capa.slogan}"</div>` : ''}
+      `}
     </div>
     <div class="cover-footer">MENU 2026</div>
   </div>

@@ -297,6 +297,9 @@ export default function CatalogEditorPage() {
   const logoPosition: LogoPosition =
     ((catalog.capa as { logoPosition?: LogoPosition }).logoPosition) || "center"
 
+  const mostrarNome =
+    (catalog.capa as { mostrarNome?: boolean }).mostrarNome !== false
+
   // ── Loading ───────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -545,6 +548,22 @@ export default function CatalogEditorPage() {
                     {catalog.capa.imagem && (
                       <button onClick={() => setCatalog(prev => ({ ...prev, capa: { ...prev.capa, imagem: undefined } }))} style={{ fontSize: "11px", color: "#ef4444", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Remover</button>
                     )}
+                  </div>
+                </div>
+
+                {/* Show business name on cover */}
+                <div>
+                  <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={mostrarNome}
+                      onChange={e => setCatalog(prev => ({ ...prev, capa: { ...prev.capa, mostrarNome: e.target.checked } as typeof prev.capa }))}
+                      style={{ accentColor: "#c9a96e", width: "16px", height: "16px" }}
+                    />
+                    <span style={{ fontSize: "13px", color: "#ccc", fontWeight: 600 }}>Mostrar nome do negócio na capa</span>
+                  </label>
+                  <div style={{ fontSize: "11px", color: "#666", marginTop: "6px", marginLeft: "26px" }}>
+                    Desactiva se a tua imagem de capa já contém o nome do negócio
                   </div>
                 </div>
 
