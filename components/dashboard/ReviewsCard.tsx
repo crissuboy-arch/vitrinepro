@@ -28,6 +28,7 @@ export default function ReviewsCard({ businessId }: { businessId: string; busine
         .from("reviews")
         .select("*")
         .eq("business_id", businessId)
+        .eq("is_approved", true)
         .order("created_at", { ascending: false });
       setReviews((data as Review[]) || []);
       setLoading(false);

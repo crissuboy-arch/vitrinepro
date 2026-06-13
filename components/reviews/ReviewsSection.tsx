@@ -162,10 +162,9 @@ export default function ReviewsSection({
         <WriteReviewModal
           businessId={businessId}
           onClose={() => setShowModal(false)}
-          onSubmitted={(review) => {
-            setReviews((prev) => [review, ...prev]);
+          onSubmitted={() => {
             setShowModal(false);
-            showToast("Obrigado! A tua avaliação foi publicada.");
+            showToast("Obrigado! A tua avaliação foi enviada e aguarda aprovação.");
           }}
         />
       )}
@@ -188,7 +187,7 @@ function WriteReviewModal({
 }: {
   businessId: string;
   onClose: () => void;
-  onSubmitted: (review: Review) => void;
+  onSubmitted: () => void;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -234,7 +233,9 @@ function WriteReviewModal({
         }
       }
 
-      const { data, error: insErr } = await supabase
+      // Moderation ON: new reviews are saved as pending (is_approved=false) and
+      // only appear on the vitrine after an admin approves them.
+      const { error: insErr } = await supabase
         .from("reviews")
         .insert({
           business_id: businessId,
@@ -243,14 +244,12 @@ function WriteReviewModal({
           rating,
           comment: comment.trim(),
           photo_url: photoUrl,
-          is_approved: true,
+          is_approved: false,
           verified: false,
-        })
-        .select()
-        .single();
+        });
 
       if (insErr) throw new Error(insErr.message);
-      onSubmitted(data as Review);
+      onSubmitted();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao publicar a avaliação.";
       if (/column|reviewer_email|photo_url|verified/i.test(msg)) {

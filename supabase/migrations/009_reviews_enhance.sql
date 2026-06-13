@@ -15,8 +15,8 @@ ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS verified       BOOLEAN DEFAU
 ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS owner_reply    TEXT;
 ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS owner_reply_at TIMESTAMPTZ;
 
--- Public reviews should be visible right away (spec: approved default true).
-ALTER TABLE public.reviews ALTER COLUMN is_approved SET DEFAULT true;
+-- Moderation ON: new reviews start as PENDING (false) until an admin approves.
+ALTER TABLE public.reviews ALTER COLUMN is_approved SET DEFAULT false;
 
 -- 2. RLS policies (DROP first, per project rule) -----------------------------
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
@@ -41,6 +41,15 @@ CREATE POLICY "Owner manages own business reviews"
       WHERE b.id = reviews.business_id AND b.user_id = auth.uid()
     )
   );
+
+-- Admin (email allowlist — mirrors ADMIN_EMAILS in app/admin/page.tsx) can
+-- moderate EVERYTHING: read pending reviews, approve (UPDATE), reject (DELETE).
+-- Without this, the admin (anon client) is blocked by the owner-only policies.
+DROP POLICY IF EXISTS "Admin manages all reviews" ON public.reviews;
+CREATE POLICY "Admin manages all reviews"
+  ON public.reviews FOR ALL
+  USING ((auth.jwt() ->> 'email') = 'cris.suboy@gmail.com')
+  WITH CHECK ((auth.jwt() ->> 'email') = 'cris.suboy@gmail.com');
 
 -- 3. Auto-average: keep businesses.rating_average / rating_count in sync ------
 CREATE OR REPLACE FUNCTION public.fn_recalc_business_rating()

@@ -58,6 +58,7 @@ export default function AvaliacoesPage() {
         .from("reviews")
         .select("*")
         .eq("business_id", biz.id)
+        .eq("is_approved", true)
         .order("created_at", { ascending: false });
 
       const list = (data as Review[]) || [];
