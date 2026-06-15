@@ -256,7 +256,9 @@ export default function DashboardPage() {
         return;
       }
 
-      if (!response.ok) throw new Error(data.error || "Erro ao criar sessão.");
+      // Surface the real Stripe error (data.details) so the toast shows e.g.
+      // "No such price: ..." instead of the generic message — easier to diagnose.
+      if (!response.ok) throw new Error(data.details || data.error || "Erro ao criar sessão.");
 
       if (data.url) {
         window.location.href = data.url;
