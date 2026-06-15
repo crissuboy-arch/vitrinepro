@@ -18,6 +18,13 @@ function isLightColor(hex: string): boolean {
   return luminance > 0.6
 }
 
+function formatPrice(raw: unknown): string {
+  const cleaned = String(raw ?? "").replace(/[€$\s]/g, "").replace(/eur/gi, "").replace(",", ".").trim()
+  const num = parseFloat(cleaned)
+  if (isNaN(num)) return String(raw ?? "")
+  return num.toFixed(2).replace(".", ",")
+}
+
 export function FlipbookPreview({
   catalog,
   fullscreen = false,
@@ -30,9 +37,10 @@ export function FlipbookPreview({
   const cores = catalog.cores
   const logoPosition = ((catalog.capa as { logoPosition?: "center" | "top-right" | "top-left" }).logoPosition) || "center"
   const mostrarNome = (catalog.capa as { mostrarNome?: boolean }).mostrarNome !== false
-  const fundoClaro = isLightColor(cores.fundo || "#ffffff")
-  const textoTitulo = fundoClaro ? "#0a0d14" : "#f5f0e8"
-  const textoCorpo = fundoClaro ? "rgba(10,13,20,0.72)" : "rgba(245,240,232,0.72)"
+  const fundoProduto = "#faf7f2"
+  const fundoClaro = isLightColor(fundoProduto)
+  const textoTitulo = fundoClaro ? "#15110c" : "#f5f0e8"
+  const textoCorpo = fundoClaro ? "#4a4a4a" : "rgba(245,240,232,0.72)"
 
   const pages: PageEntry[] = [
     { type: "capa" },
@@ -208,16 +216,23 @@ export function FlipbookPreview({
             minHeight: fullscreen ? "600px" : "480px",
             display: "flex",
             flexDirection: "column",
-            background: cores.fundo || "#ffffff"
+            background: fundoProduto
           }}>
             {/* Imagem se existir */}
             {currentData.data.imagem && (
-              <div style={{ height: "240px", overflow: "hidden", flexShrink: 0 }}>
+              <div style={{ height: "240px", overflow: "hidden", flexShrink: 0, position: "relative", background: "#ece7df" }}>
                 <img
                   src={currentData.data.imagem}
                   alt={currentData.data.titulo || ""}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
                 />
+                {catalog.capa?.logo && (
+                  <img
+                    src={catalog.capa.logo}
+                    alt="logo"
+                    style={{ position: "absolute", top: "12px", left: "12px", width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,0.92)", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
+                  />
+                )}
               </div>
             )}
 
@@ -241,7 +256,7 @@ export function FlipbookPreview({
               {/* Título */}
               <h2 style={{
                 fontFamily: "Georgia, serif",
-                fontSize: fullscreen ? "32px" : "26px",
+                fontSize: fullscreen ? "34px" : "28px",
                 fontWeight: 700,
                 color: textoTitulo,
                 marginBottom: "14px",
@@ -261,7 +276,7 @@ export function FlipbookPreview({
               {/* Descrição */}
               {currentData.data.descricao && (
                 <p style={{
-                  fontSize: "14px",
+                  fontSize: "15px",
                   color: textoCorpo,
                   opacity: 1,
                   lineHeight: 1.7,
@@ -280,7 +295,7 @@ export function FlipbookPreview({
                   color: cores.precos || cores.principal || "#c9a96e",
                   marginTop: "auto"
                 }}>
-                  {currentData.data.preco}
+                  € {formatPrice(currentData.data.preco)}
                 </div>
               )}
             </div>

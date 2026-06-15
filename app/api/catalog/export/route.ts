@@ -22,6 +22,15 @@ function isLightColor(hex: string): boolean {
   return luminance > 0.6
 }
 
+// Normalise any price string to "X,XX" (e.g. "2,5", "2.50", "2,50 €", "3" -> "2,50").
+// Non-numeric values are returned unchanged.
+function formatPrice(raw: unknown): string {
+  const cleaned = String(raw ?? '').replace(/[€$\s]/g, '').replace(/eur/gi, '').replace(',', '.').trim()
+  const num = parseFloat(cleaned)
+  if (isNaN(num)) return String(raw ?? '')
+  return num.toFixed(2).replace('.', ',')
+}
+
 export async function POST(req: NextRequest) {
   log('=== CATALOG EXPORT STARTED ===')
 
@@ -139,9 +148,12 @@ export async function POST(req: NextRequest) {
     const capaLogo = capa.logo || null
     const corPrincipal = cores.principal || '#c9a96e'
     const logoPosition = capa.logoPosition || 'center'
-    const fundoClaro = isLightColor(cores.fundo || '#ffffff')
-    const textoTitulo = fundoClaro ? '#0a0d14' : '#f5f0e8'
-    const textoCorpo = fundoClaro ? 'rgba(10,13,20,0.72)' : 'rgba(245,240,232,0.72)'
+    // Product pages are LOCKED to a light cream background with dark, legible text —
+    // never the old dark layout. (Cover / back cover stay branded.)
+    const fundoProduto = '#faf7f2'
+    const fundoClaro = isLightColor(fundoProduto)
+    const textoTitulo = fundoClaro ? '#15110c' : '#f5f0e8'
+    const textoCorpo = fundoClaro ? '#4a4a4a' : 'rgba(245,240,232,0.72)'
     const appUrl = process.env.NEXT_PUBLIC_CATALOG_URL || 'https://vitrine.vitriodigital.com'
     const telefone = capa.telefone || business?.phone || business?.whatsapp || ''
     const morada = capa.morada || business?.address || ''
@@ -220,9 +232,13 @@ export async function POST(req: NextRequest) {
   }
 
   /* PÁGINAS PRODUTO — coluna única, imagem ACIMA do título (igual à pré-visualização) */
-  .product-page { width: 100%; height: 100%; display: flex; flex-direction: column; background: ${cores.fundo || '#ffffff'}; position: relative; }
-  .product-photo { width: 100%; height: 48%; position: relative; overflow: hidden; background: #f5f0e8; flex-shrink: 0; }
-  .product-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .product-page { width: 100%; height: 100%; display: flex; flex-direction: column; background: ${fundoProduto}; position: relative; }
+  .product-photo { width: 100%; height: 40%; position: relative; overflow: hidden; background: #ece7df; flex-shrink: 0; }
+  .product-img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+  .product-logo {
+    position: absolute; top: 16px; left: 16px; width: 46px; height: 46px; border-radius: 50%;
+    object-fit: cover; border: 2px solid rgba(255,255,255,0.92); box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 2;
+  }
   .product-no-img {
     width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
     background: linear-gradient(135deg, #f5f0e8 0%, #ede8dd 100%);
@@ -239,13 +255,13 @@ export async function POST(req: NextRequest) {
     text-transform: uppercase; margin-bottom: 20px; font-family: 'Helvetica Neue', Arial, sans-serif;
   }
   .product-name {
-    font-size: 38px; font-weight: 700; color: ${textoTitulo};
-    line-height: 1.15; margin-bottom: 18px; font-family: Georgia, serif;
+    font-size: 46px; font-weight: 700; color: ${textoTitulo};
+    line-height: 1.12; margin-bottom: 20px; font-family: Georgia, serif;
   }
   .product-line { width: 56px; height: 3px; background: ${cores.principal || '#c9a96e'}; margin-bottom: 22px; }
   .product-desc {
-    font-size: 15px; color: ${textoCorpo}; opacity: 1; line-height: 1.8; margin-bottom: 28px;
-    font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 300; max-width: 92%;
+    font-size: 18px; color: ${textoCorpo}; opacity: 1; line-height: 1.75; margin-bottom: 30px;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 400; max-width: 94%;
   }
   .product-price {
     font-size: 46px; font-weight: 700; color: ${cores.precos || cores.principal || '#c9a96e'};
@@ -334,6 +350,7 @@ ${paginas.map((p: { titulo?: string; descricao?: string; preco?: string; imagem?
         ? `<img class="product-img" src="${p.imagem}" alt="${p.titulo || ''}" />`
         : `<div class="product-no-img"><div class="product-no-img-emoji">🍽️</div></div>`
       }
+      ${capaLogo ? `<img class="product-logo" src="${capaLogo}" alt="logo" />` : ''}
     </div>
     <div class="product-body">
       ${p.destaque ? '<div class="product-badge">⭐ Destaque</div>' : ''}
@@ -346,7 +363,7 @@ ${paginas.map((p: { titulo?: string; descricao?: string; preco?: string; imagem?
           <div class="product-price-label">Preço</div>
           <div style="display:flex;align-items:flex-start;gap:6px;">
             <span class="product-price-currency">€</span>
-            <span class="product-price">${String(p.preco).replace(/€/g, '').replace(/EUR/gi, '').trim()}</span>
+            <span class="product-price">${formatPrice(p.preco)}</span>
           </div>
         </div>
         <div class="product-number-watermark">${String(i + 1).padStart(2, '0')}</div>
