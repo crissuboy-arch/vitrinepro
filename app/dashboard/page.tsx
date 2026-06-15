@@ -11,6 +11,9 @@ import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/li
 import { Sparkles, Lock, Copy, Check, ExternalLink } from "lucide-react";
 import { trackCatalogPdfDownload } from "@/app/lib/analytics";
 
+// Public showcase domain (vitrine + catálogo). Always produces absolute links/QR.
+const PUBLIC_SITE_URL = process.env.NEXT_PUBLIC_CATALOG_URL || "https://vitrine.vitriodigital.com";
+
 // Interfaces
 interface Category {
   id: string;
@@ -410,14 +413,17 @@ export default function DashboardPage() {
         country: editOwnerOriginCountry || editCountry,
         address: editAddress,
         whatsapp: editWhatsapp,
-        phone: editPhone || undefined,
-        email: editEmail || undefined,
-        instagram: editInstagram || undefined,
-        facebook: editFacebook || undefined,
-        tiktok: editTiktok || undefined,
-        youtube: editYoutube || undefined,
-        linkedin: editLinkedin || undefined,
-        website: editWebsite || undefined,
+        // Send trimmed values (empty string when cleared) so emptying a field
+        // persists. `editX || undefined` was dropped by PostgREST, leaving the old
+        // value in the DB — deleted socials kept showing on the public vitrine.
+        phone: editPhone.trim(),
+        email: editEmail.trim(),
+        instagram: editInstagram.trim(),
+        facebook: editFacebook.trim(),
+        tiktok: editTiktok.trim(),
+        youtube: editYoutube.trim(),
+        linkedin: editLinkedin.trim(),
+        website: editWebsite.trim(),
         opening_hours: editHours as any,
       });
 
@@ -843,7 +849,7 @@ export default function DashboardPage() {
               </div>
               <p className="text-sm text-gray-400 mt-1 max-w-xl line-clamp-2">{business?.description || "Adicione uma breve descrição para o seu negócio..."}</p>
               <div className="mt-2 text-xs text-[#C8A96B] flex items-center gap-4">
-                <span>URL: <span className="text-gray-300">/vitrine/{business?.slug}</span></span>
+                <span>URL: <span className="text-gray-300">{PUBLIC_SITE_URL}/vitrine/{business?.slug}</span></span>
               </div>
             </div>
 
@@ -1842,7 +1848,7 @@ export default function DashboardPage() {
 // ─── Vitrine Share Card ────────────────────────────────────────────────────
 function VitrineShareCard({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
-  const vitrineUrl = `https://vitrinepro.pt/vitrine/${slug}`;
+  const vitrineUrl = `${PUBLIC_SITE_URL}/vitrine/${slug}`;
   const waText = encodeURIComponent(`Visita a minha vitrine profissional: ${vitrineUrl}`);
   const waUrl = `https://wa.me/?text=${waText}`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&bgcolor=0F172A&color=C8A96B&data=${encodeURIComponent(vitrineUrl)}`;
@@ -1870,7 +1876,7 @@ function VitrineShareCard({ slug }: { slug: string }) {
           {/* URL box */}
           <div className="flex items-center gap-2 bg-[#0F172A] border border-gray-800 rounded-xl px-4 py-3">
             <a
-              href={`/vitrine/${slug}`}
+              href={vitrineUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex-grow text-xs text-[#C8A96B] font-mono hover:underline truncate"
