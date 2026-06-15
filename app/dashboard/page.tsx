@@ -180,8 +180,11 @@ export default function DashboardPage() {
       // Fetch business profile
       const biz = await getMyBusiness(session.user.id);
       if (!biz) {
-        // Redirect to onboarding if no business registered
-        router.push("/onboarding");
+        // Redirect to onboarding if no business registered — preserve the URL
+        // params (e.g. ?plan=premium from the subscribe flow) so the chosen plan
+        // survives onboarding and the Stripe checkout auto-starts afterwards.
+        const search = typeof window !== "undefined" ? window.location.search : "";
+        router.push(`/onboarding${search}`);
         return;
       }
 
