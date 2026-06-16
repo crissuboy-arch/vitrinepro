@@ -2,17 +2,28 @@
 import { useState, useEffect } from "react"
 import { Catalog, CatalogPagina } from "@/types/catalog"
 
-const modeloStyles = {
-  elegante:    { fundo: "#ffffff", texto: "#0a0d14", destaque: "#c9a96e", fonte: "'Georgia', serif" },
-  luxo:        { fundo: "#0a0d14", texto: "#f5f0e8", destaque: "#c9a96e", fonte: "'Georgia', serif" },
-  moderno:     { fundo: "#1a1a2e", texto: "#ffffff",  destaque: "#4f46e5", fonte: "Inter, sans-serif" },
-  minimalista: { fundo: "#f8f8f8", texto: "#111111",  destaque: "#333333", fonte: "Inter, sans-serif" },
-}
-
 type PageEntry =
   | { type: "capa" }
   | { type: "pagina"; data: CatalogPagina }
   | { type: "contracapa" }
+
+// Pick a readable text colour for the internal pages from the background luminance.
+function isLightColor(hex: string): boolean {
+  const c = (hex || "").replace("#", "")
+  if (c.length < 6) return true
+  const r = parseInt(c.slice(0, 2), 16)
+  const g = parseInt(c.slice(2, 4), 16)
+  const b = parseInt(c.slice(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.6
+}
+
+function formatPrice(raw: unknown): string {
+  const cleaned = String(raw ?? "").replace(/[€$\s]/g, "").replace(/eur/gi, "").replace(",", ".").trim()
+  const num = parseFloat(cleaned)
+  if (isNaN(num)) return String(raw ?? "")
+  return num.toFixed(2).replace(".", ",")
+}
 
 export function FlipbookPreview({
   catalog,
@@ -23,8 +34,13 @@ export function FlipbookPreview({
 }) {
   const [currentPage, setCurrentPage] = useState(0)
   const [animating, setAnimating] = useState(false)
-  const style = modeloStyles[catalog.modelo]
   const cores = catalog.cores
+  const logoPosition = ((catalog.capa as { logoPosition?: "center" | "top-right" | "top-left" }).logoPosition) || "center"
+  const mostrarNome = (catalog.capa as { mostrarNome?: boolean }).mostrarNome !== false
+  const fundoProduto = "#faf7f2"
+  const fundoClaro = isLightColor(fundoProduto)
+  const textoTitulo = fundoClaro ? "#15110c" : "#f5f0e8"
+  const textoCorpo = fundoClaro ? "#4a4a4a" : "rgba(245,240,232,0.72)"
 
   const pages: PageEntry[] = [
     { type: "capa" },
@@ -55,25 +71,24 @@ export function FlipbookPreview({
     return () => window.removeEventListener("keydown", handleKey)
   }, [currentPage, animating])
 
-  const pageH = fullscreen ? "560px" : "400px"
-
   const containerStyle: React.CSSProperties = {
     width: "100%",
-    maxWidth: fullscreen ? "900px" : "600px",
+    maxWidth: fullscreen ? "520px" : "420px",
     margin: "0 auto",
-    fontFamily: style.fonte,
+    fontFamily: "Georgia, serif",
   }
 
   const pageStyle: React.CSSProperties = {
-    background: cores.fundo || style.fundo,
-    borderRadius: "8px",
+    background: cores.fundo || "#ffffff",
+    borderRadius: "4px",
     overflow: "hidden",
-    minHeight: pageH,
+    minHeight: fullscreen ? "735px" : "594px", // proporção A4: largura x 1.414
     transition: "opacity 0.35s ease, transform 0.35s ease",
     opacity: animating ? 0 : 1,
     transform: animating ? "scale(0.98)" : "scale(1)",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.4), 4px 0 12px rgba(0,0,0,0.15)",
     position: "relative",
+    border: "1px solid rgba(255,255,255,0.08)",
   }
 
   return (
@@ -83,8 +98,16 @@ export function FlipbookPreview({
 
         {/* CAPA */}
         {currentData.type === "capa" && (
-          <div style={{ height: pageH, position: "relative", background: cores.secundaria || style.fundo }}>
-            {catalog.capa.imagem && (
+          <div style={{
+            height: fullscreen ? "735px" : "594px",
+            position: "relative",
+            background: cores.secundaria || "#0a0d14",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center"
+          }}>
+            {catalog.capa?.imagem && (
               <img
                 src={catalog.capa.imagem}
                 alt="capa"
@@ -92,70 +115,245 @@ export function FlipbookPreview({
               />
             )}
             <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)" }} />
-            <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px", textAlign: "center" }}>
-              {catalog.capa.logo && (
-                <img src={catalog.capa.logo} alt="logo" style={{ width: "80px", height: "80px", objectFit: "contain", borderRadius: "50%", marginBottom: "24px", border: `2px solid ${cores.principal}` }} />
+            {catalog.capa?.logo && logoPosition !== "center" && (
+              <img
+                src={catalog.capa.logo}
+                alt="logo"
+                style={{
+                  position: "absolute",
+                  top: "20px",
+                  ...(logoPosition === "top-right" ? { right: "20px" } : { left: "20px" }),
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  border: `2px solid ${cores.principal || "#c9a96e"}`,
+                  zIndex: 2,
+                }}
+              />
+            )}
+            <div style={{
+              position: "relative",
+              zIndex: 1,
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "48px",
+              textAlign: "center"
+            }}>
+              {catalog.capa?.logo && logoPosition === "center" && (
+                <img
+                  src={catalog.capa.logo}
+                  alt="logo"
+                  style={{
+                    width: "90px",
+                    height: "90px",
+                    objectFit: "contain",
+                    borderRadius: "50%",
+                    marginBottom: "28px",
+                    border: `2px solid ${cores.principal || "#c9a96e"}`
+                  }}
+                />
               )}
-              <div style={{ fontSize: "10px", letterSpacing: "0.3em", color: cores.principal, textTransform: "uppercase", marginBottom: "12px" }}>
+              <div style={{
+                fontSize: "10px",
+                letterSpacing: "0.3em",
+                color: cores.principal || "#c9a96e",
+                textTransform: "uppercase",
+                marginBottom: "16px"
+              }}>
                 Catálogo Oficial · 2026
               </div>
-              <h1 style={{ fontFamily: style.fonte, fontSize: fullscreen ? "42px" : "30px", fontWeight: 700, color: cores.titulos || "#f5f0e8", lineHeight: 1.1, marginBottom: "12px" }}>
-                {catalog.capa.nome || "Nome do Negócio"}
-              </h1>
-              <div style={{ fontSize: "13px", color: cores.principal, marginBottom: "8px" }}>
-                {catalog.capa.categoria}{catalog.capa.cidade ? ` · ${catalog.capa.cidade}` : ""}
-              </div>
-              {catalog.capa.slogan && (
-                <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.6)", fontStyle: "italic" }}>
+              {mostrarNome && (
+                <>
+                  {catalog.capa?.nome && (
+                    <h1 style={{
+                      fontFamily: "Georgia, serif",
+                      fontSize: fullscreen ? "48px" : "36px",
+                      fontWeight: 700,
+                      color: cores.titulos || "#f5f0e8",
+                      lineHeight: 1.1,
+                      marginBottom: "14px"
+                    }}>
+                      {catalog.capa.nome}
+                    </h1>
+                  )}
+                  <div style={{
+                    fontSize: "14px",
+                    color: cores.principal || "#c9a96e",
+                    marginBottom: "10px"
+                  }}>
+                    {catalog.capa?.categoria} · {catalog.capa?.cidade}
+                  </div>
+                </>
+              )}
+              {catalog.capa?.slogan && (
+                <div style={{
+                  fontSize: "13px",
+                  color: "rgba(255,255,255,0.6)",
+                  fontStyle: "italic",
+                  maxWidth: "300px"
+                }}>
                   {catalog.capa.slogan}
                 </div>
               )}
+              <div style={{
+                position: "absolute",
+                bottom: "24px",
+                fontSize: "10px",
+                letterSpacing: "0.2em",
+                color: "rgba(255,255,255,0.4)"
+              }}>
+                MENU 2026
+              </div>
             </div>
           </div>
         )}
 
         {/* PÁGINA INTERNA */}
         {currentData.type === "pagina" && (
-          <div style={{ minHeight: pageH, display: "flex", flexDirection: "column" }}>
+          <div style={{
+            minHeight: fullscreen ? "600px" : "480px",
+            display: "flex",
+            flexDirection: "column",
+            background: fundoProduto
+          }}>
+            {/* Imagem se existir */}
             {currentData.data.imagem && (
-              <div style={{ height: "200px", overflow: "hidden" }}>
-                <img src={currentData.data.imagem} alt={currentData.data.titulo} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <div style={{ height: "240px", overflow: "hidden", flexShrink: 0, position: "relative", background: "#ece7df" }}>
+                <img
+                  src={currentData.data.imagem}
+                  alt={currentData.data.titulo || ""}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
+                />
+                {catalog.capa?.logo && (
+                  <img
+                    src={catalog.capa.logo}
+                    alt="logo"
+                    style={{ position: "absolute", top: "12px", left: "12px", width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,0.92)", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
+                  />
+                )}
               </div>
             )}
-            <div style={{ padding: "28px 32px", flex: 1 }}>
+
+            {/* Conteúdo */}
+            <div style={{ padding: "32px 40px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+
+              {/* Badge destaque */}
               {currentData.data.destaque && (
-                <div style={{ fontSize: "9px", letterSpacing: "0.2em", color: cores.principal, textTransform: "uppercase", marginBottom: "8px" }}>
-                  ⭐ Destaque
+                <div style={{
+                  fontSize: "10px",
+                  letterSpacing: "0.2em",
+                  color: cores.principal || "#c9a96e",
+                  textTransform: "uppercase",
+                  marginBottom: "12px",
+                  fontWeight: 600
+                }}>
+                  ⭐ DESTAQUE
                 </div>
               )}
-              <h2 style={{ fontFamily: style.fonte, fontSize: "24px", fontWeight: 700, color: cores.titulos || style.texto, marginBottom: "10px" }}>
-                {currentData.data.titulo}
+
+              {/* Título */}
+              <h2 style={{
+                fontFamily: "Georgia, serif",
+                fontSize: fullscreen ? "34px" : "28px",
+                fontWeight: 700,
+                color: textoTitulo,
+                marginBottom: "14px",
+                lineHeight: 1.2
+              }}>
+                {currentData.data.titulo || "Sem título"}
               </h2>
+
+              {/* Linha decorativa */}
+              <div style={{
+                width: "48px",
+                height: "2px",
+                background: cores.principal || "#c9a96e",
+                marginBottom: "16px"
+              }} />
+
+              {/* Descrição */}
               {currentData.data.descricao && (
-                <p style={{ fontSize: "13px", color: style.texto, opacity: 0.7, lineHeight: 1.6, marginBottom: "16px" }}>
+                <p style={{
+                  fontSize: "15px",
+                  color: textoCorpo,
+                  opacity: 1,
+                  lineHeight: 1.7,
+                  marginBottom: "24px"
+                }}>
                   {currentData.data.descricao}
                 </p>
               )}
+
+              {/* Preço */}
               {currentData.data.preco && (
-                <div style={{ fontFamily: style.fonte, fontSize: "28px", fontWeight: 700, color: cores.precos || cores.principal }}>
-                  {currentData.data.preco}
+                <div style={{
+                  fontFamily: "Georgia, serif",
+                  fontSize: fullscreen ? "42px" : "34px",
+                  fontWeight: 700,
+                  color: cores.precos || cores.principal || "#c9a96e",
+                  marginTop: "auto"
+                }}>
+                  € {formatPrice(currentData.data.preco)}
                 </div>
               )}
+            </div>
+
+            {/* Rodapé da página */}
+            <div style={{
+              padding: "12px 40px",
+              borderTop: `1px solid ${cores.principal || "#c9a96e"}22`,
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "11px",
+              color: "#aaa"
+            }}>
+              <span>{catalog.capa?.nome || ""}</span>
+              <span>{currentPage + 1}</span>
             </div>
           </div>
         )}
 
         {/* CONTRACAPA */}
         {currentData.type === "contracapa" && (
-          <div style={{ minHeight: pageH, background: cores.secundaria || style.fundo, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px", textAlign: "center" }}>
-            <div style={{ fontFamily: style.fonte, fontSize: "22px", fontWeight: 700, color: cores.titulos || "#f5f0e8", marginBottom: "8px" }}>
-              {catalog.capa.nome}
+          <div style={{
+            height: fullscreen ? "735px" : "594px",
+            background: cores.secundaria || "#0a0d14",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "48px",
+            textAlign: "center"
+          }}>
+            <div style={{
+              fontFamily: "Georgia, serif",
+              fontSize: "26px",
+              fontWeight: 700,
+              color: cores.titulos || "#f5f0e8",
+              marginBottom: "10px"
+            }}>
+              {catalog.capa?.nome}
             </div>
-            <div style={{ fontSize: "12px", color: cores.principal, marginBottom: "24px" }}>
-              vitrinepro.com/catalogo/{catalog.slug || "o-seu-negocio"}
+            <div style={{
+              fontSize: "13px",
+              color: cores.principal || "#c9a96e",
+              marginBottom: "32px"
+            }}>
+              {`${process.env.NEXT_PUBLIC_CATALOG_URL || 'https://vitrine.vitriodigital.com'}/catalogo/${catalog.slug || "o-seu-negocio"}`}
             </div>
-            <div style={{ height: "1px", width: "60px", background: cores.principal, margin: "0 auto 24px" }} />
-            <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>Gerado pela VitrinePro</div>
+            <div style={{
+              height: "1px",
+              width: "60px",
+              background: cores.principal || "#c9a96e",
+              margin: "0 auto 32px"
+            }} />
+            <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>
+              Gerado pela VitrinePro
+            </div>
           </div>
         )}
 
