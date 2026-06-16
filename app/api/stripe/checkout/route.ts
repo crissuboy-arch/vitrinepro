@@ -34,14 +34,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // NEXT_PUBLIC_APP_URL is the canonical origin — more reliable than request headers behind proxies
-    const origin =
+    // Build a guaranteed-valid base URL. The "Not a valid URL" error came from
+    // NEXT_PUBLIC_APP_URL being undefined on Vercel → "undefined/dashboard…".
+    // Fallbacks: NEXT_PUBLIC_APP_URL → the live Vercel deployment URL → request host → vitrinepro.com.
+    const requestOrigin = (() => {
+      const host = request.headers.get("host");
+      if (!host) return "";
+      const proto = request.headers.get("x-forwarded-proto") || "https";
+      return `${proto}://${host}`;
+    })();
+    const rawBaseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
-      (() => {
-        const host = request.headers.get("host") || "localhost:3000";
-        const proto = request.headers.get("x-forwarded-proto") || "http";
-        return `${proto}://${host}`;
-      })();
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+      requestOrigin ||
+      "https://vitrinepro.com";
+    const cleanBaseUrl = rawBaseUrl.replace(/\/$/, "");
+    let validBaseUrl: string;
+    try {
+      new URL(cleanBaseUrl);
+      validBaseUrl = cleanBaseUrl;
+    } catch {
+      validBaseUrl = "https://vitrinepro.com";
+    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -54,8 +68,9 @@ export async function POST(request: Request) {
       subscription_data: {
         metadata: { planId, businessId },
       },
-      success_url: `${origin}/dashboard?success=stripe&plan=${planId}`,
-      cancel_url: `${origin}/dashboard?cancel=stripe`,
+      // Keep the existing query params — the dashboard reads success=stripe / cancel=stripe.
+      success_url: `${validBaseUrl}/dashboard?success=stripe&plan=${planId}`,
+      cancel_url: `${validBaseUrl}/dashboard?cancel=stripe`,
     });
 
     return NextResponse.json({ url: session.url });
