@@ -2,14 +2,16 @@
 -- Migration 008 — page_buttons
 -- Construtor de Botões & Links (Fase 1 da integração Montra)
 --
--- Caraterísticas:
---   • Aditiva: só CREATE ... IF NOT EXISTS / CREATE OR REPLACE.
---   • Não altera, renomeia nem elimina tabelas, colunas, enums ou dados existentes.
---   • Idempotente: pode ser executada mais do que uma vez sem efeitos colaterais.
+-- Garantias:
+--   • Puramente ADITIVA. Zero DROP / TRUNCATE / DELETE / RENAME.
+--   • Não toca em businesses, profiles, products, catalogs, reviews,
+--     testimonials, leads, auth.users nem em policies de outras tabelas.
+--   • Não altera dados existentes.
+--   • Idempotente: pode correr mais do que uma vez sem erro nem efeitos
+--     colaterais (IF NOT EXISTS / CREATE OR REPLACE / guardas DO).
 --   • FK para businesses(id) ON DELETE CASCADE.
---   • RLS ativada + policies por proprietário (mesmo padrão de short_links).
---
--- NÃO EXECUTADA AINDA. Correr primeiro em staging, depois em produção com autorização.
+--   • RLS ativada + policies que isolam os dados pelo proprietário
+--     autenticado (mesmo padrão de short_links).
 -- ============================================================
 
 -- ── Tabela ───────────────────────────────────────────────────
@@ -20,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.page_buttons (
   label          text         NOT NULL DEFAULT '',
   sublabel       text,
   url            text         NOT NULL DEFAULT '',         -- URL / ação (https:, tel:, mailto:, wa.me, /catalogo/…)
-  icon           text,                                     -- nome do ícone (lucide)
+  icon           text,                                     -- nome do ícone
   whatsapp_msg   text,                                     -- mensagem pré-preenchida para botões WhatsApp
   preset_id      text,                                     -- id do preset de estilo aplicado
   style          jsonb        NOT NULL DEFAULT '{}'::jsonb, -- cores, gradiente, glow, sombra, animação, tipografia, dimensões
@@ -45,8 +47,8 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_page_buttons_updated_at ON public.page_buttons;
-CREATE TRIGGER trg_page_buttons_updated_at
+-- CREATE OR REPLACE TRIGGER (Postgres 14+) — sem DROP.
+CREATE OR REPLACE TRIGGER trg_page_buttons_updated_at
   BEFORE UPDATE ON public.page_buttons
   FOR EACH ROW EXECUTE FUNCTION public.page_buttons_set_updated_at();
 
@@ -54,23 +56,36 @@ CREATE TRIGGER trg_page_buttons_updated_at
 ALTER TABLE public.page_buttons ENABLE ROW LEVEL SECURITY;
 
 -- Proprietário: leitura + escrita total dos botões dos seus negócios.
-DROP POLICY IF EXISTS "Owner manage buttons" ON public.page_buttons;
-CREATE POLICY "Owner manage buttons" ON public.page_buttons
-  FOR ALL
-  USING      (business_id IN (SELECT id FROM public.businesses WHERE user_id = auth.uid()))
-  WITH CHECK (business_id IN (SELECT id FROM public.businesses WHERE user_id = auth.uid()));
+-- Guarda idempotente (sem DROP): ignora se a policy já existir.
+DO $$
+BEGIN
+  CREATE POLICY "Owner manage buttons" ON public.page_buttons
+    FOR ALL
+    USING      (business_id IN (SELECT id FROM public.businesses WHERE user_id = auth.uid()))
+    WITH CHECK (business_id IN (SELECT id FROM public.businesses WHERE user_id = auth.uid()));
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Leitura pública dos botões ativos de negócios publicados.
 -- (Para a Fase 6 — a vitrine pública. Nenhum código a usa nesta fase; é inócua.)
-DROP POLICY IF EXISTS "Public read active buttons" ON public.page_buttons;
-CREATE POLICY "Public read active buttons" ON public.page_buttons
-  FOR SELECT
-  USING (active = true AND business_id IN (SELECT id FROM public.businesses WHERE published = true));
+DO $$
+BEGIN
+  CREATE POLICY "Public read active buttons" ON public.page_buttons
+    FOR SELECT
+    USING (active = true AND business_id IN (SELECT id FROM public.businesses WHERE published = true));
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ── RPC: incremento atómico de cliques ──────────────────────
--- Mesmo padrão de public.increment_short_link_clicks(text).
+-- Mesmo padrão de public.increment_short_link_clicks(text), com search_path fixo.
 CREATE OR REPLACE FUNCTION public.increment_button_click(p_button_id uuid)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   UPDATE public.page_buttons
   SET click_count = click_count + 1
