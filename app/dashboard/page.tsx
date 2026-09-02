@@ -1086,6 +1086,25 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* Buttons & Links Card */}
+            <div
+              onClick={() => router.push("/dashboard/botoes")}
+              className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl cursor-pointer hover:border-[#C8A96B]/40 transition-colors group"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🔗</span>
+                  <div>
+                    <h3 className="font-semibold text-[#C8A96B] text-sm">Botões &amp; Links</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Construtor visual da sua página de links</p>
+                  </div>
+                </div>
+                <span className="text-xs text-[#C8A96B] font-semibold group-hover:translate-x-1 transition-transform inline-block">
+                  Abrir →
+                </span>
+              </div>
+            </div>
+
             {/* Content Calendar Card */}
             <div
               onClick={() => router.push("/dashboard/calendario")}

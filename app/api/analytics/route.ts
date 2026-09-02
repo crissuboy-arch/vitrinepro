@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "business_id e event_type obrigatórios." }, { status: 400 });
     }
 
-    const validTypes = ["page_view", "whatsapp_click", "product_view"];
+    const validTypes = ["page_view", "whatsapp_click", "product_view", "button_click"];
     if (!validTypes.includes(event_type)) {
       return NextResponse.json({ error: "event_type inválido." }, { status: 400 });
     }

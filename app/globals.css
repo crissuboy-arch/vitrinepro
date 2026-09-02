@@ -175,3 +175,28 @@ body {
     animation: marquee-reverse var(--duration, 30s) linear infinite;
   }
 }
+
+/* Animações do módulo Botões & Links (/dashboard/botoes) — CustomButtonRenderer */
+@keyframes vpAnimFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes vpAnimWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-2deg); }
+  75% { transform: rotate(2deg); }
+}
+@keyframes vpAnimGlow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}
+
+@layer utilities {
+  .vp-anim-float { animation: vpAnimFloat 3s ease-in-out infinite; }
+  .vp-anim-wiggle { animation: vpAnimWiggle 0.4s ease-in-out infinite; }
+  .vp-anim-glow { animation: vpAnimGlow 2s ease-in-out infinite; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-anim-float, .vp-anim-wiggle, .vp-anim-glow { animation: none; }
+}
