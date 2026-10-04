@@ -138,24 +138,72 @@ export async function updateBusiness(businessId: string, data: Partial<BusinessI
 /**
  * Fetches the business owned by a given user.
  */
-export async function getMyBusiness(userId: string): Promise<Business | null> {
+/**
+ * A2.5 — Multi-business foundation.
+ *
+ * Fetches ALL businesses owned by a user, ordered by creation date.
+ * Never use `.maybeSingle()` here: a user may own 2+ businesses and
+ * `maybeSingle()` throws on multiple rows (which previously bounced
+ * multi-business users to /onboarding as if they had no business).
+ */
+export async function getMyBusinesses(userId: string): Promise<Business[]> {
   try {
     const { data, error } = await supabase
       .from("businesses")
       .select("*")
       .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("[DB] Error fetching my businesses:", error);
+      return [];
+    }
+
+    return (data as Business[]) || [];
+  } catch (err) {
+    console.error("[DB] Exception fetching my businesses:", err);
+    return [];
+  }
+}
+
+/**
+ * A2.5 — Ownership-checked fetch of a single business.
+ * Returns the business ONLY if it belongs to the given user, otherwise null.
+ * Use this whenever operating on a user-selected business id.
+ */
+export async function getBusinessByIdForOwner(
+  businessId: string,
+  userId: string
+): Promise<Business | null> {
+  try {
+    if (!businessId || !userId) return null;
+    const { data, error } = await supabase
+      .from("businesses")
+      .select("*")
+      .eq("id", businessId)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (error) {
-      console.error("[DB] Error fetching my business:", error);
+      console.error("[DB] Error fetching business by id for owner:", error);
       return null;
     }
 
-    return data;
+    return (data as Business) || null;
   } catch (err) {
-    console.error("[DB] Exception fetching my business:", err);
+    console.error("[DB] Exception fetching business by id for owner:", err);
     return null;
   }
+}
+
+/**
+ * @deprecated A2.5 — kept for compatibility; prefer getMyBusinesses().
+ * Returns the first business of the user (oldest). Safe: never throws on
+ * multiple rows (previous `.maybeSingle()` implementation did).
+ */
+export async function getMyBusiness(userId: string): Promise<Business | null> {
+  const all = await getMyBusinesses(userId);
+  return all.length > 0 ? all[0] : null;
 }
 
 /**

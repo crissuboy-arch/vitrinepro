@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getSiteUrl } from "@/lib/site";
 import Link from "next/link";
 import Image from "next/image";
 import { getBusinessBySlug } from "@/lib/business-actions";
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: StorePageProps): Promise<Meta
     title,
     description,
     alternates: {
-      canonical: `https://vitrinepro.pt/loja/${slug}`,
+      canonical: `${getSiteUrl()}/loja/${slug}`,
     },
   };
 }
@@ -52,7 +53,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
   }
 
   const products = business.products || [];
-  const siteUrl = "https://vitrinepro.pt";
+  const siteUrl = getSiteUrl();
   const canonicalUrl = `${siteUrl}/loja/${slug}`;
 
   // LocalBusiness schema for structured SEO

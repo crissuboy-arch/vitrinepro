@@ -6,6 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import { getCommunityByCountry } from "@/lib/communities";
+import { isPaidTier } from "@/lib/plans";
+import { scoreBusiness } from "@/lib/ranking";
 
 interface Business {
   id: string;
@@ -188,7 +190,10 @@ export default function ExplorarPage() {
         city: mappedCity,
         logo: b.logo_url || categoryIcon,
         cover: b.cover_url || "",
-        premium: b.plan === "pro" || b.plan === "premium" || b.plan === "gold" || b.plan === "business",
+        // A2.5: plan must reach the ranking algorithm (was dropped here,
+        // so the premium bonus in score() never applied).
+        plan: b.plan || "free",
+        premium: isPaidTier(b.plan),
         description: b.description || "",
         whatsApp: b.whatsapp || "",
         address: b.address || "",
@@ -197,6 +202,12 @@ export default function ExplorarPage() {
         slug: b.slug,
         country: b.country || b.owner_origin_country || "",
         owner_origin_country: b.owner_origin_country || "",
+        // A2.5: ranking inputs must reach scoreBusiness (were dropped here).
+        view_count: b.view_count ?? 0,
+        like_count: b.like_count ?? 0,
+        favorite_count: b.favorite_count ?? 0,
+        share_count: b.share_count ?? 0,
+        rating_average: b.rating_average ?? 0,
       };
     });
   }, [realBusinesses, dbCategories, dbCities]);
@@ -245,15 +256,9 @@ export default function ExplorarPage() {
       }
     }
 
-    // Ranking: premium plan bonus (200pts) + engagement score
-    const score = (b: any) =>
-      (b.plan === "pro" || b.plan === "premium" || b.plan === "business" ? 200 : 0) +
-      (b.view_count     ?? 0) * 1 +
-      (b.like_count     ?? 0) * 5 +
-      (b.favorite_count ?? 0) * 10 +
-      (b.share_count    ?? 0) * 3 +
-      Math.round((b.rating_average ?? 0) * 20);
-    result.sort((a, b) => score(b) - score(a));
+    // Ranking: premium plan bonus (200pts) + engagement score.
+    // A2.5: scoreBusiness is the single implementation (lib/ranking.ts).
+    result.sort((a, b) => scoreBusiness(b) - scoreBusiness(a));
 
     return result;
   }, [displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity]);

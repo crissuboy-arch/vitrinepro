@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { getSiteUrl } from "@/lib/site";
 import type { ReactNode } from "react";
 
-const siteUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://vitrinepro.pt").replace(/\/$/, "");
+const siteUrl = getSiteUrl();
 
 const TITLE = "Explorar negócios por comunidade | VitrinePro";
 const DESCRIPTION =

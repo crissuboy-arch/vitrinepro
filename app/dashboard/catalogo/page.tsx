@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
+import { getSiteUrl } from "@/lib/site";
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { supabase } from "@/app/lib/supabase"
@@ -172,7 +173,7 @@ export default function CatalogEditorPage() {
     setSharing(true)
     const slug = catalog.slug || catalog.id || ""
     try {
-      await navigator.clipboard.writeText(`https://vitrinepro.pt/catalogo/${slug}`)
+      await navigator.clipboard.writeText(`${getSiteUrl()}/catalogo/${slug}`)
       showToast("Link copiado!")
     } catch {
       showToast("Erro ao copiar link", false)
@@ -375,7 +376,7 @@ export default function CatalogEditorPage() {
             <button
               onClick={async () => {
                 try {
-                  await navigator.clipboard.writeText(`https://vitrinepro.pt/catalogo/${catalog.slug}`)
+                  await navigator.clipboard.writeText(`${getSiteUrl()}/catalogo/${catalog.slug}`)
                   showToast("Link copiado!")
                 } catch {
                   showToast("Erro ao copiar", false)

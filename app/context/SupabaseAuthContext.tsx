@@ -9,7 +9,7 @@ interface Profile {
   email: string;
   display_name: string | null;
   avatar_url: string | null;
-  plan: "free" | "pro" | "premium";
+  plan: "free" | "pro" | "premium" | "business";
   created_at: string;
 }
 

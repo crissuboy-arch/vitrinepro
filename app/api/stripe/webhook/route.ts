@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { normalizePlan } from "@/lib/plans";
 
 // M12: only emit verbose logs outside production to avoid leaking IDs/PII in Vercel logs.
 const isProd = process.env.NODE_ENV === "production";
@@ -74,7 +75,8 @@ export async function POST(request: Request) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const businessId = session.client_reference_id;
-      const planId = session.metadata?.planId || "premium";
+      // A2.5: store the canonical plan id (legacy aliases normalized).
+      const planId = normalizePlan(session.metadata?.planId || "premium");
 
       if (!businessId) {
         console.warn("[STRIPE WEBHOOK] checkout.session.completed missing client_reference_id");

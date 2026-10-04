@@ -1,6 +1,7 @@
 import VitrineClient from "./VitrineClient";
 import { supabase } from "../../lib/supabase";
 import type { Metadata } from "next";
+import { getSiteUrl } from "@/lib/site";
 
 // ─── Schema.org LocalBusiness JSON-LD ─────────────────────────────────────────
 
@@ -35,7 +36,7 @@ interface VitrineSchemaData {
   address?: string;
 }
 function buildLocalBusinessSchema(data: VitrineSchemaData, slug: string): Record<string, unknown> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://vitrinepro.pt";
+  const baseUrl = getSiteUrl();
 
   const schema: Record<string, unknown> = {
     "@context": "https://schema.org",

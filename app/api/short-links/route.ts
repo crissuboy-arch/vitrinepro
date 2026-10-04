@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { isBusinessTier } from "@/lib/plans";
 
 export async function GET() {
   try {
@@ -74,7 +75,8 @@ export async function POST(request: Request) {
     }
 
     // Verify plan is 'business'
-    if (business.plan !== "business") {
+    // A2.5: business tier only (canonical check).
+    if (!isBusinessTier(business.plan)) {
       return NextResponse.json(
         { error: "Funcionalidade disponível apenas no plano Business." },
         { status: 403 }

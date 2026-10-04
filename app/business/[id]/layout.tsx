@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { getSiteUrl } from "@/lib/site";
 import type { ReactNode } from "react";
 import { supabase } from "../../lib/supabase";
 
-const siteUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://vitrinepro.pt").replace(/\/$/, "");
+const siteUrl = getSiteUrl();
 
 export async function generateMetadata({
   params,

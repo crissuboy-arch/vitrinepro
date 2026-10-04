@@ -5,6 +5,7 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import { COMMUNITIES, getCommunityBySlug } from "@/lib/communities";
+import { isPaidTier } from "@/lib/plans";
 
 interface Business {
   id: string;
@@ -63,7 +64,7 @@ export default function CommunityPage({ params }: { params: Promise<{ slug: stri
 
   // Tab filters
   const latestBusinesses = [...businesses].slice(0, 12);
-  const featuredBusinesses = businesses.filter(b => b.plan === "premium" || b.plan === "pro" || b.plan === "business");
+  const featuredBusinesses = businesses.filter(b => isPaidTier(b.plan));
   const rankingBusinesses = [...businesses].sort((a, b) => (b.view_count || 0) - (a.view_count || 0)).slice(0, 10);
 
   const currentList = activeTab === "latest" ? latestBusinesses : activeTab === "featured" ? featuredBusinesses : rankingBusinesses;
@@ -236,7 +237,7 @@ export default function CommunityPage({ params }: { params: Promise<{ slug: stri
                       {community.icon} {community.name}
                     </span>
 
-                    {(biz.plan === "premium" || biz.plan === "pro" || biz.plan === "business") && (
+                    {isPaidTier(biz.plan) && (
                       <span className="absolute top-3 right-3 text-[9px] font-black bg-[#C8A96B] text-[#0F172A] px-2 py-0.5 rounded-full uppercase tracking-wider">
                         ✦ Destaque
                       </span>

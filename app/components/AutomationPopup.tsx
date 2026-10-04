@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getSiteUrl } from "@/lib/site";
 import { X, Check } from "lucide-react";
 import { useAuth } from "../context/SupabaseAuthContext";
+import { isPaidTier } from "@/lib/plans";
 
 interface AutomationPopupProps {
   plan: string | null | undefined;
@@ -15,7 +17,7 @@ export default function AutomationPopup({ plan }: AutomationPopupProps) {
 
   useEffect(() => {
     // Only show for 'pro' or 'business' plan stores
-    const isProOrBusiness = plan === "pro" || plan === "business";
+    const isProOrBusiness = isPaidTier(plan);
     if (!isProOrBusiness) return;
 
     // Do not show if the user is already logged in
@@ -96,7 +98,7 @@ export default function AutomationPopup({ plan }: AutomationPopupProps) {
         </button>
 
         <a
-          href="https://vitrinepro.pt/#planos"
+          href={`${getSiteUrl()}/#planos`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full text-slate-400 hover:text-white transition-colors text-[10px] text-center block font-medium underline"

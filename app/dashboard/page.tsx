@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "../lib/supabase";
-import { getMyBusiness, updateBusiness } from "@/lib/business-actions";
+import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/business-actions";
+import { isProTier, isBusinessTier, isPaidTier, normalizePlan } from "@/lib/plans";
+import { isPublishedBusiness, isOwnerOf, resolveBusinessCountTarget } from "@/lib/visibility";
+import { getSiteUrl } from "@/lib/site";
 import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/lib/supabase-storage";
 import { Sparkles, Lock, Copy, Check, ExternalLink } from "lucide-react";
 import { trackCatalogPdfDownload } from "@/app/lib/analytics";
@@ -82,6 +85,10 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [business, setBusiness] = useState<any>(null);
+  // A2.5 — multi-business: full list + minimal selector state.
+  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [showBusinessSelector, setShowBusinessSelector] = useState(false);
+  const SELECTED_BUSINESS_KEY = "vp_selected_business";
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -168,7 +175,9 @@ export default function DashboardPage() {
     setMounted(true);
   }, []);
 
-  // Fetch all business data and lists
+  // Fetch all business data and lists — A2.5 multi-business aware.
+  // 0 businesses → /onboarding · 1 → auto-select · 2+ → minimal selector
+  // (never bounce a multi-business owner to onboarding).
   const loadAllData = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -177,17 +186,52 @@ export default function DashboardPage() {
         return;
       }
 
-      // Fetch business profile
-      const biz = await getMyBusiness(session.user.id);
-      if (!biz) {
-        // Redirect to onboarding if no business registered — preserve the URL
-        // params (e.g. ?plan=premium from the subscribe flow) so the chosen plan
-        // survives onboarding and the Stripe checkout auto-starts afterwards.
+      const all = await getMyBusinesses(session.user.id);
+      setBusinesses(all);
+
+      if (resolveBusinessCountTarget(all.length) === "onboarding") {
+        // Preserve the URL params (e.g. ?plan=premium from the subscribe flow)
+        // so the chosen plan survives onboarding and Stripe auto-starts afterwards.
         const search = typeof window !== "undefined" ? window.location.search : "";
         router.push(`/onboarding${search}`);
         return;
       }
 
+      let chosen: any = null;
+      if (all.length === 1) {
+        chosen = all[0];
+      } else {
+        const stored = typeof window !== "undefined"
+          ? window.localStorage.getItem(SELECTED_BUSINESS_KEY)
+          : null;
+        chosen = all.find((b: any) => b.id === stored) || null;
+      }
+
+      if (!chosen) {
+        setBusiness(null);
+        setShowBusinessSelector(true);
+        return;
+      }
+
+      await loadBusinessData(session.user.id, chosen);
+    } catch (err) {
+      console.error("[DASHBOARD] Fetch load exception:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Loads everything for ONE selected business. Ownership is re-checked here
+  // (defense in depth — RLS also enforces it on every query).
+  const loadBusinessData = async (userId: string, biz: any) => {
+    if (!isOwnerOf(biz, userId)) {
+      console.error("[DASHBOARD] Ownership check failed for business", biz?.id);
+      setBusiness(null);
+      setShowBusinessSelector(true);
+      return;
+    }
+    setShowBusinessSelector(false);
+    try {
       setBusiness(biz);
 
       // Populate edit form states
@@ -223,12 +267,40 @@ export default function DashboardPage() {
       if (gallRes.data) setGallery(gallRes.data);
       if (catsRes.data) setCategories(catsRes.data);
       if (citiesRes.data) setCities(citiesRes.data);
-
     } catch (err) {
-      console.error("[DASHBOARD] Fetch load exception:", err);
+      console.error("[DASHBOARD] Business load exception:", err);
+    }
+  };
+
+  // A2.5 — user picked a business from the minimal selector.
+  // Ownership is enforced server-side by getBusinessByIdForOwner (+ RLS).
+  const selectBusiness = async (id: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      router.push("/login");
+      return;
+    }
+    setLoading(true);
+    try {
+      const biz = await getBusinessByIdForOwner(id, session.user.id);
+      if (!biz) {
+        alert("Negócio não encontrado ou sem acesso.");
+        return;
+      }
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(SELECTED_BUSINESS_KEY, id);
+      }
+      setBusinesses((prev: any[]) => prev.map((b: any) => (b.id === id ? biz : b)));
+      await loadBusinessData(session.user.id, biz);
     } finally {
       setLoading(false);
     }
+  };
+
+  // A2.5 — back to the minimal selector (header button, shown when 2+ businesses).
+  const switchBusiness = () => {
+    setBusiness(null);
+    setShowBusinessSelector(true);
   };
 
   useEffect(() => {
@@ -276,10 +348,10 @@ export default function DashboardPage() {
       const params = new URLSearchParams(window.location.search);
       const planParam = params.get("plan");
 
-      const isCurrentPremium = business.plan === "premium" || business.plan === "pro";
-      const isTargetPremium = planParam === "premium" || planParam === "pro";
-      const isCurrentBusiness = business.plan === "business";
-      const isTargetBusiness = planParam === "business";
+      const isCurrentPremium = isProTier(business.plan);
+      const isTargetPremium = isProTier(planParam);
+      const isCurrentBusiness = isBusinessTier(business.plan);
+      const isTargetBusiness = isBusinessTier(planParam);
       const alreadyHasPlan = (isCurrentPremium && isTargetPremium) || (isCurrentBusiness && isTargetBusiness);
 
       const isSuccessStatus = params.get("success");
@@ -367,6 +439,71 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center flex-col gap-4">
         <img src="/logo-vitrinepro.png" alt="Loading..." className="w-16 h-16 animate-pulse bg-transparent object-contain" />
         <div className="text-[#C8A96B] font-display text-xl animate-pulse">Carregando painel...</div>
+      </div>
+    );
+  }
+
+  // A2.5 — minimal business selector (2+ businesses). Not a redesign:
+  // a functional, safe way to choose which business to administer.
+  if (showBusinessSelector) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] text-white flex flex-col">
+        <header className="border-b border-gray-800 bg-[#0F172A]/90 backdrop-blur sticky top-0 z-30">
+          <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+            <Link
+              href="/"
+              className="text-xs text-gray-400 hover:text-white transition-colors border border-gray-800 hover:border-gray-600 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+            >
+              ← Voltar ao início
+            </Link>
+            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+          </div>
+        </header>
+        <main className="flex-grow max-w-3xl w-full mx-auto px-4 py-10">
+          <h1 className="font-display text-2xl font-bold text-white mb-2">Os seus negócios</h1>
+          <p className="text-sm text-gray-400 mb-8">
+            Escolha qual negócio pretende gerir. Pode trocar a qualquer momento no painel.
+          </p>
+          <div className="space-y-3">
+            {businesses.map((b: any) => (
+              <button
+                key={b.id}
+                onClick={() => selectBusiness(b.id)}
+                className="w-full text-left bg-gray-900 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl p-5 flex items-center justify-between gap-4 transition-colors cursor-pointer"
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold text-white truncate">{b.name}</div>
+                  <div className="text-xs text-gray-500 mt-1 truncate">
+                    {[b.city, b.country].filter(Boolean).join(" · ") || "—"}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
+                      isPublishedBusiness(b)
+                        ? "bg-green-950 border border-green-800 text-green-400"
+                        : "bg-red-950 border border-red-900 text-red-400"
+                    }`}>
+                      {isPublishedBusiness(b) ? "Público" : "Rascunho"}
+                    </span>
+                    {isPaidTier(b.plan) && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-[#C8A96B]/20 border border-[#C8A96B]/40 text-[#C8A96B]">
+                        {isBusinessTier(b.plan) ? "Business" : "Pro"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="shrink-0 px-4 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-xs font-bold rounded-xl transition-colors">
+                  Gerir →
+                </span>
+              </button>
+            ))}
+          </div>
+          <Link
+            href="/onboarding"
+            className="inline-block mt-8 text-xs text-[#C8A96B] hover:text-[#D4BB82] border border-[#C8A96B]/30 hover:border-[#C8A96B]/60 px-4 py-2.5 rounded-xl transition-colors"
+          >
+            + Criar novo negócio
+          </Link>
+        </main>
       </div>
     );
   }
@@ -703,9 +840,10 @@ export default function DashboardPage() {
             >
               ← Voltar ao início
             </Link>
+            {/* A2.5: essential nav must not disappear on mobile (was hidden sm:flex) */}
             <Link
               href="/explorar"
-              className="text-[10px] md:text-xs text-gray-400 hover:text-white transition-colors border border-gray-800 hover:border-gray-600 px-2.5 py-1.5 rounded-lg hidden sm:flex items-center gap-1"
+              className="text-[10px] md:text-xs text-gray-400 hover:text-white transition-colors border border-gray-800 hover:border-gray-600 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
             >
               🔍 Explorar
             </Link>
@@ -714,6 +852,15 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="flex items-center gap-3">
+            {/* A2.5: multi-business — back to the selector */}
+            {businesses.length > 1 && (
+              <button
+                onClick={switchBusiness}
+                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg text-xs md:text-sm hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+              >
+                ⇄ Trocar negócio
+              </button>
+            )}
             <Link
               href={`/vitrine/${business?.slug || ''}`}
               target="_blank"
@@ -830,13 +977,13 @@ export default function DashboardPage() {
                       {business?.published ? "Público" : "Rascunho"}
                     </span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 ${
-                      business?.plan === "pro" || business?.plan === "premium"
+                      isProTier(business?.plan)
                         ? "bg-[#C8A96B]/20 border border-[#C8A96B]/40 text-[#C8A96B]"
-                        : business?.plan === "business"
+                        : isBusinessTier(business?.plan)
                         ? "bg-purple-950 border border-purple-800 text-purple-400"
                         : "bg-gray-800 border border-gray-700 text-gray-400"
                     }`}>
-                      {(business?.plan === "pro" || business?.plan === "premium" || business?.plan === "business") && (
+                      {isPaidTier(business?.plan) && (
                         <Sparkles className="w-2.5 h-2.5" />
                       )}
                       Plano: {business?.plan || "Free"}
@@ -1105,7 +1252,7 @@ export default function DashboardPage() {
             {/* Catalog Editor Card */}
             <div
               onClick={() => {
-                const isPaid = business?.plan === "pro" || business?.plan === "premium" || business?.plan === "business"
+                const isPaid = isPaidTier(business?.plan)
                 if (isPaid) {
                   router.push("/dashboard/catalogo")
                 } else {
@@ -1122,7 +1269,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-500 mt-0.5">Editor de catálogo profissional</p>
                   </div>
                 </div>
-                {!(business?.plan === "pro" || business?.plan === "premium" || business?.plan === "business") && (
+                {!isPaidTier(business?.plan) && (
                   <span className="text-[10px] font-bold text-[#0a0d14] bg-[#c9a96e] px-2 py-0.5 rounded-full">PRO</span>
                 )}
               </div>
@@ -1845,7 +1992,7 @@ export default function DashboardPage() {
 // ─── Vitrine Share Card ────────────────────────────────────────────────────
 function VitrineShareCard({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
-  const vitrineUrl = `https://vitrinepro.pt/vitrine/${slug}`;
+  const vitrineUrl = `${getSiteUrl()}/vitrine/${slug}`;
   const waText = encodeURIComponent(`Visita a minha vitrine profissional: ${vitrineUrl}`);
   const waUrl = `https://wa.me/?text=${waText}`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&bgcolor=0F172A&color=C8A96B&data=${encodeURIComponent(vitrineUrl)}`;
@@ -1975,7 +2122,7 @@ function buildCatalogHtml_DELETED_PLACEHOLDER_DO_NOT_USE(biz: any, products: any
   // PDF generation moved to server-side /api/generate-catalog (Puppeteer)
   return "";
 
-  const baseUrl = "https://vitrinepro.pt";
+  const baseUrl = getSiteUrl();
   const vitrineUrl = `${baseUrl}/vitrine/${biz.slug || ""}`;
   const gFonts = `${prefs.titleFont}:wght@400;700&family=${prefs.bodyFont}:wght@400;600`.replace(/ /g, "+");
   const hours: any[] = Array.isArray(biz.opening_hours) ? biz.opening_hours : [];
@@ -2204,7 +2351,7 @@ function CatalogPdfModal({
   plan: string;
   onClose: () => void;
 }) {
-  const isPremium = plan === "premium" || plan === "pro" || plan === "business";
+  const isPremium = isPaidTier(plan);
   const [prefs, setPrefs] = useState<CatalogPrefs>(() => {
     const saved = business.catalog_settings;
     if (!saved) return DEFAULT_PREFS;
@@ -2480,8 +2627,8 @@ function PlanSection({
   subscriptionCancelAt?: string | null;
   onCancelRequest?: () => void;
 }) {
-  const isPremium = plan === "premium" || plan === "pro";
-  const isBusiness = plan === "business";
+  const isPremium = isProTier(plan);
+  const isBusiness = isBusinessTier(plan);
   const isFree = !isPremium && !isBusiness;
   const isCanceling = Boolean(subscriptionCancelAt);
 
@@ -2634,7 +2781,7 @@ function AnalyticsSection({
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
-  const isPaid = plan === "pro" || plan === "premium" || plan === "business";
+  const isPaid = isPaidTier(plan);
 
   useEffect(() => {
     if (!isPaid) {
@@ -2709,7 +2856,7 @@ function ShortLinkCard({ plan }: { plan: string }) {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const isBusiness = plan === "business";
+  const isBusiness = isBusinessTier(plan);
 
   useEffect(() => {
     if (!isBusiness) {

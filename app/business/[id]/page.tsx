@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { isPaidTier } from "@/lib/plans";
 
 interface Business {
   id: string;
@@ -104,7 +105,7 @@ export default function BusinessPage({ params }: { params: Promise<{ id: string 
             address: data.address || "",
             rating: data.rating_average || 0,
             reviewCount: data.rating_count || 0,
-            premium: data.plan === "pro" || data.plan === "premium",
+            premium: isPaidTier(data.plan),
           });
 
           const { data: reviewData } = await supabase

@@ -91,6 +91,31 @@ export function planHasChatbot(plan: PlanInput | null | undefined): boolean {
   return PLANS[normalizePlan(plan)].chatbot;
 }
 
+/**
+ * A2.5 — Tier helpers. Single source of truth for "is this plan paid /
+ * pro-tier / business-tier" checks. Replaces scattered inline comparisons
+ * like `plan === "pro" || plan === "premium"` across the codebase.
+ *
+ * Canonical tiers: FREE < PRO (€12: pro/premium/gold) < BUSINESS (€29,90).
+ * Legacy aliases ("premium", "gold") are handled by normalizePlan — never
+ * compare raw plan strings in components or API routes.
+ */
+
+/** €12 tier: canonical "pro", legacy "premium"/"gold" included. */
+export function isProTier(plan: PlanInput | null | undefined): boolean {
+  return normalizePlan(plan) === "pro";
+}
+
+/** €29,90 tier. */
+export function isBusinessTier(plan: PlanInput | null | undefined): boolean {
+  return normalizePlan(plan) === "business";
+}
+
+/** Any paid tier — used for "Destaque"/premium badges and paid features. */
+export function isPaidTier(plan: PlanInput | null | undefined): boolean {
+  return isProTier(plan) || isBusinessTier(plan);
+}
+
 /** Stripe Price ID for a checkout plan — env only, no hard-coded live IDs. */
 export function getStripePriceId(plan: PlanId): string | null {
   if (plan === "pro") return process.env.STRIPE_PRICE_PREMIUM || null;

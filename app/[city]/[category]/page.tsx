@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { getBusinessesByCityAndCategory } from "@/lib/business-actions";
+import { isPaidTier } from "@/lib/plans";
+import { getSiteUrl } from "@/lib/site";
 
 interface CityPageProps {
   params: Promise<{ city: string; category: string }>;
@@ -25,7 +27,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
   const count = businesses.length;
   const title = `Melhores ${name} em ${cityName} | VitrinePro`;
   const description = `Procura por ${name.toLowerCase()} em ${cityName}? Encontre ${count} profissional${count !== 1 ? "ais" : ""} e loja${count !== 1 ? "s" : ""} com contactos de WhatsApp directos, moradas e avaliações reais.`;
-  const canonical = `https://vitrinepro.pt/${citySlug}/${categorySlug}`;
+  const canonical = `${getSiteUrl()}/${citySlug}/${categorySlug}`;
 
   return {
     title,
@@ -67,7 +69,7 @@ export default async function CityCategoryPage({ params }: CityPageProps) {
     );
   }
 
-  const siteUrl = "https://vitrinepro.pt";
+  const siteUrl = getSiteUrl();
   const canonicalUrl = `${siteUrl}/${citySlug}/${categorySlug}`;
 
   // Localized Dynamic FAQ Questions & Answers
@@ -239,7 +241,7 @@ export default async function CityCategoryPage({ params }: CityPageProps) {
                           ✓ Verificada
                         </span>
                       )}
-                      {(business.plan === "pro" || business.plan === "premium" || business.plan === "business") && (
+                      {isPaidTier(business.plan) && (
                         <span className="absolute top-3 right-3 px-2.5 py-0.5 bg-[#C8A96B] text-[#0F172A] text-[9px] font-bold rounded uppercase tracking-wider shadow">
                           Premium
                         </span>

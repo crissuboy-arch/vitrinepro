@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "../context/SupabaseAuthContext";
 import { supabase } from "../lib/supabase";
+import { isPaidTier } from "@/lib/plans";
 
 // UI-only gate: hides admin controls in the browser.
 // Real authorization happens server-side (app/api/admin/* checks ADMIN_EMAILS).
@@ -440,7 +441,7 @@ export default function AdminPage() {
     const matchSearch = !search || b.name.toLowerCase().includes(search.toLowerCase());
     if (filter === "published") return b.published && matchSearch;
     if (filter === "unpublished") return !b.published && matchSearch;
-    if (filter === "premium") return (b.plan === "pro" || b.plan === "premium" || b.plan === "business") && matchSearch;
+    if (filter === "premium") return isPaidTier(b.plan) && matchSearch;
     return matchSearch;
   });
 

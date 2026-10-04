@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getSiteUrl } from "@/lib/site";
 import Link from "next/link";
 import { getMarketplaceProducts, getDbCategories } from "@/lib/business-actions";
 import MarketplaceGrid from "../MarketplaceGrid";
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: MarketplacePageProps): Promis
     title,
     description,
     alternates: {
-      canonical: `https://vitrinepro.pt/marketplace/${categorySlug}`,
+      canonical: `${getSiteUrl()}/marketplace/${categorySlug}`,
     },
   };
 }

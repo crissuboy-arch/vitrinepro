@@ -37,6 +37,7 @@ const faqJsonLd = {
 
 // Google Fonts
 import { Playfair_Display, DM_Sans } from "next/font/google";
+import { resolveBusinessCountTarget } from "@/lib/visibility";
 
 // Landing components
 import Navbar from "@/components/landing/Navbar";
@@ -282,12 +283,12 @@ export default function HomePage() {
         router.push("/login?mode=signup");
         return;
       }
-      const { data: existingBusiness } = await supabase
+      const { data: existingRows } = await supabase
         .from("businesses")
         .select("id")
         .eq("user_id", session.user.id)
-        .maybeSingle();
-      router.push(existingBusiness ? "/dashboard" : "/onboarding");
+        .limit(1);
+      router.push(resolveBusinessCountTarget(existingRows?.length ?? 0));
     } catch {
       router.push("/login?mode=signup");
     }
@@ -312,25 +313,25 @@ export default function HomePage() {
       }
 
       console.log("[PLANS] Active session found for user:", session.user.id);
-      const { data: biz, error: bizError } = await supabase
+      const { data: bizRows, error: bizError } = await supabase
         .from("businesses")
         .select("id")
         .eq("user_id", session.user.id)
-        .maybeSingle();
+        .limit(1);
 
       if (bizError) throw bizError;
 
-      if (!biz) {
+      if (!bizRows || bizRows.length === 0) {
         console.log("[PLANS] No business found, redirecting to onboarding with plan:", planId);
         router.push(`/onboarding?plan=${planId}`);
         return;
       }
 
-      console.log("[PLANS] Business found:", biz.id, "Redirecting to Stripe checkout...");
+      console.log("[PLANS] Business found:", bizRows[0].id, "Redirecting to Stripe checkout...");
       const resp = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, businessId: biz.id }),
+        body: JSON.stringify({ planId, businessId: bizRows[0].id }),
       });
       
       if (!resp.ok) {

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import chromium from "@sparticuz/chromium-min";
 import puppeteer from "puppeteer-core";
+import { isPaidTier } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -291,7 +292,8 @@ export async function POST(request: Request) {
   }
 
   const plan = biz.plan || "free";
-  if (plan !== "premium" && plan !== "pro" && plan !== "business") {
+  // A2.5: canonical paid-tier check (legacy aliases "premium"/"gold" included).
+  if (!isPaidTier(plan)) {
     return new Response(JSON.stringify({ error: "Funcionalidade exclusiva para planos Premium e Business." }), { status: 403 });
   }
 

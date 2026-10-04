@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getSiteUrl } from "@/lib/site";
 import Link from "next/link";
 import Image from "next/image";
 import { getProductBySlug } from "@/lib/business-actions";
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     title,
     description,
     alternates: {
-      canonical: `https://vitrinepro.pt/produto/${slug}`,
+      canonical: `${getSiteUrl()}/produto/${slug}`,
     },
   };
 }
@@ -61,7 +62,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   const cleanWhatsapp = whatsappNumber.replace(/\D/g, "");
 
   // Text message for WhatsApp purchase
-  const productUrl = `https://vitrinepro.pt/produto/${slug}`;
+  const productUrl = `${getSiteUrl()}/produto/${slug}`;
   const whatsappText = `Olá! Vi o produto "${product.name}" no VitrinePro e gostaria de mais informações. Está disponível?\n\nLink: ${productUrl}`;
   const whatsappLink = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(whatsappText)}`;
 

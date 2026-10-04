@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { getSiteUrl } from "@/lib/site";
 import { supabase } from "@/app/lib/supabase";
 
 interface SocialBarProps {
@@ -46,7 +47,7 @@ export default function SocialBar({
   const vitrineUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/vitrine/${businessSlug}`
-      : `https://vitrinepro.pt/vitrine/${businessSlug}`;
+      : `${getSiteUrl()}/vitrine/${businessSlug}`;
 
   // Fetch fresh counts + user status on mount
   useEffect(() => {

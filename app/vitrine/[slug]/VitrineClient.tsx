@@ -10,6 +10,9 @@ import dynamic from "next/dynamic";
 const BusinessChatWidget = dynamic(() => import("../../components/BusinessChatWidget"), { ssr: false });
 import AutomationPopup from "../../components/AutomationPopup";
 import { getCommunityByCountry } from "@/lib/communities";
+import { isPublishedBusiness } from "@/lib/visibility";
+import { isPaidTier, planHasChatbot } from "@/lib/plans";
+import { getSiteUrl } from "@/lib/site";
 import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib/analytics";
 import { pixelContact } from "@/app/lib/meta-pixel";
 import SocialBar from "../../components/SocialBar";
@@ -517,7 +520,9 @@ export default function VitrineClient({ slug }: { slug: string }) {
         }
 
         if (data) {
-          const isPublished = data.published || data.is_published;
+          // A2.5 canonical rule: `published` is the single source of truth
+          // for public visibility (legacy `is_published` no longer consulted).
+          const isPublished = isPublishedBusiness(data);
           const isOwner = loggedInUser && loggedInUser.id === data.user_id;
 
           if (!isPublished && !isOwner) {
@@ -557,7 +562,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
             address: data.address || "",
             rating: data.rating_average || 5.0,
             reviewCount: testimonialsRes.data?.length || 0,
-            premium: data.plan === "pro" || data.plan === "premium" || data.plan === "gold" || data.plan === "business",
+            premium: isPaidTier(data.plan),
             plan: data.plan || "free",
             slug: data.slug,
             opening_hours: (data.opening_hours as unknown as OpeningHour[]) || [],
@@ -638,8 +643,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col font-sans select-none">
       
-      {/* Draft Banner for Owner Preview */}
-      {business && !(business.published || business.is_published) && (
+      {/* Draft Banner for Owner Preview — A2.5: canonical `published` rule */}
+      {business && !isPublishedBusiness(business) && (
         <div className="w-full bg-[#78350f] border-b border-[#92400e] text-[#fef3c7] px-4 py-3 text-center text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 select-text z-50">
           <span>⚠️</span>
           <span>
@@ -1372,7 +1377,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
             <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 object-contain bg-transparent" />
           </Link>
           <p className="text-slate-400">
-            <a href={`https://vitrinepro.pt?ref=${business.slug}`} 
+            <a href={`${getSiteUrl()}?ref=${business.slug}`} 
                target="_blank"
                rel="noopener noreferrer"
                style={{ color: "#C8A96B", textDecoration: "none", fontSize: "13px" }}>
@@ -1383,8 +1388,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
         </div>
       </footer>
 
-      {/* Floating AI Chat Widget - Only appears for Pro/Business plan */}
-      {(business.plan === "pro" || business.plan === "business" || business.plan === "premium") && (
+      {/* Floating AI Chat Widget - Only appears for paid plans (A2.5 canonical check) */}
+      {planHasChatbot(business.plan) && (
         <BusinessChatWidget business={business} products={products} />
       )}
 

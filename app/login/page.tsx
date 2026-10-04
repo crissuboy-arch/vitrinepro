@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabase";
 import { Eye, EyeOff } from "lucide-react";
 import { trackSignUp } from "@/app/lib/analytics";
 import { pixelLead, pixelCompleteRegistration } from "@/app/lib/meta-pixel";
+import { resolveBusinessCountTarget } from "@/lib/visibility";
 
 function getReadableError(message: string): string {
   if (!message) return "Ocorreu um erro. Tenta novamente.";
@@ -125,9 +126,10 @@ function LoginForm() {
 
         if (session?.user) {
           pixelCompleteRegistration();
-          const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).maybeSingle();
+          const { data: bizRows } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).limit(1);
+          const hasBusiness = (bizRows?.length ?? 0) > 0;
 
-          let target = nextPath || (biz ? "/dashboard" : "/onboarding");
+          let target = nextPath || resolveBusinessCountTarget(hasBusiness ? 1 : 0);
           const params = new URLSearchParams();
           if (plan) params.set("plan", plan);
 
@@ -144,9 +146,10 @@ function LoginForm() {
         if (loginError) throw loginError;
 
         if (session?.user) {
-          const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).maybeSingle();
+          const { data: bizRows } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).limit(1);
+          const hasBusiness = (bizRows?.length ?? 0) > 0;
 
-          let target = nextPath || (biz ? "/dashboard" : "/onboarding");
+          let target = nextPath || resolveBusinessCountTarget(hasBusiness ? 1 : 0);
           const params = new URLSearchParams();
           if (plan) params.set("plan", plan);
 
