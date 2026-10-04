@@ -281,7 +281,7 @@ export default function PoliticaPrivacidadePage() {
           <section className="space-y-3">
             <h2 className="text-lg font-display font-semibold text-[#0F172A]">12. Alterações a Esta Política</h2>
             <p className="text-sm text-[#1F2937] leading-relaxed">
-              Podemos atualizar esta política periodicamente. Quando o fizermos, atualizaremos a data de "última atualização" no topo desta página. Alterações materiais serão comunicadas por email com pelo menos 30 dias de antecedência.
+              Podemos atualizar esta política periodicamente. Quando o fizermos, atualizaremos a data de &quot;última atualização&quot; no topo desta página. Alterações materiais serão comunicadas por email com pelo menos 30 dias de antecedência.
             </p>
           </section>
 

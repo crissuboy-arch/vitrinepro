@@ -52,7 +52,24 @@ export async function POST(request: Request) {
   const supabase = getSupabaseAdmin();
 
   try {
-    log(`[STRIPE WEBHOOK] Event: ${event.type}`);
+    log(`[STRIPE WEBHOOK] Event: ${event.type} (${event.id})`);
+
+    // A2.6 — Idempotency: Stripe may redeliver events. Skip already-seen ids.
+    // (If the stripe_events table doesn't exist yet, log and continue —
+    //  the migration 20261004000004 creates it.)
+    try {
+      const { error: idemError } = await supabase
+        .from("stripe_events")
+        .insert({ event_id: event.id, type: event.type });
+      if (idemError && idemError.code === "23505") {
+        log(`[STRIPE WEBHOOK] Duplicate event ${event.id} — skipping`);
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+      if (idemError) throw idemError;
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("duplicate")) throw e;
+      console.warn("[STRIPE WEBHOOK] Idempotency check unavailable:", e instanceof Error ? e.message : e);
+    }
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
@@ -76,6 +93,7 @@ export async function POST(request: Request) {
           plan: planId,
           stripe_subscription_id: subscriptionId,
           stripe_customer_id: customerId,
+          stripe_subscription_status: "active",
           subscription_cancel_at: null, // clear any pending cancellation on new checkout
         })
         .eq("id", businessId);
@@ -101,7 +119,7 @@ export async function POST(request: Request) {
           log(`[STRIPE WEBHOOK] Renewal: updating plan '${planId}' for business ${businessId}`);
           const { error } = await supabase
             .from("businesses")
-            .update({ plan: planId })
+            .update({ plan: planId, stripe_subscription_status: "active" })
             .eq("id", businessId);
 
           if (error) {
@@ -109,11 +127,49 @@ export async function POST(request: Request) {
           }
         }
       }
+    } else if (event.type === "invoice.payment_failed") {
+      // A2.6 — SAFE behavior: a failed payment does NOT immediately cancel
+      // the plan (transient failures: expired card retry, SCA, etc.).
+      // Record the Stripe status so the dashboard/support can follow up;
+      // the plan is only downgraded when Stripe itself deletes the
+      // subscription (customer.subscription.deleted).
+      const invoice = event.data.object;
+      const subscriptionId = typeof invoice.subscription === "string"
+        ? invoice.subscription
+        : invoice.subscription?.id ?? null;
+
+      if (subscriptionId) {
+        let businessId: string | null = null;
+        try {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          businessId = subscription.metadata?.businessId || null;
+        } catch (e) {
+          console.error("[STRIPE WEBHOOK] payment_failed: sub retrieve falhou:", e instanceof Error ? e.message : e);
+        }
+
+        const { error } = await supabase
+          .from("businesses")
+          .update({ stripe_subscription_status: "past_due" })
+          .eq(businessId ? "id" : "stripe_subscription_id", businessId || subscriptionId);
+
+        if (error) {
+          console.error("[STRIPE WEBHOOK] payment_failed update error:", error.message);
+        } else {
+          log(`[STRIPE WEBHOOK] payment_failed registado (past_due) para business ${businessId || subscriptionId} — plano mantido`);
+        }
+      } else {
+        console.warn("[STRIPE WEBHOOK] invoice.payment_failed sem subscription");
+      }
     } else if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object;
       const businessId = subscription.metadata?.businessId;
 
       if (businessId) {
+        // Mirror Stripe's subscription status (A2.6)
+        await supabase
+          .from("businesses")
+          .update({ stripe_subscription_status: subscription.status || null })
+          .eq("id", businessId);
         if (subscription.cancel_at_period_end && subscription.cancel_at) {
           const cancelAt = new Date(subscription.cancel_at * 1000).toISOString();
           log(`[STRIPE WEBHOOK] Subscription cancel scheduled for business ${businessId} at ${cancelAt}`);
@@ -139,7 +195,7 @@ export async function POST(request: Request) {
         log(`[STRIPE WEBHOOK] Subscription deleted for business ${businessId} — downgrading to free`);
         await supabase
           .from("businesses")
-          .update({ plan: "free", stripe_subscription_id: null, subscription_cancel_at: null })
+          .update({ plan: "free", stripe_subscription_id: null, subscription_cancel_at: null, stripe_subscription_status: "canceled" })
           .eq("id", businessId);
       }
     }

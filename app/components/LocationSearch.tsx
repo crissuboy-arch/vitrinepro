@@ -26,32 +26,7 @@ export default function LocationSearch({
 }: LocationSearchProps) {
   const [searchMode, setSearchMode] = useState<"city" | "nearby">("city");
 
-  const handleCitySearch = async (city: string) => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          city
-        )}&limit=1`,
-        {
-          headers: { "User-Agent": "VitrinePro/1.0" },
-        }
-      );
-      const data = await response.json();
-      if (data && data.length > 0) {
-        onChange({
-          address: data[0].display_name.split(",")[0],
-          city: data[0].address.city || data[0].address.town || data[0].name,
-          country: data[0].address.country || "",
-          postalCode: data[0].address.postcode || "",
-          lat: parseFloat(data[0].lat),
-          lng: parseFloat(data[0].lon),
-        });
-      }
-    } catch (error) {
-      console.error("City search error:", error);
-    }
-  };
-
+  // A2 lint: removed dead handleCitySearch (unused); handleNearby is used below.
   const handleNearby = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -71,6 +46,7 @@ export default function LocationSearch({
       );
     }
   };
+
 
   return (
     <div className="space-y-4">

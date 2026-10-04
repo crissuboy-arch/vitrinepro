@@ -122,7 +122,7 @@ export default function TermosDeServicoPag() {
               <p><strong>5.2 Sem reembolso por período parcial:</strong> Salvo nos casos previstos no ponto 5.3, não são emitidos reembolsos por períodos de subscrição não utilizados após o cancelamento voluntário.</p>
               <p><strong>5.3 Exceções:</strong> Reembolso integral nos primeiros 14 dias (direito de resolução) ou em caso de falha técnica grave imputável à VitrinePro que impeça a utilização do serviço por mais de 72 horas consecutivas.</p>
               <p><strong>5.4 Cancelamento pela VitrinePro:</strong> A VitrinePro pode suspender ou encerrar a conta, com aviso prévio de 30 dias, em caso de violação dos presentes termos. Em caso de violação grave, a suspensão pode ser imediata. Nesses casos, é emitido reembolso proporcional ao período não utilizado.</p>
-              <p><strong>5.5 Para exercer o direito de resolução</strong>, envie email para <a href="mailto:suporte@vitrinepro.pt" className="text-[#C8A96B] hover:underline">suporte@vitrinepro.pt</a> com o assunto "Resolução de Contrato" indicando o email da conta.</p>
+              <p><strong>5.5 Para exercer o direito de resolução</strong>, envie email para <a href="mailto:suporte@vitrinepro.pt" className="text-[#C8A96B] hover:underline">suporte@vitrinepro.pt</a> com o assunto &quot;Resolução de Contrato&quot; indicando o email da conta.</p>
             </div>
           </section>
 
@@ -173,7 +173,7 @@ export default function TermosDeServicoPag() {
           <section className="space-y-3">
             <h2 className="text-lg font-display font-semibold text-[#0F172A]">9. Limitação de Responsabilidade</h2>
             <div className="space-y-2 text-sm text-[#1F2937]">
-              <p><strong>9.1</strong> A VitrinePro fornece a plataforma "tal como está" (<em>as is</em>) e não garante que o serviço satisfaça todos os requisitos específicos do utilizador.</p>
+              <p><strong>9.1</strong> A VitrinePro fornece a plataforma &quot;tal como está&quot; (<em>as is</em>) e não garante que o serviço satisfaça todos os requisitos específicos do utilizador.</p>
               <p><strong>9.2</strong> A VitrinePro não se responsabiliza por: (i) perda de dados causada por utilização incorreta da plataforma; (ii) lucros cessantes; (iii) danos indiretos ou consequentes.</p>
               <p><strong>9.3</strong> A responsabilidade total da VitrinePro perante qualquer utilizador, em qualquer período de 12 meses, não excederá o valor pago pelo utilizador durante esse período.</p>
               <p><strong>9.4</strong> Estas limitações não se aplicam a casos de dolo ou negligência grave da VitrinePro, nem a direitos irrenunciáveis ao abrigo da legislação de proteção do consumidor aplicável.</p>

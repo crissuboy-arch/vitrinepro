@@ -2797,7 +2797,7 @@ function ShortLinkCard({ plan }: { plan: string }) {
               Cria um redirecionamento amigável e fácil de lembrar para a tua vitrina: <span className="text-[#C8A96B]">vitrinepro.pt/v/o-teu-codigo</span>.
             </p>
             <div className="inline-flex items-center gap-1.5 bg-purple-950/40 border border-purple-850 px-3 py-1.5 rounded-lg mt-2 text-[10px] font-bold text-purple-300">
-              🔒 Disponível no plano Business €29/mês
+              🔒 Disponível no plano Business €29,90/mês
             </div>
           </div>
         </div>

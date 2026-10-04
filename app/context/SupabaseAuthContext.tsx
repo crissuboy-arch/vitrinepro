@@ -188,7 +188,7 @@ const defaultAuthContext = {
   session: null,
   profile: null,
   loading: true,
-  signInWithGoogle: async (redirectTo?: string) => {},
+  signInWithGoogle: async () => {},
   signInWithEmail: async () => {},
   signUpWithEmail: async () => {},
   signOut: async () => {},

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bot, Send, X, Sparkles, MessageSquare } from "lucide-react";
+import { Send, X, Sparkles, MessageSquare } from "lucide-react";
 
 const INITIAL_QUESTIONS = [
   {
@@ -12,7 +12,7 @@ const INITIAL_QUESTIONS = [
   {
     question: "Quanto custa?",
     answer:
-      "Temos três planos flexíveis:\n- **Grátis**: €0/mês\n- **Pro**: €12/mês\n- **Business**: €29/mês\n\nPode começar gratuitamente e fazer upgrade a qualquer momento no seu painel.",
+      "Temos três planos flexíveis:\n- **Grátis**: €0/mês\n- **Pro**: €12/mês\n- **Business**: €29,90/mês\n\nPode começar gratuitamente e fazer upgrade a qualquer momento no seu painel.",
   },
   {
     question: "Como cadastrar meu negócio?",
@@ -74,15 +74,8 @@ export default function ChatWidget() {
         body: JSON.stringify({
           message: userMessageText,
           history: messages,
-          business: {
-            name: "VitrinePro",
-            whatsApp: "351912345678",
-            phone: "não disponível",
-            email: "suporte@vitrinepro.pt",
-            address: "Lisboa, Portugal",
-            opening_hours: [],
-            products: [],
-          },
+          // A2.1: platform assistant context — resolved server-side.
+          context: "platform",
         }),
       });
 
@@ -91,21 +84,38 @@ export default function ChatWidget() {
       }
 
       const data = await response.json();
+
+      if (!response.ok) {
+        // Server returns a user-friendly `reply` also on 4xx (rate limit,
+        // validation) — show it instead of falling back to local keywords.
+        throw new Error(data.reply || "Falha ao comunicar com o servidor.");
+      }
+
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: data.reply || "Não consegui obter uma resposta." },
       ]);
     } catch (error) {
       console.error("[WIDGET CHAT] Error sending message:", error);
+      // A 4xx from /api/chat already carries a user-friendly `reply`
+      // (rate limit, validation) — show it directly, skip keyword fallback.
+      const serverReply =
+        error instanceof Error && error.message !== "Falha ao comunicar com o servidor."
+          ? error.message
+          : null;
+      if (serverReply) {
+        setMessages((prev) => [...prev, { role: "assistant", content: serverReply }]);
+      } else {
       // Keyword fallback local matching if the API route itself has failed/offline
       const cleanMsg = userMessageText.toLowerCase();
+      // A2.8: prices from the central source of truth (€0 / €12 / €29,90).
       let reply = "";
       if (cleanMsg.includes("como funciona") || cleanMsg.includes("o que é") || cleanMsg.includes("plataforma")) {
         reply = "A VitrinePro é uma plataforma e diretório que permite a negócios e profissionais locais em Portugal criarem um mini-site profissional em menos de 5 minutos, ajudando-os a atrair mais clientes sem complicações técnicas.";
       } else if (cleanMsg.includes("quanto custa") || cleanMsg.includes("preço") || cleanMsg.includes("valor") || cleanMsg.includes("plano") || cleanMsg.includes("custo")) {
-        reply = "Temos três planos disponíveis:\n\n1. **Grátis**: €0/mês - Vitrine básica, até 3 produtos, links e presença no diretório.\n2. **Pro**: €12/mês - Produtos ilimitados, Chatbot IA 24h, domínio próprio e otimização SEO.\n3. **Business**: €29/mês - Loja online com pagamentos integrados.\n\nPode começar grátis e fazer upgrade quando quiser!";
+        reply = "Temos três planos disponíveis:\n\n1. **Grátis**: €0/mês - Vitrine básica, até 3 produtos, links e presença no diretório.\n2. **Pro**: €12/mês - Produtos ilimitados, Chatbot IA 24h, domínio próprio e otimização SEO.\n3. **Business**: €29,90/mês - Loja online com pagamentos integrados.\n\nPode começar grátis e fazer upgrade quando quiser!";
       } else if (cleanMsg.includes("diferença") || cleanMsg.includes("diferenca") || cleanMsg.includes("comparar")) {
-        reply = "O plano Grátis (€0) oferece o básico com 3 produtos. O plano Pro (€12) traz produtos ilimitados, Chatbot IA 24h, domínio próprio e destaque nas buscas. O plano Business (€29) adiciona loja online com pagamentos e destaque máximo no topo.";
+        reply = "O plano Grátis (€0) oferece o básico com 3 produtos. O plano Pro (€12) traz produtos ilimitados, Chatbot IA 24h, domínio próprio e destaque nas buscas. O plano Business (€29,90) adiciona loja online com pagamentos e destaque máximo no topo.";
       } else if (cleanMsg.includes("cadastrar") || cleanMsg.includes("criar") || cleanMsg.includes("começar") || cleanMsg.includes("registo") || cleanMsg.includes("registrar")) {
         reply = "Para começar, basta clicar no botão 'Criar minha vitrine grátis' no topo da página. O processo leva menos de 5 minutos: preencha as informações básicas do seu negócio, faça upload de fotos e publique!";
       } else if (cleanMsg.includes("diretório") || cleanMsg.includes("diretorio") || cleanMsg.includes("explorar") || cleanMsg.includes("aparecer")) {
@@ -128,6 +138,7 @@ export default function ChatWidget() {
         ...prev,
         { role: "assistant", content: reply },
       ]);
+      } // end keyword-fallback branch
     } finally {
       setLoading(false);
     }

@@ -14,7 +14,8 @@ const DAY_MAP: Record<string, string> = {
   domingo: "Su",
 };
 
-function buildOpeningHours(hours: any[]): string[] {
+interface OpeningHourInput { day?: string; open?: string; close?: string; closed?: boolean }
+function buildOpeningHours(hours: OpeningHourInput[]): string[] {
   if (!Array.isArray(hours)) return [];
   return hours
     .filter((h) => !h.closed && h.open && h.close)
@@ -25,7 +26,15 @@ function buildOpeningHours(hours: any[]): string[] {
     .filter(Boolean) as string[];
 }
 
-function buildLocalBusinessSchema(data: any, slug: string): Record<string, unknown> {
+interface VitrineSchemaData {
+  name?: string; description?: string; type?: string; slug?: string;
+  phone?: string; whatsapp?: string; city?: string; country?: string;
+  instagram?: string; opening_hours?: OpeningHourInput[];
+  rating_average?: number | null; rating_count?: number | null;
+  email?: string; logo_url?: string | null; cover_url?: string | null;
+  address?: string;
+}
+function buildLocalBusinessSchema(data: VitrineSchemaData, slug: string): Record<string, unknown> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://vitrinepro.pt";
 
   const schema: Record<string, unknown> = {

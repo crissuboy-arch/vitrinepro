@@ -8,6 +8,8 @@ import Image from "next/image";
 import { useAuth } from "../context/SupabaseAuthContext";
 import { supabase } from "../lib/supabase";
 
+// UI-only gate: hides admin controls in the browser.
+// Real authorization happens server-side (app/api/admin/* checks ADMIN_EMAILS).
 const ADMIN_EMAILS = ["cris.suboy@gmail.com"];
 
 interface Business {
@@ -163,6 +165,14 @@ export default function AdminPage() {
   const loadData = async () => {
     setLoading(true);
     try {
+      // A2.14: users are PII — fetched via the server-side admin API
+      // (service role + ADMIN_EMAILS check), never with the anon key.
+      const usersPromise = fetch("/api/admin/users?limit=200")
+        .then((r) => (r.ok ? r.json() : { users: [] }))
+        .catch(() => ({ users: [] }));
+      const leadsPromise = fetch("/api/admin/leads?limit=500")
+        .then((r) => (r.ok ? r.json() : { leads: [] }))
+        .catch(() => ({ leads: [] }));
       const [bizRes, reviewRes, catRes, citiesRes, usersRes, leadsRes] = await Promise.all([
         supabase
           .from("businesses")
@@ -179,24 +189,16 @@ export default function AdminPage() {
           .select("*")
           .order("order_index", { ascending: true })
           .order("name", { ascending: true }),
-        supabase
-          .from("profiles")
-          .select("id, email, display_name, plan, created_at")
-          .order("created_at", { ascending: false })
-          .limit(200),
-        supabase
-          .from("leads")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(500),
+        usersPromise,
+        leadsPromise,
       ]);
 
       const bizList: Business[] = bizRes.data || [];
       setBusinesses(bizList);
       setCategories(catRes.data || []);
       setCities(citiesRes.data || []);
-      setUsers(usersRes.data || []);
-      setLeads(leadsRes.data || []);
+      setUsers((usersRes as { users?: UserProfile[] }).users || []);
+      setLeads((leadsRes as { leads?: Lead[] }).leads || []);
 
       const reviews = reviewRes.data || [];
       setStats({

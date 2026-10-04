@@ -2,7 +2,7 @@
 
 import Script from "next/script";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { CONSENT_EVENT } from "./GoogleAnalytics";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
@@ -20,9 +20,17 @@ function readMarketing(): boolean {
 
 function setupFbqQueue() {
   if (window.fbq) return;
-  const fbq: any = function (...args: any[]) {
-    fbq.callMethod ? fbq.callMethod(...args) : fbq.queue.push(args);
+  type FbqFn = ((...args: unknown[]) => void) & {
+    callMethod?: (...args: unknown[]) => void;
+    queue: unknown[][];
+    push: (...args: unknown[]) => void;
+    loaded?: boolean;
+    version?: string;
   };
+  const fbq = (function (...args: unknown[]) {
+    if (fbq.callMethod) fbq.callMethod(...args);
+    else fbq.queue.push(args);
+  }) as FbqFn;
   window.fbq = fbq;
   if (!window._fbq) window._fbq = fbq;
   fbq.push = fbq;
@@ -34,7 +42,7 @@ function setupFbqQueue() {
 function PixelTracker() {
   const pathname = usePathname();
   const [enabled, setEnabled] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const initializedRef = useRef(false);
 
   // Listen for consent changes (same-tab custom event + cross-tab storage)
   useEffect(() => {
@@ -48,22 +56,16 @@ function PixelTracker() {
     };
   }, []);
 
-  // Initialize pixel + first PageView when marketing consent is granted
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Initialize pixel once consent is granted, then track every navigation.
   useEffect(() => {
     if (!enabled || !PIXEL_ID) return;
-    setupFbqQueue();
-    window.fbq?.("init", PIXEL_ID);
+    if (!initializedRef.current) {
+      setupFbqQueue();
+      window.fbq?.("init", PIXEL_ID);
+      initializedRef.current = true;
+    }
     window.fbq?.("track", "PageView");
-    setInitialized(true);
-  }, [enabled]);
-
-  // Track subsequent SPA navigations
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!initialized || !window.fbq) return;
-    window.fbq("track", "PageView");
-  }, [pathname]);
+  }, [enabled, pathname]);
 
   if (!enabled || !PIXEL_ID) return null;
 

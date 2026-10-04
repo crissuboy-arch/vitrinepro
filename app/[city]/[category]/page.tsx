@@ -132,11 +132,16 @@ export default async function CityCategoryPage({ params }: CityPageProps) {
           "addressLocality": b.city || city.name,
           "addressCountry": b.country || "PT"
         },
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": b.rating_average || 5.0,
-          "reviewCount": b.rating_count || 1
-        }
+        // A2.10: aggregateRating only with real review data — never invented.
+        ...(b.rating_count > 0 && b.rating_average > 0
+          ? {
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": b.rating_average,
+                "reviewCount": b.rating_count
+              }
+            }
+          : {})
       }
     }))
   };
@@ -265,11 +270,18 @@ export default async function CityCategoryPage({ params }: CityPageProps) {
                   </div>
 
                   <div className="px-6 pb-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs mt-4">
-                    <div className="flex items-center gap-1 text-[#C8A96B]">
-                      <span>★</span>
-                      <span className="font-bold text-[#0f172a]">{business.rating_average?.toFixed(1) || "5.0"}</span>
-                      <span className="text-slate-400">({business.rating_count || 1})</span>
-                    </div>
+                    {/* A2.10: rating shown only with real review data — never invented. */}
+                    {business.rating_count > 0 && business.rating_average > 0 ? (
+                      <div className="flex items-center gap-1 text-[#C8A96B]">
+                        <span>★</span>
+                        <span className="font-bold text-[#0f172a]">{business.rating_average.toFixed(1)}</span>
+                        <span className="text-slate-400">({business.rating_count})</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-slate-400">
+                        <span>Sem avaliações ainda</span>
+                      </div>
+                    )}
                     <span className="text-[#C8A96B] font-bold group-hover:underline">
                       Ver {business.type === "loja" ? "Loja" : "Vitrine"} →
                     </span>

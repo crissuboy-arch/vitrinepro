@@ -85,11 +85,12 @@ export async function POST(request: Request) {
 
     console.log(`[STRIPE CANCEL] Business ${businessId} — cancels at ${cancelAt}`);
     return NextResponse.json({ success: true, immediate: false, cancel_at: cancelAt });
-  } catch (err: any) {
-    console.error("[STRIPE CANCEL]", err);
+  } catch (err: unknown) {
+    console.error("[STRIPE CANCEL]", err instanceof Error ? err.message : err);
 
     // Subscription no longer exists in Stripe — just downgrade
-    if (err.statusCode === 404 || err.code === "resource_missing") {
+    const stripeErr = err as { statusCode?: number; code?: string };
+    if (stripeErr.statusCode === 404 || stripeErr.code === "resource_missing") {
       await supabase
         .from("businesses")
         .update({ plan: "free", stripe_subscription_id: null, subscription_cancel_at: null })

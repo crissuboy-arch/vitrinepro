@@ -89,7 +89,7 @@ export const TestimonialsColumn = (props: {
                 }}
               >
                 <p style={{ color: "#c9b99a", fontSize: "13px", lineHeight: "1.7", fontStyle: "italic" }}>
-                  "{text}"
+                  &quot;{text}&quot;
                 </p>
                 <div className="flex items-center gap-3 mt-4">
                   <img

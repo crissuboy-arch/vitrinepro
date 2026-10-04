@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, Send, X, Bot, Sparkles } from "lucide-react";
+import { MessageSquare, Send, X, Sparkles } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -25,6 +25,8 @@ interface Product {
 
 interface BusinessChatWidgetProps {
   business: {
+    id?: string;
+    slug?: string;
     name: string;
     whatsApp?: string;
     whatsapp?: string;
@@ -36,7 +38,7 @@ interface BusinessChatWidgetProps {
   products: Product[];
 }
 
-export default function BusinessChatWidget({ business, products }: BusinessChatWidgetProps) {
+export default function BusinessChatWidget({ business }: BusinessChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   
   // Directly initialize messages to avoid calling setState synchronously inside an effect
@@ -88,24 +90,21 @@ export default function BusinessChatWidget({ business, products }: BusinessChatW
         body: JSON.stringify({
           message: userMessageText,
           history: messages, // Send context history
-          business: {
-            name: business.name,
-            whatsApp: business.whatsApp,
-            phone: business.phone,
-            email: business.email,
-            address: business.address,
-            opening_hours: business.opening_hours,
-            products: products,
-          },
+          // A2.1: only identifiers are sent. Business context (name,
+          // contacts, products, plan) is resolved server-side from Supabase.
+          businessId: business.id,
+          businessSlug: business.slug,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Falha ao comunicar com o servidor.");
+        // Server returns a user-friendly `reply` also on 4xx (rate limit,
+        // entitlement, validation) — show it instead of a generic error.
+        throw new Error(data.reply || "Falha ao comunicar com o servidor.");
       }
 
-      const data = await response.json();
-      
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: data.reply || "Não consegui obter uma resposta." },
@@ -116,7 +115,10 @@ export default function BusinessChatWidget({ business, products }: BusinessChatW
         ...prev,
         {
           role: "assistant",
-          content: "Posso te orientar melhor pelo WhatsApp. Queres que eu te encaminhe?",
+          content:
+            error instanceof Error && error.message !== "Falha ao comunicar com o servidor."
+              ? error.message
+              : "Posso te orientar melhor pelo WhatsApp. Queres que eu te encaminhe?",
         },
       ]);
     } finally {

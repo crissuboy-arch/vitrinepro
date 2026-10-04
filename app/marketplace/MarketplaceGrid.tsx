@@ -8,8 +8,22 @@ import { trackMarketplaceView } from "@/app/lib/analytics";
 
 const PAGE_SIZE = 24;
 
+interface MarketplaceProduct {
+  id: string;
+  slug?: string | null;
+  name?: string;
+  type?: string;
+  image_url?: string | null;
+  price?: number | string | null;
+  description?: string | null;
+  businesses?: {
+    name?: string; slug?: string; city?: string | null;
+    is_verified_store?: boolean | null;
+  } | null;
+}
+
 interface MarketplaceGridProps {
-  initialProducts: any[];
+  initialProducts: MarketplaceProduct[];
   initialHasMore: boolean;
   categorySlug: string;
 }
@@ -47,7 +61,7 @@ export default function MarketplaceGrid({
   initialHasMore,
   categorySlug,
 }: MarketplaceGridProps) {
-  const [products, setProducts] = useState<any[]>(initialProducts);
+  const [products, setProducts] = useState<MarketplaceProduct[]>(initialProducts);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loading, setLoading] = useState(false);
 
@@ -109,7 +123,7 @@ export default function MarketplaceGrid({
                   {prod.image_url ? (
                     <Image
                       src={prod.image_url}
-                      alt={prod.name}
+                      alt={prod.name || "Produto"}
                       fill
                       className="object-cover group-hover:scale-102 transition-transform duration-500"
                     />
@@ -127,9 +141,9 @@ export default function MarketplaceGrid({
                       🛍️ Físico
                     </span>
                   )}
-                  {prod.price !== null && (
+                  {prod.price !== null && prod.price !== undefined && (
                     <span className="absolute bottom-3 right-3 px-2.5 py-1 bg-[#C8A96B] text-[#0F172A] text-xs font-bold rounded-lg shadow-lg">
-                      €{prod.price.toFixed(2)}
+                      €{Number(prod.price).toFixed(2)}
                     </span>
                   )}
                 </div>

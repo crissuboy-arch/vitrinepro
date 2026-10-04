@@ -3,6 +3,18 @@ import { createClient } from '@supabase/supabase-js'
 
 export const maxDuration = 60
 
+interface PdfPage {
+  setViewport: (opts: Record<string, unknown>) => Promise<void>
+  setContent: (html: string, opts: Record<string, unknown>) => Promise<void>
+  evaluate: (fn: () => Promise<void> | void) => Promise<unknown>
+  pdf: (opts: Record<string, unknown>) => Promise<Uint8Array>
+}
+
+interface PdfBrowser {
+  newPage: () => Promise<PdfPage>
+  close: () => Promise<void>
+}
+
 // M12: step tracers only run outside production so we don't flood Vercel logs
 // (and leak catalog IDs/names) on every export. Real failures still use console.error.
 const isProd = process.env.NODE_ENV === 'production'
@@ -88,17 +100,17 @@ export async function POST(req: NextRequest) {
 
     // STEP 4 - Load Chromium
     log('Step 4: Loading Chromium...')
-    let chromium: any
-    let puppeteer: any
+    let chromium: { args: string[]; executablePath: (input: string) => Promise<string> }
+    let puppeteer: { launch: (opts: Record<string, unknown>) => Promise<PdfBrowser> }
 
     try {
-      // .default: with CJS require, the @sparticuz/chromium-min class lives on
-      // `.default` (without it, chromium.executablePath/args are undefined → 500).
-      chromium = require('@sparticuz/chromium-min').default
-      puppeteer = require('puppeteer-core')
+      // .default: the @sparticuz/chromium-min class lives on `.default`.
+      const chromiumMod = (await import('@sparticuz/chromium-min')) as unknown as Record<string, unknown>
+      chromium = (chromiumMod.default ?? chromiumMod) as typeof chromium
+      puppeteer = (await import('puppeteer-core')) as unknown as typeof puppeteer
       log('Chromium loaded OK')
-    } catch (e: any) {
-      console.error('[CATALOG EXPORT] Chromium load error:', e.message)
+    } catch (e: unknown) {
+      console.error('[CATALOG EXPORT] Chromium load error:', e instanceof Error ? e.message : e)
       return NextResponse.json({ error: 'Falha ao gerar o PDF.' }, { status: 500 })
     }
 
@@ -110,14 +122,14 @@ export async function POST(req: NextRequest) {
         'https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.x64.tar'
       )
       log('Executable path:', executablePath)
-    } catch (e: any) {
-      console.error('[CATALOG EXPORT] executablePath error:', e.message)
+    } catch (e: unknown) {
+      console.error('[CATALOG EXPORT] executablePath error:', e instanceof Error ? e.message : e)
       return NextResponse.json({ error: 'Falha ao gerar o PDF.' }, { status: 500 })
     }
 
     // STEP 6 - Launch browser
     log('Step 6: Launching browser...')
-    let browser: any
+    let browser: PdfBrowser
     try {
       browser = await puppeteer.launch({
         args: chromium.args,
@@ -126,8 +138,8 @@ export async function POST(req: NextRequest) {
         headless: 'shell',
       })
       log('Browser launched OK')
-    } catch (e: any) {
-      console.error('[CATALOG EXPORT] Browser launch error:', e.message)
+    } catch (e: unknown) {
+      console.error('[CATALOG EXPORT] Browser launch error:', e instanceof Error ? e.message : e)
       return NextResponse.json({ error: 'Falha ao gerar o PDF.' }, { status: 500 })
     }
 
@@ -154,7 +166,9 @@ export async function POST(req: NextRequest) {
     const fundoClaro = isLightColor(fundoProduto)
     const textoTitulo = fundoClaro ? '#15110c' : '#f5f0e8'
     const textoCorpo = fundoClaro ? '#4a4a4a' : 'rgba(245,240,232,0.72)'
-    const appUrl = process.env.NEXT_PUBLIC_CATALOG_URL || 'https://vitrine.vitriodigital.com'
+    // A2.9: canonical domain — never the legacy vitriodigital fallback.
+    const { getSiteUrl } = await import("@/lib/site");
+    const appUrl = process.env.NEXT_PUBLIC_CATALOG_URL || getSiteUrl();
     const telefone = capa.telefone || business?.phone || business?.whatsapp || ''
     const morada = capa.morada || business?.address || ''
     const horarios = business?.opening_hours || business?.schedule || []
@@ -415,7 +429,7 @@ ${paginas.map((p: { titulo?: string; descricao?: string; preco?: string; imagem?
 
     // STEP 8 - Render PDF
     log('Step 8: Rendering PDF...')
-    let pdf: Buffer
+    let pdf: Uint8Array
     try {
       const page = await browser.newPage()
       await page.setViewport({ width: 794, height: 1123 })
@@ -452,8 +466,8 @@ ${paginas.map((p: { titulo?: string; descricao?: string; preco?: string; imagem?
       })
       await browser.close()
       log('PDF generated, size:', pdf.length, 'bytes')
-    } catch (e: any) {
-      console.error('[CATALOG EXPORT] PDF render error:', e.message)
+    } catch (e: unknown) {
+      console.error('[CATALOG EXPORT] PDF render error:', e instanceof Error ? e.message : e)
       await browser.close().catch(() => {})
       return NextResponse.json({ error: 'Falha ao gerar o PDF.' }, { status: 500 })
     }
@@ -469,8 +483,8 @@ ${paginas.map((p: { titulo?: string; descricao?: string; preco?: string; imagem?
       }
     })
 
-  } catch (e: any) {
-    console.error('[CATALOG EXPORT] Unhandled error:', e.message)
+  } catch (e: unknown) {
+    console.error('[CATALOG EXPORT] Unhandled error:', e instanceof Error ? e.message : e)
     return NextResponse.json({ error: 'Erro inesperado.' }, { status: 500 })
   }
 }

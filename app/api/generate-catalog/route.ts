@@ -30,7 +30,22 @@ function getSupabaseAdmin() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-function buildHtml(biz: any, products: any[], settings: CatalogSettings): string {
+interface CatalogBiz {
+  slug?: string; name?: string; category?: string; city?: string;
+  phone?: string; whatsapp?: string; address?: string;
+  services?: unknown; opening_hours?: unknown;
+}
+interface CatalogProduct {
+  name?: string; image_url?: string; description?: string;
+  price?: string | number | null;
+}
+interface CatalogService {
+  nome?: string; name?: string; descricao?: string; description?: string;
+  preco?: string | number; price?: string | number;
+}
+interface CatalogHour { day?: string; open?: string; close?: string; closed?: boolean }
+
+function buildHtml(biz: CatalogBiz, products: CatalogProduct[], settings: CatalogSettings): string {
   const {
     corCapa, corDestaque, corTexto, corFundo,
     fonteTitulo, fonteCorpo,
@@ -47,10 +62,10 @@ function buildHtml(biz: any, products: any[], settings: CatalogSettings): string
   const endereco = biz.address || "";
 
   // Services: from biz.services JSONB if present (array of {nome,descricao,preco})
-  const servicos: any[] = Array.isArray(biz.services) ? biz.services : [];
+  const servicos: CatalogService[] = Array.isArray(biz.services) ? (biz.services as CatalogService[]) : [];
 
   // Opening hours
-  const horas: any[] = Array.isArray(biz.opening_hours) ? biz.opening_hours : [];
+  const horas: CatalogHour[] = Array.isArray(biz.opening_hours) ? (biz.opening_hours as CatalogHour[]) : [];
   const horasAbertas = horas.filter((h) => !h.closed && h.open && h.close);
 
   const produtosFeatured = products[0];
@@ -179,7 +194,7 @@ function buildHtml(biz: any, products: any[], settings: CatalogSettings): string
   </div>
   ${produtosRest.length > 0 ? `
   <div class="produtos-grid">
-    ${produtosRest.slice(0, 9).map((p: any) => `
+    ${produtosRest.slice(0, 9).map((p: CatalogProduct) => `
     <div class="produto">
       <div class="produto-img">
         ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : "📦"}
@@ -200,7 +215,7 @@ function buildHtml(biz: any, products: any[], settings: CatalogSettings): string
     <div class="section-count">${servicos.length} serviço${servicos.length !== 1 ? "s" : ""}</div>
   </div>
   <div class="servicos">
-    ${servicos.map((s: any, i: number) => `
+    ${servicos.map((s: CatalogService, i: number) => `
     <div class="servico-row">
       <div class="servico-num">${String(i + 1).padStart(2, "0")}</div>
       <div>
@@ -218,7 +233,7 @@ function buildHtml(biz: any, products: any[], settings: CatalogSettings): string
     <div class="section-count">Quando estamos abertos</div>
   </div>
   <div class="horarios-grid">
-    ${horasAbertas.map((h: any) => `
+    ${horasAbertas.map((h: CatalogHour) => `
     <div class="hora-row">
       <span class="hora-dia">${h.day}</span>
       <span class="hora-time">${h.open} – ${h.close}</span>

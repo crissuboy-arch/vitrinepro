@@ -141,7 +141,7 @@ export function HeroCarrossel() {
           color: "#888",
           textAlign: "center",
         }}>
-          vitrinepro.com/vitrine/{v.nome.toLowerCase().replace(/\s+/g, "-")}
+          vitrinepro.pt/vitrine/{v.nome.toLowerCase().replace(/\s+/g, "-")}
         </div>
       </div>
 

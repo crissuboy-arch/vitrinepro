@@ -160,8 +160,8 @@ export default function CatalogEditorPage() {
         if (data) setCatalog(prev => ({ ...prev, id: data.id, slug: data.slug }))
         showToast("Catálogo criado!")
       }
-    } catch (err: any) {
-      showToast(err?.message || "Erro ao guardar", false)
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Erro ao guardar", false)
     } finally {
       setSaving(false)
     }
@@ -172,7 +172,7 @@ export default function CatalogEditorPage() {
     setSharing(true)
     const slug = catalog.slug || catalog.id || ""
     try {
-      await navigator.clipboard.writeText(`https://vitrinepro.com/catalogo/${slug}`)
+      await navigator.clipboard.writeText(`https://vitrinepro.pt/catalogo/${slug}`)
       showToast("Link copiado!")
     } catch {
       showToast("Erro ao copiar link", false)
@@ -370,12 +370,12 @@ export default function CatalogEditorPage() {
         {catalog.publico && catalog.slug && (
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto" }}>
             <span style={{ fontSize: "12px", color: "#555", fontFamily: "monospace" }}>
-              vitrinepro.com/catalogo/{catalog.slug}
+              vitrinepro.pt/catalogo/{catalog.slug}
             </span>
             <button
               onClick={async () => {
                 try {
-                  await navigator.clipboard.writeText(`https://vitrinepro.com/catalogo/${catalog.slug}`)
+                  await navigator.clipboard.writeText(`https://vitrinepro.pt/catalogo/${catalog.slug}`)
                   showToast("Link copiado!")
                 } catch {
                   showToast("Erro ao copiar", false)
@@ -530,7 +530,7 @@ export default function CatalogEditorPage() {
 
               {catalog.paginas.length === 0 && (
                 <div style={{ textAlign: "center", padding: "32px 0", color: "#444", fontSize: "13px" }}>
-                  Nenhuma página ainda.<br />Clica em "+ Adicionar Página" para começar.
+                  Nenhuma página ainda.<br />Clica em &quot;+ Adicionar Página&quot; para começar.
                 </div>
               )}
 

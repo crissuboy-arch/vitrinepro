@@ -1,18 +1,18 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { getSiteUrl } from "@/lib/site";
 
-const siteUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://vitrinepro.pt").replace(/\/$/, "");
+const siteUrl = getSiteUrl();
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // A2.11: only routes that actually exist. Removed ghost routes that
+  // returned 404: /categorias, /cidades, /lojas.
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: siteUrl, changeFrequency: "daily", priority: 1.0, lastModified: new Date() },
     { url: `${siteUrl}/login`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/register`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/pricing`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/explorar`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${siteUrl}/categorias`, changeFrequency: "weekly", priority: 0.7 },
-    { url: `${siteUrl}/cidades`, changeFrequency: "weekly", priority: 0.7 },
-    { url: `${siteUrl}/lojas`, changeFrequency: "daily", priority: 0.8 },
     { url: `${siteUrl}/plano-business`, changeFrequency: "weekly", priority: 0.9 },
   ];
 

@@ -9,7 +9,7 @@ interface AutomationPopupProps {
   businessName: string;
 }
 
-export default function AutomationPopup({ plan, businessName }: AutomationPopupProps) {
+export default function AutomationPopup({ plan }: AutomationPopupProps) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 

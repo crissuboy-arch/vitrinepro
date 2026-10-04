@@ -1,5 +1,6 @@
 "use client"
-import { useState, useEffect } from "react"
+import { CANONICAL_URL } from "@/lib/site";
+import { useState, useEffect, useCallback } from "react"
 import { Catalog, CatalogPagina } from "@/types/catalog"
 
 type PageEntry =
@@ -51,7 +52,7 @@ export function FlipbookPreview({
   const totalPages = pages.length
   const currentData = pages[currentPage]
 
-  const goTo = (dir: "prev" | "next") => {
+  const goTo = useCallback((dir: "prev" | "next") => {
     if (animating) return
     if (dir === "prev" && currentPage === 0) return
     if (dir === "next" && currentPage === totalPages - 1) return
@@ -60,7 +61,7 @@ export function FlipbookPreview({
       setCurrentPage(prev => (dir === "next" ? prev + 1 : prev - 1))
       setAnimating(false)
     }, 350)
-  }
+  }, [animating, currentPage, totalPages])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -69,7 +70,7 @@ export function FlipbookPreview({
     }
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
-  }, [currentPage, animating])
+  }, [goTo])
 
   const containerStyle: React.CSSProperties = {
     width: "100%",
@@ -343,7 +344,7 @@ export function FlipbookPreview({
               color: cores.principal || "#c9a96e",
               marginBottom: "32px"
             }}>
-              {`${process.env.NEXT_PUBLIC_CATALOG_URL || 'https://vitrine.vitriodigital.com'}/catalogo/${catalog.slug || "o-seu-negocio"}`}
+              {`${process.env.NEXT_PUBLIC_CATALOG_URL || CANONICAL_URL}/catalogo/${catalog.slug || "o-seu-negocio"}`}
             </div>
             <div style={{
               height: "1px",

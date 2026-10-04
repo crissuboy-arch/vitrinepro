@@ -116,7 +116,7 @@ export default function CatalogSection({ onCadastrar }: CatalogSectionProps) {
                     <span className="text-[#A9B1C3] text-sm select-none">←</span>
                     <span className="text-[#A9B1C3] text-sm select-none">→</span>
                   </div>
-                  <span className="text-[9px] text-[#A9B1C3]">vitrinepro.com/vitrine/burger-house</span>
+                  <span className="text-[9px] text-[#A9B1C3]">vitrinepro.pt/vitrine/burger-house</span>
                 </div>
               </div>
 

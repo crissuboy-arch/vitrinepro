@@ -128,7 +128,7 @@ export default function TrialBanner() {
           <div className="flex items-center gap-3">
             {isTrialExpired && (
               <button className="px-4 py-1.5 bg-[#C8A96B] text-[#0F172A] text-xs font-semibold rounded-full animate-pulse">
-                Ative já - €29.90/mês
+                Ative já - €29,90/mês
               </button>
             )}
             {userAccess.plan === "trial" && !isTrialExpired && (

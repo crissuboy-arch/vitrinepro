@@ -22,7 +22,7 @@ const FAQ_ITEMS = [
   { q: "Tem plano grátis?", a: "Sim. O plano Grátis é para sempre e inclui vitrine com link público, até 3 produtos, botão WhatsApp, horários e localização. Upgrade quando quiser." },
   { q: "Posso cancelar?", a: "Sim, a qualquer momento. Sem contratos, sem fidelizações. Se cancelar, o seu negócio fica no plano Grátis — nunca perde os dados." },
   { q: "Posso editar depois?", a: "Sempre. O dashboard permite editar produtos, fotos, preços, descrições, horários e contactos em segundos. As alterações ficam visíveis de imediato." },
-  { q: "O catálogo PDF está incluído?", a: "O catálogo PDF está disponível nos planos Pro (€12/mês) e Business (€29/mês). Gera um PDF elegante dos seus produtos em segundos, pronto para enviar pelo WhatsApp." },
+  { q: "O catálogo PDF está incluído?", a: "O catálogo PDF está disponível nos planos Pro (€12/mês) e Business (€29,90/mês). Gera um PDF elegante dos seus produtos em segundos, pronto para enviar pelo WhatsApp." },
 ];
 
 const faqJsonLd = {
@@ -50,7 +50,6 @@ import VideoSection from "@/components/landing/VideoSection";
 import ComparisonSection from "@/components/landing/ComparisonSection";
 import StepsSection from "@/components/landing/StepsSection";
 import PlansSection from "@/components/landing/PlansSection";
-import AnimatedTestimonialsSection from "@/components/sections/TestimonialsSection";
 import FinalCTASection from "@/components/landing/FinalCTASection";
 import VideoCtaSection from "@/components/landing/VideoCtaSection";
 import CatalogSection from "@/components/landing/CatalogSection";
@@ -67,66 +66,7 @@ const dmSans = DM_Sans({
   variable: "--font-dmsans",
 });
 
-// Testimonials interface
-interface MockTestimonial {
-  name: string;
-  role: string;
-  city: string;
-  text: string;
-  avatarLetter: string;
-  avatarColor: string;
-}
 
-const mockSocialTestimonials: MockTestimonial[] = [
-  {
-    name: "Rui Barbosa",
-    role: "Barbeiro Proprietário",
-    city: "Porto",
-    text: "O VitrinePro transformou o meu negócio. Os clientes agora vêem a tabela de preços antes de marcar e o botão do WhatsApp facilitou tudo. Excelente investimento!",
-    avatarLetter: "R",
-    avatarColor: "bg-blue-600"
-  },
-  {
-    name: "Marta Fonseca",
-    role: "Cake Designer",
-    city: "Lisboa",
-    text: "Antes eu perdia horas enviando fotos de bolos pelo WhatsApp. Agora, envio o meu link da VitrinePro e o cliente escolhe logo o sabor e tamanho. Recomendo muito!",
-    avatarLetter: "M",
-    avatarColor: "bg-pink-600"
-  },
-  {
-    name: "Carlos Ferreira",
-    role: "Eletricista de Emergência",
-    city: "Braga",
-    text: "Para serviços rápidos de eletricidade, os clientes precisam de ver a morada e ligar rápido. O mapa integrado e o botão de chamada trouxeram-me 5 novos clientes esta semana.",
-    avatarLetter: "C",
-    avatarColor: "bg-yellow-600"
-  },
-  {
-    name: "Sofia Guedes",
-    role: "Esteticista",
-    city: "Faro",
-    text: "Tentei fazer um site em WordPress e desisti porque era muito complexo. Com a VitrinePro configurei tudo sozinha em 5 minutos e ficou lindo no telemóvel.",
-    avatarLetter: "S",
-    avatarColor: "bg-purple-600"
-  },
-  {
-    name: "Vítor Mendes",
-    role: "Restaurante Central",
-    city: "Coimbra",
-    text: "O menu com fotos e preços aumentou os nossos pedidos pelo WhatsApp em mais de 50%. A simplicidade de mudar o prato do dia pelo telemóvel é imbatível.",
-    avatarLetter: "V",
-    avatarColor: "bg-green-600"
-  },
-  {
-    name: "Beatriz Santos",
-    role: "Loja de Roupa Local",
-    city: "Funchal",
-    text: "Coloquei o link na bio do meu Instagram e as mensagens de 'qual o preço?' diminuíram 90%. As pessoas clicam, vêem a galeria e compram diretamente.",
-    avatarLetter: "B",
-    avatarColor: "bg-red-600"
-  }
-];
 
 // Example mock showcase interface
 interface ExampleItem {
@@ -532,7 +472,9 @@ export default function HomePage() {
       <VideoCtaSection onCadastrar={handleCadastrarClick} />
       <ComparisonSection />
       <StepsSection />
-      <AnimatedTestimonialsSection />
+      {/* A2.10: TestimonialsSection removed from production — it displayed invented
+          testimonials as "Depoimentos Reais". Re-enable only with verified,
+          real customer testimonials. */}
       <PlansSection onSelectPlan={handleSelectPlan} />
 
       <section id="faq" className="py-24 md:py-32 bg-[#0A0D14] border-b border-white/5 relative z-10">

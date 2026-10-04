@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { CONSENT_EVENT } from "./GoogleAnalytics";
 
@@ -161,12 +161,11 @@ function PreferencesModal({
 
 // ─── Main Banner ──────────────────────────────────────────────────────────────
 export default function CookieConsent() {
-  const [prefs, setPrefs] = useState<CookiePrefs | null | "loading">("loading");
+  // Lazily initialized (no setState-in-effect): "loading" only during SSR.
+  const [prefs, setPrefs] = useState<CookiePrefs | null | "loading">(() =>
+    typeof window === "undefined" ? "loading" : loadPrefs()
+  );
   const [showModal, setShowModal] = useState(false);
-
-  useEffect(() => {
-    setPrefs(loadPrefs());
-  }, []);
 
   const handleAcceptAll = () => {
     setPrefs(savePrefs({ analytics: true, marketing: true }));

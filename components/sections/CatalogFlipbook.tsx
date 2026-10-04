@@ -28,27 +28,49 @@ interface Props {
   onCadastrar: (e: React.MouseEvent) => void;
 }
 
+function ArrowBtn({ dir, onClick }: { dir: "←" | "→"; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={dir === "←" ? "Página anterior" : "Próxima página"}
+      style={{
+        width: 52, height: 52, borderRadius: "50%",
+        border: "1.5px solid rgba(201,169,110,0.4)",
+        background: "rgba(201,169,110,0.06)",
+        color: "#c9a96e", fontSize: 22, cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0, transition: "background 0.2s",
+      }}
+      onMouseOver={(e) => (e.currentTarget.style.background = "rgba(201,169,110,0.15)")}
+      onMouseOut={(e) => (e.currentTarget.style.background = "rgba(201,169,110,0.06)")}
+    >
+      {dir}
+    </button>
+  );
+}
+
 // 8 pages: ghost(0) + cover(1) + appL(2) + appR(3) + mainL(4) + mainR(5) + backCover(6) + ghost(7)
 // ghost pages at positions 0 and 7 fill the empty side when covers are displayed
 const TOTAL_PAGES = 8;
 
 export default function CatalogFlipbook({ onCadastrar }: Props) {
-  const bookRef = useRef<any>(null);
-  const [FlipBook, setFlipBook] = useState<React.ComponentType<any> | null>(null);
+  const bookRef = useRef<{ pageFlip?: () => { flipPrev?: () => void; flipNext?: () => void } } | null>(null);
+  const [FlipBook, setFlipBook] = useState<any | null>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [currentPage, setCurrentPage] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  // Lazily initialized from window (no setState-in-effect); SSR-safe defaults.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768
+  );
+  const [mounted] = useState(() => typeof window !== "undefined");
 
   // Load react-pageflip on client only (avoids SSR document/window errors)
   useEffect(() => {
-    setMounted(true);
     const check = () => setIsMobile(window.innerWidth < 768);
-    check();
     window.addEventListener("resize", check, { passive: true });
     import("react-pageflip").then((mod) => {
       // mod.default is the HTMLFlipBook class – wrap in arrow to avoid
       // React treating it as a functional-state updater
-      setFlipBook(() => (mod as any).default);
+      setFlipBook(() => (mod as unknown as { default: React.ElementType }).default);
     });
     return () => window.removeEventListener("resize", check);
   }, []);
@@ -297,7 +319,7 @@ export default function CatalogFlipbook({ onCadastrar }: Props) {
             {[
               { icon: "📍", text: "Rua do Comércio 45, Lisboa" },
               { icon: "📞", text: "+351 912 345 678" },
-              { icon: "🌐", text: "vitrinepro.com/burgerhouse" },
+              { icon: "🌐", text: "vitrinepro.pt/burgerhouse" },
             ].map((c, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 }}>
                 <span style={{ fontSize: 10 }}>{c.icon}</span>
@@ -329,7 +351,7 @@ export default function CatalogFlipbook({ onCadastrar }: Props) {
           </div>
           <div style={{ marginTop: "auto", borderTop: "1px solid rgba(201,169,110,0.15)", paddingTop: 8 }}>
             <div style={{ fontSize: 7.5, color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em" }}>
-              Gerado pela VitrinePro · vitrinepro.com
+              Gerado pela VitrinePro · vitrinepro.pt
             </div>
           </div>
         </div>
@@ -339,24 +361,7 @@ export default function CatalogFlipbook({ onCadastrar }: Props) {
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
-  const ArrowBtn = ({ dir, onClick }: { dir: "←" | "→"; onClick: () => void }) => (
-    <button
-      onClick={onClick}
-      aria-label={dir === "←" ? "Página anterior" : "Próxima página"}
-      style={{
-        width: 52, height: 52, borderRadius: "50%",
-        border: "1.5px solid rgba(201,169,110,0.4)",
-        background: "rgba(201,169,110,0.06)",
-        color: "#c9a96e", fontSize: 22, cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        flexShrink: 0, transition: "background 0.2s",
-      }}
-      onMouseOver={(e) => (e.currentTarget.style.background = "rgba(201,169,110,0.15)")}
-      onMouseOut={(e) => (e.currentTarget.style.background = "rgba(201,169,110,0.06)")}
-    >
-      {dir}
-    </button>
-  );
+
 
   return (
     <section style={{ background: "#080b12", padding: "80px 0 64px", position: "relative", overflow: "hidden" }}>

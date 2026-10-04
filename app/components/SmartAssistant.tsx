@@ -34,7 +34,7 @@ const PLANS = [
   {
     id: "pro",
     name: "Pro",
-    price: "€29",
+    price: "€29,90",
     period: "/mês",
     features: ["Destaque no topo", "Badge Pro", "Mais fotos", "Estatísticas"],
     cta: "Quero Pro",
@@ -67,8 +67,8 @@ export default function SmartAssistant() {
     objection: "",
     plan: "",
   });
-  const [selectedObjection, setSelectedObjection] = useState<string>("");
-  const [isQualified, setIsQualified] = useState(false);
+  const [, setSelectedObjection] = useState<string>("");
+  const [, setIsQualified] = useState(false);
 
   const resetFlow = () => {
     setCurrentStep("greeting");

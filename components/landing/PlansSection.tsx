@@ -110,7 +110,7 @@ export default function PlansSection({ onSelectPlan }: PlansSectionProps) {
               <div className="space-y-1">
                 <h3 className="text-lg font-bold text-[#F5F0E8] uppercase tracking-wider">Business</h3>
                 <div className="flex items-baseline gap-1 text-[#F5F0E8]">
-                  <span className="text-3xl font-extrabold">€29</span>
+                  <span className="text-3xl font-extrabold">€29,90</span>
                   <span className="text-[#A9B1C3] text-xs font-light">/mês</span>
                 </div>
                 <p className="text-xs text-[#A9B1C3] font-light">Para negócios com maior volume</p>

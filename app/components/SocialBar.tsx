@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/app/lib/supabase";
-import { trackWhatsAppClick } from "@/app/lib/analytics";
 
 interface SocialBarProps {
   businessId: string;
