@@ -56,6 +56,8 @@ export default function OnboardingPage() {
   const [categoryId, setCategoryId] = useState("");
   const [cityId, setCityId] = useState("");
   const [country, setCountry] = useState("Portugal");
+  // A3.6: owner origin / community — separate column from business country.
+  const [ownerOriginCountry, setOwnerOriginCountry] = useState("");
   const [address, setAddress] = useState("");
 
   // Step 2: Contacts & Socials
@@ -193,6 +195,7 @@ export default function OnboardingPage() {
         category_id: categoryId || undefined,
         city_id: cityId || undefined,
         country,
+        owner_origin_country: ownerOriginCountry || undefined,
         address,
         whatsapp,
         phone: phone || undefined,
@@ -376,6 +379,23 @@ export default function OnboardingPage() {
                       <option value="Brasil">Brasil</option>
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">País de origem (comunidade)</label>
+                  <select
+                    value={ownerOriginCountry}
+                    onChange={(e) => setOwnerOriginCountry(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#0F172A] border border-gray-800 rounded-lg text-white focus:outline-none focus:border-[#C8A96B]"
+                  >
+                    <option value="">Não especificado</option>
+                    <option value="Brasil">Brasil 🇧🇷</option>
+                    <option value="Angola">Angola 🇦🇴</option>
+                    <option value="Cabo Verde">Cabo Verde 🇨🇻</option>
+                    <option value="França">França 🇫🇷</option>
+                    <option value="Portugal">Portugal 🇵🇹</option>
+                    <option value="Outro">Outro</option>
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

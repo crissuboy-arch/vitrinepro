@@ -1,8 +1,8 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "../lib/supabase";
@@ -10,6 +10,8 @@ import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/
 import { isProTier, isBusinessTier, isPaidTier, normalizePlan } from "@/lib/plans";
 import { isPublishedBusiness, isOwnerOf, resolveBusinessCountTarget } from "@/lib/visibility";
 import { getSiteUrl } from "@/lib/site";
+import { MONTRA_TABS, DEFAULT_MONTRA_TAB, isValidMontraTab } from "@/lib/montra-tabs";
+import { buildBusinessUpdatePayload } from "@/lib/business-profile";
 import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/lib/supabase-storage";
 import { Sparkles, Lock, Copy, Check, ExternalLink } from "lucide-react";
 import { trackCatalogPdfDownload } from "@/app/lib/analytics";
@@ -79,8 +81,13 @@ function getCategoryIcon(category: string): string {
   return "🏪";
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // A3: URL-driven navigation — /dashboard (conta) vs /dashboard?montra=<id> (gerir).
+  const montraId = searchParams.get("montra");
+  const tabParam = searchParams.get("tab");
+  const activeTab = isValidMontraTab(tabParam) ? (tabParam as string) : DEFAULT_MONTRA_TAB;
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -88,7 +95,6 @@ export default function DashboardPage() {
   // A2.5 — multi-business: full list + minimal selector state.
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [showBusinessSelector, setShowBusinessSelector] = useState(false);
-  const SELECTED_BUSINESS_KEY = "vp_selected_business";
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -99,7 +105,6 @@ export default function DashboardPage() {
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
 
   // Modals visibility
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showTestimonialModal, setShowTestimonialModal] = useState(false);
 
@@ -197,23 +202,23 @@ export default function DashboardPage() {
         return;
       }
 
-      let chosen: any = null;
-      if (all.length === 1) {
-        chosen = all[0];
-      } else {
-        const stored = typeof window !== "undefined"
-          ? window.localStorage.getItem(SELECTED_BUSINESS_KEY)
-          : null;
-        chosen = all.find((b: any) => b.id === stored) || null;
-      }
-
-      if (!chosen) {
+      // A3: /dashboard is the account view (Minhas Montras). Managing a montra
+      // requires ?montra=<id> — ownership re-validated server-side below.
+      // Never auto-enter; never bounce a multi-business owner to onboarding.
+      const wantedId = new URLSearchParams(window.location.search).get("montra");
+      if (!wantedId) {
         setBusiness(null);
-        setShowBusinessSelector(true);
         return;
       }
 
-      await loadBusinessData(session.user.id, chosen);
+      const biz = await getBusinessByIdForOwner(wantedId, session.user.id);
+      if (!biz) {
+        // Unknown id or not the owner → back to the account view.
+        router.push("/dashboard");
+        return;
+      }
+
+      await loadBusinessData(session.user.id, biz);
     } catch (err) {
       console.error("[DASHBOARD] Fetch load exception:", err);
     } finally {
@@ -227,10 +232,9 @@ export default function DashboardPage() {
     if (!isOwnerOf(biz, userId)) {
       console.error("[DASHBOARD] Ownership check failed for business", biz?.id);
       setBusiness(null);
-      setShowBusinessSelector(true);
+      router.push("/dashboard");
       return;
     }
-    setShowBusinessSelector(false);
     try {
       setBusiness(biz);
 
@@ -250,7 +254,7 @@ export default function DashboardPage() {
       setEditYoutube(biz.youtube || "");
       setEditLinkedin(biz.linkedin || "");
       setEditWebsite(biz.website || "");
-      setEditOwnerOriginCountry(biz.country || (biz as any).owner_origin_country || "");
+      setEditOwnerOriginCountry((biz as any).owner_origin_country || "");
       setEditHours((biz.opening_hours as unknown as OpeningHour[]) || []);
 
       // Parallel fetch list endpoints
@@ -272,42 +276,28 @@ export default function DashboardPage() {
     }
   };
 
-  // A2.5 — user picked a business from the minimal selector.
-  // Ownership is enforced server-side by getBusinessByIdForOwner (+ RLS).
-  const selectBusiness = async (id: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      router.push("/login");
-      return;
-    }
-    setLoading(true);
-    try {
-      const biz = await getBusinessByIdForOwner(id, session.user.id);
-      if (!biz) {
-        alert("Negócio não encontrado ou sem acesso.");
-        return;
-      }
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(SELECTED_BUSINESS_KEY, id);
-      }
-      setBusinesses((prev: any[]) => prev.map((b: any) => (b.id === id ? biz : b)));
-      await loadBusinessData(session.user.id, biz);
-    } finally {
-      setLoading(false);
-    }
+  // A3 — enter the manage view for a montra. Ownership is re-validated
+  // server-side by getBusinessByIdForOwner (+ RLS) on every load.
+  const selectBusiness = (id: string) => {
+    router.push(`/dashboard?montra=${id}`);
   };
 
-  // A2.5 — back to the minimal selector (header button, shown when 2+ businesses).
+  // A3 — back to the account view (Minhas Montras).
   const switchBusiness = () => {
-    setBusiness(null);
-    setShowBusinessSelector(true);
+    router.push("/dashboard");
+  };
+
+  // A3 — tab navigation inside Gerenciar Montra.
+  const goTab = (tabId: string) => {
+    if (!business?.id) return;
+    router.push(`/dashboard?montra=${business.id}&tab=${tabId}`);
   };
 
   useEffect(() => {
     if (mounted) {
       loadAllData();
     }
-  }, [mounted]);
+  }, [mounted, montraId]);
 
   const handleUpgrade = async (planId: string) => {
     if (!business?.id) return;
@@ -443,75 +433,104 @@ export default function DashboardPage() {
     );
   }
 
-  // A2.5 — minimal business selector (2+ businesses). Not a redesign:
-  // a functional, safe way to choose which business to administer.
-  if (showBusinessSelector) {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  // A3.1/A3.2 — DASHBOARD GERAL (vista de conta).
+  // CONTA → MINHAS MONTRAS → GERENCIAR MONTRA → MONTRA PÚBLICA.
+  // Shown whenever no ?montra= is selected (0 → onboarding happens earlier).
+  if (!business) {
+    const publishedCount = businesses.filter((b: any) => isPublishedBusiness(b)).length;
     return (
       <div className="min-h-screen bg-[#0F172A] text-white flex flex-col">
         <header className="border-b border-gray-800 bg-[#0F172A]/90 backdrop-blur sticky top-0 z-30">
-          <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-            <Link
-              href="/"
-              className="text-xs text-gray-400 hover:text-white transition-colors border border-gray-800 hover:border-gray-600 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
-            >
-              ← Voltar ao início
+          <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-1.5">
+              <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
             </Link>
-            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+            <div className="flex items-center gap-3">
+              <Link
+                href="/explorar"
+                className="text-[10px] md:text-xs text-gray-400 hover:text-white transition-colors border border-gray-800 hover:border-gray-600 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+              >
+                🔍 Explorar
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-950/40 border border-red-900 text-red-400 hover:bg-red-900 hover:text-white rounded-lg text-xs md:text-sm transition-colors"
+              >
+                Sair
+              </button>
+            </div>
           </div>
         </header>
-        <main className="flex-grow max-w-3xl w-full mx-auto px-4 py-10">
-          <h1 className="font-display text-2xl font-bold text-white mb-2">Os seus negócios</h1>
-          <p className="text-sm text-gray-400 mb-8">
-            Escolha qual negócio pretende gerir. Pode trocar a qualquer momento no painel.
+        <main className="flex-grow max-w-5xl w-full mx-auto px-4 py-10">
+          <h1 className="font-display text-3xl font-bold text-white">A minha conta</h1>
+          <p className="text-sm text-gray-400 mt-2 mb-8">
+            {businesses.length} {businesses.length === 1 ? "montra" : "montras"} · {publishedCount} {publishedCount === 1 ? "publicada" : "publicadas"}
           </p>
-          <div className="space-y-3">
+
+          <h2 className="font-display text-xl font-semibold text-[#C8A96B] mb-4">Minhas Montras</h2>
+          <div className="grid md:grid-cols-2 gap-4">
             {businesses.map((b: any) => (
-              <button
+              <div
                 key={b.id}
-                onClick={() => selectBusiness(b.id)}
-                className="w-full text-left bg-gray-900 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl p-5 flex items-center justify-between gap-4 transition-colors cursor-pointer"
+                className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4"
               >
-                <div className="min-w-0">
-                  <div className="font-semibold text-white truncate">{b.name}</div>
-                  <div className="text-xs text-gray-500 mt-1 truncate">
-                    {[b.city, b.country].filter(Boolean).join(" · ") || "—"}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="font-display text-lg font-bold text-white truncate">{b.name}</h3>
+                    <p className="text-xs text-gray-500 mt-1">/vitrine/{b.slug}</p>
                   </div>
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
                       isPublishedBusiness(b)
                         ? "bg-green-950 border border-green-800 text-green-400"
                         : "bg-red-950 border border-red-900 text-red-400"
                     }`}>
-                      {isPublishedBusiness(b) ? "Público" : "Rascunho"}
+                      {isPublishedBusiness(b) ? "Publicada" : "Rascunho"}
                     </span>
-                    {isPaidTier(b.plan) && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-[#C8A96B]/20 border border-[#C8A96B]/40 text-[#C8A96B]">
-                        {isBusinessTier(b.plan) ? "Business" : "Pro"}
-                      </span>
-                    )}
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
+                      isPaidTier(b.plan)
+                        ? "bg-[#C8A96B]/20 border border-[#C8A96B]/40 text-[#C8A96B]"
+                        : "bg-gray-800 border border-gray-700 text-gray-400"
+                    }`}>
+                      {isBusinessTier(b.plan) ? "Business" : isProTier(b.plan) ? "Pro" : "Free"}
+                    </span>
                   </div>
                 </div>
-                <span className="shrink-0 px-4 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-xs font-bold rounded-xl transition-colors">
-                  Gerir →
-                </span>
-              </button>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    onClick={() => selectBusiness(b.id)}
+                    className="flex-1 px-4 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg text-sm transition-colors"
+                  >
+                    Gerenciar Montra
+                  </button>
+                  <Link
+                    href={`/vitrine/${b.slug}`}
+                    target="_blank"
+                    className="px-4 py-2.5 border border-gray-700 text-gray-300 rounded-lg text-sm hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+                  >
+                    Ver Montra ↗
+                  </Link>
+                </div>
+              </div>
             ))}
           </div>
+
           <Link
             href="/onboarding"
-            className="inline-block mt-8 text-xs text-[#C8A96B] hover:text-[#D4BB82] border border-[#C8A96B]/30 hover:border-[#C8A96B]/60 px-4 py-2.5 rounded-xl transition-colors"
+            className="inline-block mt-8 text-sm text-[#C8A96B] hover:text-[#D4BB82] border border-[#C8A96B]/30 hover:border-[#C8A96B]/60 px-5 py-3 rounded-xl transition-colors font-semibold"
           >
-            + Criar novo negócio
+            + Nova Montra
           </Link>
         </main>
       </div>
     );
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
 
   // Image Fallback Generator
   const getLogoFallback = (nameString: string) => {
@@ -544,31 +563,34 @@ export default function DashboardPage() {
   const handleSaveBusiness = async () => {
     setSavingBusiness(true);
     try {
-      const result = await updateBusiness(business.id, {
+      // A3.6: payload built by lib/business-profile — `country` is the business
+      // location, `owner_origin_country` is the owner's community. Never mixed.
+      const result = await updateBusiness(business.id, buildBusinessUpdatePayload({
         name: editName,
         description: editDescription,
-        category_id: editCategoryId || undefined,
-        city_id: editCityId || undefined,
-        country: editOwnerOriginCountry || editCountry,
+        categoryId: editCategoryId,
+        cityId: editCityId,
+        country: editCountry,
+        ownerOriginCountry: editOwnerOriginCountry,
         address: editAddress,
         whatsapp: editWhatsapp,
-        phone: editPhone || undefined,
-        email: editEmail || undefined,
-        instagram: editInstagram || undefined,
-        facebook: editFacebook || undefined,
-        tiktok: editTiktok || undefined,
-        youtube: editYoutube || undefined,
-        linkedin: editLinkedin || undefined,
-        website: editWebsite || undefined,
-        opening_hours: editHours as any,
-      });
+        phone: editPhone,
+        email: editEmail,
+        instagram: editInstagram,
+        facebook: editFacebook,
+        tiktok: editTiktok,
+        youtube: editYoutube,
+        linkedin: editLinkedin,
+        website: editWebsite,
+        hours: editHours,
+      }));
 
       if (!result.success) throw new Error(result.error);
 
       // Refresh local profile
       const { data: updated } = await supabase.from("businesses").select("*").eq("id", business.id).single();
       setBusiness(updated);
-      setShowEditModal(false);
+      setToast("Informações guardadas com sucesso.");
     } catch (err: any) {
       alert("Erro ao guardar dados: " + err.message);
     } finally {
@@ -852,21 +874,19 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="flex items-center gap-3">
-            {/* A2.5: multi-business — back to the selector */}
-            {businesses.length > 1 && (
-              <button
-                onClick={switchBusiness}
-                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg text-xs md:text-sm hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
-              >
-                ⇄ Trocar negócio
-              </button>
-            )}
+            {/* A3.17 — back to the account view (Minhas Montras) */}
+            <button
+              onClick={switchBusiness}
+              className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg text-xs md:text-sm hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+            >
+              ← Minhas Montras
+            </button>
             <Link
               href={`/vitrine/${business?.slug || ''}`}
               target="_blank"
               className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg text-xs md:text-sm hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
             >
-              Ver Minisite Público
+              Ver Montra ↗
             </Link>
             <button
               onClick={handleLogout}
@@ -900,34 +920,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ===== PLAN SECTION ===== */}
-        {business && (
-          <PlanSection
-            plan={business.plan || "free"}
-            onUpgrade={handleUpgrade}
-            checkoutLoading={checkoutLoading}
-            subscriptionCancelAt={business.subscription_cancel_at ?? null}
-            onCancelRequest={() => setShowCancelModal(true)}
-          />
-        )}
-
-        {/* ===== VITRINE SHARE CARD ===== */}
-        {business?.slug && (
-          <VitrineShareCard slug={business.slug} />
-        )}
-
-        {/* ===== SHORT LINK SECTION ===== */}
-        {business && (
-          <ShortLinkCard plan={business.plan || "free"} />
-        )}
-
-        {/* ===== ANALYTICS SECTION ===== */}
-        {business && (
-          <AnalyticsSection
-            businessId={business.id}
-            plan={business.plan || "free"}
-          />
-        )}
         
         {/* Profile Card Banner */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-2xl relative">
@@ -1000,7 +992,7 @@ export default function DashboardPage() {
             {/* Profile Action Toolbar */}
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
               <button
-                onClick={() => setShowEditModal(true)}
+                onClick={() => goTab("informacoes")}
                 className="flex-1 md:flex-initial px-5 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors text-sm"
               >
                 Editar Informações
@@ -1025,213 +1017,106 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Dashboard Grid Sections */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          
-          {/* Main Column: Products & Testimonials */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* Products Section */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
-                <div>
-                  <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Os Meus Produtos</h3>
-                  <p className="text-xs text-gray-400">Gerencie os artigos ou serviços exibidos na vitrine.</p>
-                </div>
-                <button
-                  onClick={() => setShowProductModal(true)}
-                  className="px-4 py-2 border border-[#C8A96B] hover:bg-[#C8A96B] hover:text-[#0F172A] text-[#C8A96B] text-xs font-bold rounded-lg transition-all"
-                >
-                  + Adicionar Produto
-                </button>
-              </div>
-
-              {products.length === 0 ? (
-                <div className="text-center py-10 border border-dashed border-gray-800 rounded-xl bg-gray-950/20">
-                  <span className="text-4xl">🛍️</span>
-                  <p className="text-sm text-gray-500 mt-2">Nenhum produto cadastrado até o momento.</p>
-                </div>
-              ) : (
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {products.map((p) => (
-                    <div key={p.id} className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 flex gap-4 hover:border-gray-700 transition-colors">
-                      <div className="w-16 h-16 rounded-lg bg-gray-950 border border-gray-800 flex-shrink-0 overflow-hidden relative">
-                        {p.image_url ? (
-                          <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-2xl bg-gray-900">📦</div>
-                        )}
-                      </div>
-                      <div className="flex-grow min-w-0">
-                        <div className="flex justify-between items-start">
-                          <h4 className="font-semibold text-white truncate text-sm">{p.name}</h4>
-                          {p.price !== null && p.price !== undefined && (
-                            <span className="text-[#C8A96B] font-bold text-xs">€{p.price.toFixed(2)}</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1 line-clamp-2">{p.description || "Sem descrição..."}</p>
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={() => openEditProduct(p)}
-                            className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProduct(p.id)}
-                            className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-red-700 hover:text-red-400 transition-colors"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Testimonials Section */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
-                <div>
-                  <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Depoimentos e Avaliações</h3>
-                  <p className="text-xs text-gray-400">Verifique e adicione reviews recomendados por clientes.</p>
-                </div>
-                <button
-                  onClick={() => setShowTestimonialModal(true)}
-                  className="px-4 py-2 border border-[#C8A96B] hover:bg-[#C8A96B] hover:text-[#0F172A] text-[#C8A96B] text-xs font-bold rounded-lg transition-all"
-                >
-                  + Adicionar Depoimento
-                </button>
-              </div>
-
-              {testimonials.length === 0 ? (
-                <div className="text-center py-10 border border-dashed border-gray-800 rounded-xl bg-gray-950/20">
-                  <span className="text-4xl">⭐</span>
-                  <p className="text-sm text-gray-500 mt-2">Sem depoimentos de clientes ainda.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {testimonials.map((t) => (
-                    <div key={t.id} className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-semibold text-sm text-white">{t.author_name}</span>
-                        <div className="flex text-[#C8A96B] text-xs">
-                          {Array.from({ length: t.rating }).map((_, i) => <span key={i}>★</span>)}
-                          {Array.from({ length: 5 - t.rating }).map((_, i) => <span key={i} className="text-gray-700">★</span>)}
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-300 leading-relaxed italic mb-3">&quot;{t.text}&quot;</p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openEditTestimonial(t)}
-                          className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTestimonial(t.id)}
-                          className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-red-700 hover:text-red-400 transition-colors"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+        {/* A3.3/A3.17 — Gerenciar Montra: tab navigation */}
+        <div className="sticky top-[69px] z-20 -mx-4 px-4 bg-[#0F172A]/95 backdrop-blur border-y border-gray-800">
+          <div className="flex gap-1.5 overflow-x-auto py-3 max-w-7xl mx-auto">
+            {MONTRA_TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => goTab(t.id)}
+                className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-colors ${
+                  activeTab === t.id
+                    ? "bg-[#C8A96B] text-[#0F172A]"
+                    : "text-gray-400 hover:text-white border border-gray-800 hover:border-gray-600"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Right Column: Gallery Manager & Opening Hours */}
-          <div className="lg:col-span-1 space-y-8">
-            
-            {/* Gallery Section */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-                <h3 className="font-display font-semibold text-[#C8A96B]">Galeria de Fotos</h3>
-                <button
-                  onClick={() => galleryInputRef.current?.click()}
-                  disabled={uploadingGallery}
-                  className="text-xs text-[#C8A96B] font-bold hover:underline"
-                >
-                  {uploadingGallery ? "Processando..." : "+ Enviar"}
-                </button>
-                <input
-                  ref={galleryInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleGalleryUpload}
-                  className="hidden"
-                />
-              </div>
-
-              {gallery.length === 0 ? (
-                <div className="text-center py-6 text-xs text-gray-500">
-                  Nenhuma imagem carregada na galeria.
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {gallery.map((img) => (
-                    <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-gray-850 group bg-gray-950">
-                      <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => handleDeleteGalleryImage(img.id)}
-                        className="absolute inset-0 bg-red-950/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 text-xs font-bold transition-opacity"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Opening Hours Info */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
-              <h3 className="font-display font-semibold text-[#C8A96B] border-b border-gray-800 pb-3">Horário de Funcionamento</h3>
-              <div className="space-y-2 text-xs">
-                {editHours.length === 0 ? (
-                  <p className="text-gray-500">Horário não definido.</p>
+        {/* A3.4 — VISÃO GERAL */}
+        {activeTab === "visao-geral" && (
+          <div className="space-y-6">
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+              <div className="flex flex-col md:flex-row gap-6">
+                {business?.cover_url && isValidStorageUrl(business.cover_url) ? (
+                  <img src={business.cover_url} alt="Capa" className="w-full md:w-64 h-36 object-cover rounded-xl border border-gray-800" />
                 ) : (
-                  editHours.map((row) => (
-                    <div key={row.day} className="flex justify-between text-gray-300">
-                      <span className="font-medium">{row.day}</span>
-                      <span>{row.closed ? <span className="text-red-400">Fechado</span> : `${row.open} - ${row.close}`}</span>
-                    </div>
-                  ))
+                  <div className="w-full md:w-64 h-36 rounded-xl bg-gray-950 border border-gray-800 flex items-center justify-center text-4xl">🏪</div>
                 )}
+                <div className="flex-grow space-y-2 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-2xl font-display font-bold text-white">{business?.name}</h2>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
+                      business?.published ? "bg-green-950 border border-green-800 text-green-400" : "bg-red-950 border border-red-900 text-red-400"
+                    }`}>
+                      {business?.published ? "Publicada" : "Rascunho"}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
+                      isPaidTier(business?.plan) ? "bg-[#C8A96B]/20 border border-[#C8A96B]/40 text-[#C8A96B]" : "bg-gray-800 border border-gray-700 text-gray-400"
+                    }`}>
+                      Plano: {business?.plan || "Free"}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-400 line-clamp-2">{business?.description || "Sem descrição."}</p>
+                  <p className="text-xs text-gray-500">
+                    Montra: <span className="text-[#C8A96B]">/vitrine/{business?.slug}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <button
+                      onClick={() => goTab("informacoes")}
+                      className="px-4 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg text-xs transition-colors"
+                    >
+                      ✏️ Editar Informações
+                    </button>
+                    <button
+                      onClick={() => setShowProductModal(true)}
+                      className="px-4 py-2 border border-[#C8A96B]/50 text-[#C8A96B] hover:bg-[#C8A96B]/10 rounded-lg font-bold text-xs transition-colors"
+                    >
+                      + Adicionar Produto
+                    </button>
+                    <Link
+                      href={`/vitrine/${business?.slug || ""}`}
+                      target="_blank"
+                      className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg text-xs hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+                    >
+                      Ver Montra ↗
+                    </Link>
+                    <button
+                      onClick={handleTogglePublish}
+                      className={`px-4 py-2 border rounded-lg font-bold text-xs transition-colors ${
+                        business?.published
+                          ? "border-red-900 bg-red-950/20 text-red-400 hover:bg-red-900 hover:text-white"
+                          : "border-green-800 bg-green-950/20 text-green-400 hover:bg-green-800 hover:text-white"
+                      }`}
+                    >
+                      {business?.published ? "Despublicar" : "Publicar"}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Location Mini Map */}
-            {business?.address && (
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
-                <h3 className="font-display font-semibold text-[#C8A96B] border-b border-gray-800 pb-3">Localização</h3>
-                <p className="text-xs text-gray-400 leading-relaxed">{business.address}</p>
-                <div className="rounded-xl overflow-hidden h-40 bg-slate-800">
-                  <iframe
-                    src={`https://maps.google.com/maps?q=${encodeURIComponent(business.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-2 border border-[#C8A96B]/30 text-[#C8A96B] rounded-lg text-xs font-semibold hover:bg-[#C8A96B] hover:text-[#0F172A] transition-colors"
-                >
-                  📍 Ver no Google Maps
-                </a>
-              </div>
-            )}
+            <div className="grid grid-cols-3 gap-4">
+              <button onClick={() => goTab("produtos")} className="bg-gray-900 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl p-5 text-center transition-colors">
+                <div className="text-2xl font-display font-bold text-[#C8A96B]">{products.length}</div>
+                <div className="text-xs text-gray-400 mt-1">Produtos</div>
+              </button>
+              <button onClick={() => goTab("galeria")} className="bg-gray-900 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl p-5 text-center transition-colors">
+                <div className="text-2xl font-display font-bold text-[#C8A96B]">{gallery.length}</div>
+                <div className="text-xs text-gray-400 mt-1">Fotos</div>
+              </button>
+              <button onClick={() => goTab("avaliacoes")} className="bg-gray-900 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl p-5 text-center transition-colors">
+                <div className="text-2xl font-display font-bold text-[#C8A96B]">{testimonials.length}</div>
+                <div className="text-xs text-gray-400 mt-1">Avaliações</div>
+              </button>
+            </div>
+
+        {business?.slug && (
+          <VitrineShareCard slug={business.slug} />
+        )}
 
             {/* Content Calendar Card */}
             <div
@@ -1249,61 +1134,48 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Catalog Editor Card */}
-            <div
-              onClick={() => {
-                const isPaid = isPaidTier(business?.plan)
-                if (isPaid) {
-                  router.push("/dashboard/catalogo")
-                } else {
-                  setShowCatalogUpgradeModal(true)
-                }
-              }}
-              className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl cursor-pointer hover:border-[#C8A96B]/40 transition-colors group"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">📄</span>
-                  <div>
-                    <h3 className="font-semibold text-[#C8A96B] text-sm">Catálogo Digital</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">Editor de catálogo profissional</p>
-                  </div>
-                </div>
-                {!isPaidTier(business?.plan) && (
-                  <span className="text-[10px] font-bold text-[#0a0d14] bg-[#c9a96e] px-2 py-0.5 rounded-full">PRO</span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 leading-relaxed mb-4">
-                Cria um catálogo elegante com capa, produtos e preços. Partilha online ou exporta em PDF.
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex gap-3 text-[10px] text-gray-600">
-                  <span>✓ Flipbook interativo</span>
-                  <span>✓ Exportar PDF</span>
-                </div>
-                <span className="text-xs text-[#C8A96B] font-semibold group-hover:translate-x-1 transition-transform inline-block">
-                  Abrir →
-                </span>
-              </div>
-            </div>
 
           </div>
-        </div>
-      </main>
+        )}
+        {/* A3.5/A3.7 — INFORMAÇÕES (reúso do formulário "Editar Perfil Comercial") */}
+        {activeTab === "informacoes" && (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <div>
+              <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Informações da Montra</h3>
+              <p className="text-xs text-gray-500 mt-1">Estes dados aparecem na tua Montra pública. O slug <span className="text-gray-300">/vitrine/{business?.slug}</span> não é editável.</p>
+            </div>
 
-      {/* ---------------- MODALS SECTION ---------------- */}
-
-      {/* EDIT PROFILE MODAL */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-6">
-            <button
-              onClick={() => setShowEditModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white text-lg"
-            >
-              ✕
-            </button>
-            <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Editar Perfil Comercial</h3>
+            {/* A3.7 — Identidade: logo + capa com preview */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 space-y-3">
+                <label className="block text-xs font-medium text-gray-400">Logo</label>
+                <div className="w-24 h-24 rounded-2xl bg-gray-900 border border-gray-800 flex items-center justify-center overflow-hidden">
+                  {business?.logo_url && isValidStorageUrl(business.logo_url) ? (
+                    <img src={business.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-gray-600 text-xs">Sem logo</span>
+                  )}
+                </div>
+                <label className="inline-block cursor-pointer px-4 py-2 border border-[#C8A96B]/50 text-[#C8A96B] hover:bg-[#C8A96B]/10 rounded-lg text-xs font-bold transition-colors">
+                  {uploadingLogo ? "A carregar..." : "Alterar logo"}
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                </label>
+              </div>
+              <div className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 space-y-3">
+                <label className="block text-xs font-medium text-gray-400">Capa</label>
+                <div className="w-full h-24 rounded-xl bg-gray-900 border border-gray-800 overflow-hidden">
+                  {business?.cover_url && isValidStorageUrl(business.cover_url) ? (
+                    <img src={business.cover_url} alt="Capa" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">Sem capa</div>
+                  )}
+                </div>
+                <label className="inline-block cursor-pointer px-4 py-2 border border-[#C8A96B]/50 text-[#C8A96B] hover:bg-[#C8A96B]/10 rounded-lg text-xs font-bold transition-colors">
+                  {uploadingCover ? "A carregar..." : "Alterar capa"}
+                  <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+                </label>
+              </div>
+            </div>
 
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1488,7 +1360,136 @@ export default function DashboardPage() {
                   />
                 </div>
               </div>
+            </div>
 
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
+              <button
+                type="button"
+                onClick={handleSaveBusiness}
+                disabled={savingBusiness}
+                className="px-5 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded text-sm transition-colors disabled:opacity-50"
+              >
+                {savingBusiness ? "A Guardar..." : "Guardar Alterações"}
+              </button>
+            </div>
+          </div>
+        )}
+        {/* A3.8 — PRODUTOS / MENU */}
+        {activeTab === "produtos" && (
+          <div className="space-y-6">
+            {/* Products Section */}
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
+              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+                <div>
+                  <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Os Meus Produtos</h3>
+                  <p className="text-xs text-gray-400">Gerencie os artigos ou serviços exibidos na vitrine.</p>
+                </div>
+                <button
+                  onClick={() => setShowProductModal(true)}
+                  className="px-4 py-2 border border-[#C8A96B] hover:bg-[#C8A96B] hover:text-[#0F172A] text-[#C8A96B] text-xs font-bold rounded-lg transition-all"
+                >
+                  + Adicionar Produto
+                </button>
+              </div>
+
+              {products.length === 0 ? (
+                <div className="text-center py-10 border border-dashed border-gray-800 rounded-xl bg-gray-950/20">
+                  <span className="text-4xl">🛍️</span>
+                  <p className="text-sm text-gray-500 mt-2">Nenhum produto cadastrado até o momento.</p>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {products.map((p) => (
+                    <div key={p.id} className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 flex gap-4 hover:border-gray-700 transition-colors">
+                      <div className="w-16 h-16 rounded-lg bg-gray-950 border border-gray-800 flex-shrink-0 overflow-hidden relative">
+                        {p.image_url ? (
+                          <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl bg-gray-900">📦</div>
+                        )}
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-semibold text-white truncate text-sm">{p.name}</h4>
+                          {p.price !== null && p.price !== undefined && (
+                            <span className="text-[#C8A96B] font-bold text-xs">€{p.price.toFixed(2)}</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1 line-clamp-2">{p.description || "Sem descrição..."}</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => openEditProduct(p)}
+                            className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p.id)}
+                            className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-red-700 hover:text-red-400 transition-colors"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+        {/* A3.9 — GALERIA */}
+        {activeTab === "galeria" && (
+          <div className="space-y-6">
+            {/* Gallery Section */}
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+                <h3 className="font-display font-semibold text-[#C8A96B]">Galeria de Fotos</h3>
+                <button
+                  onClick={() => galleryInputRef.current?.click()}
+                  disabled={uploadingGallery}
+                  className="text-xs text-[#C8A96B] font-bold hover:underline"
+                >
+                  {uploadingGallery ? "Processando..." : "+ Enviar"}
+                </button>
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleGalleryUpload}
+                  className="hidden"
+                />
+              </div>
+
+              {gallery.length === 0 ? (
+                <div className="text-center py-6 text-xs text-gray-500">
+                  Nenhuma imagem carregada na galeria.
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {gallery.map((img) => (
+                    <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-gray-850 group bg-gray-950">
+                      <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => handleDeleteGalleryImage(img.id)}
+                        className="absolute inset-0 bg-red-950/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 text-xs font-bold transition-opacity"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+        {/* A3.10 — HORÁRIOS (reúso de editHours + handleEditHoursChange) */}
+        {activeTab === "horarios" && (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Horários de Funcionamento</h3>
               {/* Hours section in edit profile */}
               <div className="space-y-2 border-t border-gray-800 pt-4">
                 <label className="block text-xs font-medium text-gray-400">Horários de Funcionamento</label>
@@ -1526,28 +1527,213 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
-            </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
               <button
                 type="button"
-                onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded text-sm transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
                 onClick={handleSaveBusiness}
                 disabled={savingBusiness}
-                className="px-5 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded text-sm transition-colors"
+                className="px-5 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded text-sm transition-colors disabled:opacity-50"
               >
-                {savingBusiness ? "A Guardar..." : "Guardar Alterações"}
+                {savingBusiness ? "A Guardar..." : "Guardar Horários"}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+        {/* A3.11 — LOCALIZAÇÃO (país/cidade/morada + mapa existente) */}
+        {activeTab === "localizacao" && (
+          <div className="space-y-6">
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Localização</h3>
+                <button
+                  onClick={() => goTab("informacoes")}
+                  className="text-xs text-[#C8A96B] font-bold hover:underline whitespace-nowrap"
+                >
+                  Editar localização →
+                </button>
+              </div>
+              <p className="text-sm text-gray-300">
+                {[business?.address, cities.find((c) => c.id === business?.city_id)?.name, business?.country].filter(Boolean).join(" · ") || "Morada não definida."}
+              </p>
+              <p className="text-[11px] text-gray-600">Código postal, latitude/longitude e "Perto de Mim" ainda não existem — esta área está preparada para os receber.</p>
+            </div>
+            {/* Location Mini Map */}
+            {business?.address && (
+              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
+                <h3 className="font-display font-semibold text-[#C8A96B] border-b border-gray-800 pb-3">Localização</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">{business.address}</p>
+                <div className="rounded-xl overflow-hidden h-40 bg-slate-800">
+                  <iframe
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(business.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2 border border-[#C8A96B]/30 text-[#C8A96B] rounded-lg text-xs font-semibold hover:bg-[#C8A96B] hover:text-[#0F172A] transition-colors"
+                >
+                  📍 Ver no Google Maps
+                </a>
+              </div>
+            )}
+
+
+          </div>
+        )}
+        {/* A3.12 — AVALIAÇÕES */}
+        {activeTab === "avaliacoes" && (
+          <div className="space-y-6">
+            {/* Testimonials Section */}
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
+              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+                <div>
+                  <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Avaliações</h3>
+                  <p className="text-xs text-gray-400">Verifique e adicione reviews recomendados por clientes.</p>
+                </div>
+                <button
+                  onClick={() => setShowTestimonialModal(true)}
+                  className="px-4 py-2 border border-[#C8A96B] hover:bg-[#C8A96B] hover:text-[#0F172A] text-[#C8A96B] text-xs font-bold rounded-lg transition-all"
+                >
+                  + Adicionar Depoimento
+                </button>
+              </div>
+
+              {testimonials.length === 0 ? (
+                <div className="text-center py-10 border border-dashed border-gray-800 rounded-xl bg-gray-950/20">
+                  <span className="text-4xl">⭐</span>
+                  <p className="text-sm text-gray-500 mt-2">Sem depoimentos de clientes ainda.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {testimonials.map((t) => (
+                    <div key={t.id} className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-semibold text-sm text-white">{t.author_name}</span>
+                        <div className="flex text-[#C8A96B] text-xs">
+                          {Array.from({ length: t.rating }).map((_, i) => <span key={i}>★</span>)}
+                          {Array.from({ length: 5 - t.rating }).map((_, i) => <span key={i} className="text-gray-700">★</span>)}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-300 leading-relaxed italic mb-3">&quot;{t.text}&quot;</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEditTestimonial(t)}
+                          className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTestimonial(t.id)}
+                          className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-red-700 hover:text-red-400 transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {/* A3.13 — CATÁLOGO (editor + PDF existentes) */}
+        {activeTab === "catalogo" && (
+          <div className="space-y-6">
+            {/* Catalog Editor Card */}
+            <div
+              onClick={() => {
+                const isPaid = isPaidTier(business?.plan)
+                if (isPaid) {
+                  router.push("/dashboard/catalogo")
+                } else {
+                  setShowCatalogUpgradeModal(true)
+                }
+              }}
+              className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl cursor-pointer hover:border-[#C8A96B]/40 transition-colors group"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📄</span>
+                  <div>
+                    <h3 className="font-semibold text-[#C8A96B] text-sm">Catálogo Digital</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Editor de catálogo profissional</p>
+                  </div>
+                </div>
+                {!isPaidTier(business?.plan) && (
+                  <span className="text-[10px] font-bold text-[#0a0d14] bg-[#c9a96e] px-2 py-0.5 rounded-full">PRO</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 leading-relaxed mb-4">
+                Cria um catálogo elegante com capa, produtos e preços. Partilha online ou exporta em PDF.
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex gap-3 text-[10px] text-gray-600">
+                  <span>✓ Flipbook interativo</span>
+                  <span>✓ Exportar PDF</span>
+                </div>
+                <span className="text-xs text-[#C8A96B] font-semibold group-hover:translate-x-1 transition-transform inline-block">
+                  Abrir →
+                </span>
+              </div>
+            </div>
+
+
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 className="font-display font-semibold text-[#C8A96B]">Catálogo em PDF</h3>
+                <p className="text-xs text-gray-500 mt-1">Gera um PDF da tua Montra com os produtos atuais.</p>
+              </div>
+              <button
+                onClick={() => setShowCatalogModal(true)}
+                className="px-5 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors text-sm"
+              >
+                📄 Gerar Catálogo PDF
+              </button>
+            </div>
+          </div>
+        )}
+        {/* A3.14 — ANALYTICS */}
+        {activeTab === "analytics" && (
+          <div className="space-y-6">
+        {business && (
+          <AnalyticsSection
+            businessId={business.id}
+            plan={business.plan || "free"}
+          />
+        )}
+          </div>
+        )}
+        {/* A3.15 — PLANO */}
+        {activeTab === "plano" && (
+          <div className="space-y-6">
+        {business && (
+          <PlanSection
+            plan={business.plan || "free"}
+            onUpgrade={handleUpgrade}
+            checkoutLoading={checkoutLoading}
+            subscriptionCancelAt={business.subscription_cancel_at ?? null}
+            onCancelRequest={() => setShowCancelModal(true)}
+          />
+        )}
+
+        {business && (
+          <ShortLinkCard plan={business.plan || "free"} />
+        )}
+
+          </div>
+        )}
+      </main>
+
+      {/* ---------------- MODALS SECTION ---------------- */}
+
 
       {/* ADD PRODUCT MODAL */}
       {showProductModal && (
@@ -1986,6 +2172,21 @@ export default function DashboardPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// A3: useSearchParams requires a Suspense boundary.
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+          <div className="text-[#C8A96B] font-display text-xl animate-pulse">Carregando painel...</div>
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }
 
