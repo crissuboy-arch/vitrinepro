@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { WaveText } from "@/components/ui/wave-text";
+import { useAuth } from "@/app/context/SupabaseAuthContext";
 
 interface NavbarProps {
   onCadastrar: (e: React.MouseEvent) => void;
@@ -18,6 +19,9 @@ const NAV_LINKS = [
 export default function Navbar({ onCadastrar }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // UX/AUTH: visitante vê Entrar + Cadastrar; autenticado vê Meu Painel.
+  const { user, loading } = useAuth();
+  const isLoggedIn = !loading && !!user;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -62,14 +66,33 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
             ))}
           </nav>
 
-          {/* Right: CTA + hamburger */}
+          {/* Right: auth actions + hamburger */}
           <div className="flex items-center gap-3">
-            <button
-              onClick={onCadastrar}
-              className="hidden sm:flex px-5 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-[10px] font-bold rounded-lg uppercase tracking-widest active:scale-95 transition-all shadow-[0_4px_20px_rgba(200,169,107,0.15)] cursor-pointer"
-            >
-              <WaveText text="Criar vitrine grátis" />
-            </button>
+            {loading ? (
+              <span className="hidden sm:block w-44 h-9" aria-hidden="true" />
+            ) : isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                className="hidden sm:flex px-5 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-[10px] font-bold rounded-lg uppercase tracking-widest active:scale-95 transition-all shadow-[0_4px_20px_rgba(200,169,107,0.15)]"
+              >
+                Meu Painel
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="hidden sm:block px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-colors"
+                >
+                  Entrar
+                </Link>
+                <button
+                  onClick={onCadastrar}
+                  className="hidden sm:flex px-5 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-[10px] font-bold rounded-lg uppercase tracking-widest active:scale-95 transition-all shadow-[0_4px_20px_rgba(200,169,107,0.15)] cursor-pointer"
+                >
+                  <WaveText text="Cadastrar meu negócio" />
+                </button>
+              </>
+            )}
 
             {/* Hamburger icon — mobile only */}
             <button
@@ -142,15 +165,36 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
           ))}
         </nav>
 
-        {/* CTA at bottom */}
-        <div className="px-6 pb-8 pt-4 border-t border-white/5">
-          <button
-            onClick={(e) => { closeMenu(); onCadastrar(e); }}
-            className="w-full py-4 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl text-sm uppercase tracking-wider active:scale-95 transition-all cursor-pointer shadow-[0_4px_20px_rgba(200,169,107,0.2)]"
-          >
-            Criar vitrine grátis
-          </button>
-          <p className="text-center text-[11px] text-slate-600 mt-3">Sem cartão · Online em minutos</p>
+        {/* Auth actions at bottom */}
+        <div className="px-6 pb-8 pt-4 border-t border-white/5 flex flex-col gap-3">
+          {loading ? null : isLoggedIn ? (
+            <Link
+              href="/dashboard"
+              onClick={closeMenu}
+              className="w-full py-4 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl text-sm uppercase tracking-wider active:scale-95 transition-all text-center shadow-[0_4px_20px_rgba(200,169,107,0.2)]"
+            >
+              Meu Painel
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                onClick={closeMenu}
+                className="w-full py-4 border border-white/15 hover:border-[#C8A96B]/60 text-white font-bold rounded-xl text-sm uppercase tracking-wider active:scale-95 transition-all text-center"
+              >
+                Entrar
+              </Link>
+              <button
+                onClick={(e) => { closeMenu(); onCadastrar(e); }}
+                className="w-full py-4 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl text-sm uppercase tracking-wider active:scale-95 transition-all cursor-pointer shadow-[0_4px_20px_rgba(200,169,107,0.2)]"
+              >
+                Cadastrar meu negócio
+              </button>
+            </>
+          )}
+          {!isLoggedIn && (
+            <p className="text-center text-[11px] text-slate-600 mt-1">Sem cartão · Online em minutos</p>
+          )}
         </div>
       </div>
     </>
