@@ -1,5 +1,10 @@
 import VitrineClient from "./VitrineClient";
 import { supabase } from "../../lib/supabase";
+import {
+  pickSocialImage,
+  SOCIAL_IMAGE_WIDTH,
+  SOCIAL_IMAGE_HEIGHT,
+} from "@/lib/social-metadata";
 import type { Metadata } from "next";
 import { getSiteUrl } from "@/lib/site";
 
@@ -92,6 +97,10 @@ function buildLocalBusinessSchema(data: VitrineSchemaData, slug: string): Record
   return schema;
 }
 
+// Metadata social fresca: revalida a cada 5 min para refletir capa/logo novos.
+// (O cache do crawler do WhatsApp é independente e pode segurar a imagem antiga.)
+export const revalidate = 300;
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
@@ -141,23 +150,60 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       const desc = data.description || "Consulte a nossa vitrina oficial.";
       const cat = data.category || "Serviços";
       const country = data.country || "Portugal";
-      const cover = data.cover_url || data.logo_url || "/og-default.png";
+      const siteUrl = getSiteUrl().replace(/\/$/, "");
+      const pageUrl = `${siteUrl}/vitrine/${slug}`;
+
+      // Regra global da imagem social: capa → logo → galeria → produto → padrão.
+      const [galleryRes, productsRes] = await Promise.all([
+        supabase
+          .from("gallery_images")
+          .select("image_url")
+          .eq("business_id", data.id)
+          .order("order_index")
+          .limit(1),
+        supabase
+          .from("products")
+          .select("image_url")
+          .eq("business_id", data.id)
+          .order("order_index")
+          .limit(5),
+      ]);
+      const image = pickSocialImage(
+        {
+          cover_url: data.cover_url,
+          logo_url: data.logo_url,
+          galleryUrls: (galleryRes.data || []).map((g: { image_url: string }) => g.image_url),
+          productUrls: (productsRes.data || []).map((pr: { image_url: string }) => pr.image_url),
+        },
+        siteUrl
+      );
 
       return {
         title: `${name} em ${city} | VitrinePro`,
         description: desc.slice(0, 155),
         keywords: `${name}, ${cat}, ${city}, ${country}, VitrinePro, negócios locais`,
+        alternates: { canonical: pageUrl },
         openGraph: {
           title: name,
           description: desc.slice(0, 155),
-          images: [{ url: cover }],
+          url: pageUrl,
+          siteName: "VitrinePro",
+          locale: "pt_PT",
+          images: [
+            {
+              url: image,
+              width: SOCIAL_IMAGE_WIDTH,
+              height: SOCIAL_IMAGE_HEIGHT,
+              alt: name,
+            },
+          ],
           type: "website",
         },
         twitter: {
           card: "summary_large_image",
           title: `${name} em ${city} | VitrinePro`,
           description: desc.slice(0, 155),
-          images: [cover],
+          images: [image],
         },
       };
     }
