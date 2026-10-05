@@ -292,27 +292,27 @@ export default function ExplorarPage() {
 
   // A4.8/A4.9 — busca de produtos: só quando há pesquisa, com debounce,
   // filtrada no servidor (ilike) para não trazer o catálogo inteiro.
-  useEffect(() => {
-    if (!mounted) return;
-    const q = searchQuery.trim();
+  // A5-UX: extraída para runProductSearch para que o botão "🔎 Buscar" e o
+  // Enter executem EXATAMENTE a mesma pesquisa do debounce automático.
+  const runProductSearch = async (rawQuery: string) => {
+    const q = rawQuery.trim();
     if (q.length < 2) {
       setProductHits([]);
       return;
     }
-    const timer = setTimeout(async () => {
-      try {
-        // Sanitiza para o filtro PostgREST: só letras/números/espaços.
-        const safe = q.replace(/[^\p{L}\p{N} ]/gu, "").trim();
-        if (safe.length < 2) {
-          setProductHits([]);
-          return;
-        }
-        const like = `%${safe}%`;
-        const { data } = await supabase
-          .from("products")
-          .select("id, name, description, price, image_url, business_id, available_today, pickup_today, delivery_today")
-          .or(`name.ilike.${like},description.ilike.${like}`)
-          .limit(30);
+    try {
+      // Sanitiza para o filtro PostgREST: só letras/números/espaços.
+      const safe = q.replace(/[^\p{L}\p{N} ]/gu, "").trim();
+      if (safe.length < 2) {
+        setProductHits([]);
+        return;
+      }
+      const like = `%${safe}%`;
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, description, price, image_url, business_id, available_today, pickup_today, delivery_today")
+        .or(`name.ilike.${like},description.ilike.${like}`)
+        .limit(30);
         // RLS já restringe a produtos de negócios publicados; reforço
         // client-side com o helper reutilizável + join com os negócios.
         const bizById = new Map(displayBusinesses.map((b: any) => [b.id, b]));
@@ -341,9 +341,27 @@ export default function ExplorarPage() {
       } catch {
         setProductHits([]);
       }
+  };
+
+  useEffect(() => {
+    if (!mounted) return;
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setProductHits([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      void runProductSearch(q);
     }, 350);
     return () => clearTimeout(timer);
   }, [searchQuery, mounted, displayBusinesses, needToday]);
+
+  // A5-UX — submit da pesquisa (botão "🔎 Buscar" ou Enter): executa
+  // imediatamente a MESMA pesquisa do debounce automático.
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runProductSearch(searchQuery);
+  };
 
 
   const filteredBusinesses = useMemo(() => {
@@ -526,20 +544,32 @@ export default function ExplorarPage() {
         <section className="bg-gray-900/60 border border-gray-800 rounded-3xl p-6 shadow-xl space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
-            {/* Search Input */}
+            {/* Search Input — A5-UX: form com botão "🔎 Buscar"; Enter faz submit */}
             <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <label
+                htmlFor="explorar-search"
+                className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+              >
                 Pesquisa Livre
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Nome, descrição ou tags..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#0F172A] border border-gray-850 focus:border-[#C8A96B]/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-all"
-                />
-              </div>
+              <form onSubmit={handleSearchSubmit} className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    id="explorar-search"
+                    type="text"
+                    placeholder="Nome, descrição ou tags..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#0F172A] border border-gray-850 focus:border-[#C8A96B]/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-all"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-5 py-3 text-xs font-bold rounded-xl bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  🔎 Buscar
+                </button>
+              </form>
             </div>
 
             {/* Category Select */}

@@ -244,6 +244,7 @@ describe("A5 — guards estruturais", () => {
   });
 
   it("A4 preservada: ranking e domínio intactos", () => {
+
     const a = { plan: "free", view_count: 0, like_count: 0, favorite_count: 0, share_count: 0, rating_average: 0 };
     const b = { plan: "business", view_count: 100, like_count: 50, favorite_count: 20, share_count: 10, rating_average: 4.8 };
     assert.ok(scoreBusiness(b as Parameters<typeof scoreBusiness>[0]) > scoreBusiness(a as Parameters<typeof scoreBusiness>[0]));
@@ -259,5 +260,20 @@ describe("A5 — guards estruturais", () => {
     const explorar = repoFile("app", "explorar", "page.tsx");
     // payload do clique: só business_id + event_type (padrão A4)
     assert.ok(explorar.includes("body: JSON.stringify({ business_id: businessId, event_type: eventType })"));
+  });
+
+  it("A5-UX: pesquisa tem form + botão Buscar + Enter executa a mesma pesquisa", () => {
+    const explorar = repoFile("app", "explorar", "page.tsx");
+    // form com submit (Enter funciona)
+    assert.ok(explorar.includes("<form onSubmit={handleSearchSubmit}"));
+    // botão visível de submit
+    assert.ok(explorar.includes("🔎 Buscar"));
+    assert.ok(/<button[^>]*type="submit"/.test(explorar));
+    // handler de submit executa a MESMA função do debounce automático
+    assert.ok(explorar.includes("void runProductSearch(searchQuery)"));
+    assert.ok(explorar.includes("void runProductSearch(q)"));
+    // sem segundo motor de busca: uma única função de pesquisa de produtos
+    const defs = explorar.match(/const runProductSearch = async/g) || [];
+    assert.equal(defs.length, 1);
   });
 });

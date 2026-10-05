@@ -143,6 +143,17 @@ describe("A5 — isOpenNow (Europe/Lisbon, pt-PT)", () => {
 });
 
 describe("A5 — qualificação Preciso Hoje", () => {
+  it("CASO REAL: Coxinha no Cone (available=true, pickup=true, delivery=false)", () => {
+    const coxinha = { available_today: true, pickup_today: true, delivery_today: false };
+    // qualifica para o modo Preciso Hoje
+    assert.equal(productQualifiesNeedToday(coxinha), true);
+    // badges: Disponível hoje + Retirada hoje; Entrega hoje NÃO (FALSE confirmado)
+    assert.equal(productAvailabilityState(coxinha), "AVAILABLE");
+    const caps = productCapabilities(coxinha);
+    assert.equal(caps.pickup, "AVAILABLE");
+    assert.equal(caps.delivery, "UNAVAILABLE");
+    assert.equal(availabilityBadge(productAvailabilityState(coxinha)), "Disponível hoje");
+  });
   it("produto FALSE é excluído; TRUE/UNKNOWN passam", () => {
     assert.equal(productQualifiesNeedToday({ available_today: false }), false);
     assert.equal(productQualifiesNeedToday({ available_today: true }), true);
