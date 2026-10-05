@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { getSiteUrl } from "@/lib/site";
 import { supabase } from "@/app/lib/supabase";
+import SaveToCollection from "./SaveToCollection";
 
 interface SocialBarProps {
   businessId: string;
@@ -44,10 +45,8 @@ export default function SocialBar({
   const [shareCopied, setShareCopied] = useState(false);
   const shareRef = useRef<HTMLDivElement>(null);
 
-  const vitrineUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/vitrine/${businessSlug}`
-      : `${getSiteUrl()}/vitrine/${businessSlug}`;
+  // A6 (correção C): fonte canónica do domínio — vitrinepro.digital.
+  const vitrineUrl = `${getSiteUrl()}/vitrine/${businessSlug}`;
 
   // Fetch fresh counts + user status on mount
   useEffect(() => {
@@ -146,9 +145,13 @@ export default function SocialBar({
           .maybeSingle();
         if (existing) await supabase.from("favorites").delete().eq("id", existing.id);
       } else {
-        await supabase
+        const { error } = await supabase
           .from("favorites")
           .insert({ user_id: session.user.id, business_id: businessId });
+        // A6 (correção B): race de clique duplo → UNIQUE(user_id, business_id)
+        // (código 23505). O favorito já existe: trata como sucesso em vez de
+        // dessincronizar a UI otimista.
+        if (error && error.code !== "23505") throw error;
       }
     } catch {
       setIsFavorited(wasFavorited);
@@ -156,6 +159,16 @@ export default function SocialBar({
     } finally {
       setFavLoading(false);
     }
+    // Sincroniza contadores reais com o servidor (corrige drift do update otimista).
+    fetch(`/api/social?business_id=${businessId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error) {
+          setFavCount(data.favorite_count ?? 0);
+          setIsFavorited(data.is_favorited ?? false);
+        }
+      })
+      .catch(() => {});
   };
 
   // ── Share ────────────────────────────────────────────────────────
@@ -285,6 +298,16 @@ export default function SocialBar({
             </div>
           )}
         </div>
+      </div>
+
+      {/* A6 — Salvar em coleção (favorito tradicional preservado acima) */}
+      <div className="mt-2">
+        <SaveToCollection
+          itemRef={{ businessId }}
+          label="Salvar em coleção"
+          loginNext={`/vitrine/${businessSlug}`}
+          className="[&>button]:w-full [&>button]:justify-center [&>button]:py-2.5"
+        />
       </div>
     </div>
   );

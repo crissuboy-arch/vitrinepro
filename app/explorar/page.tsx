@@ -17,6 +17,7 @@ import {
 } from "@/lib/geo";
 import { businessMatchesQuery, productMatchesQuery } from "@/lib/local-search";
 import NearbyMap from "../components/NearbyMap";
+import SaveToCollection from "../components/SaveToCollection";
 // A5 — "Preciso Hoje": disponibilidade honesta (camada pura, sem React).
 import {
   isOpenNow,
@@ -1033,11 +1034,12 @@ function ProductResultCard({
       : null;
 
   return (
-    <Link
-      href={`/vitrine/${b.slug}`}
-      onClick={onClick}
-      className="group bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl overflow-hidden flex shadow-lg transition-all duration-300 hover:-translate-y-1"
-    >
+    <div className="relative group bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:-translate-y-1">
+      <Link
+        href={`/vitrine/${b.slug}`}
+        onClick={onClick}
+        className="flex"
+      >
       <div className="w-24 h-24 m-4 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 flex items-center justify-center text-3xl">
         {hit.image_url ? (
           <img src={hit.image_url} alt={hit.name} className="w-full h-full object-cover" />
@@ -1045,7 +1047,7 @@ function ProductResultCard({
           <span>🛍️</span>
         )}
       </div>
-      <div className="py-4 pr-4 flex flex-col justify-between min-w-0 flex-1">
+      <div className="py-4 pr-24 flex flex-col justify-between min-w-0 flex-1">
         <div className="min-w-0">
           <p className="text-[9px] font-bold text-[#C8A96B] uppercase tracking-widest">
             Produto
@@ -1090,6 +1092,15 @@ function ProductResultCard({
           </span>
         </div>
       </div>
-    </Link>
+      </Link>
+      {/* A6 — guardar produto em coleção (fora do Link: sem nesting inválido) */}
+      <div className="absolute top-2 right-2 z-10">
+        <SaveToCollection
+          itemRef={{ productId: hit.id }}
+          label="Guardar"
+          loginNext="/explorar"
+        />
+      </div>
+    </div>
   );
 }
