@@ -134,7 +134,7 @@ export default function ExplorarPage() {
           supabase
             .from("businesses")
             .select(
-              "id, name, slug, description, category, city, country, logo_url, cover_url, rating, owner_origin_country, opening_hours, service_today, latitude, longitude"
+              "id, name, slug, description, category, city, country, logo_url, cover_url, rating_average, rating_count, owner_origin_country, opening_hours, service_today, latitude, longitude"
             )
             .eq("published", true)
             .order("created_at", { ascending: false }),
