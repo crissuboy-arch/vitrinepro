@@ -867,6 +867,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
             src={business.cover}
             alt={business.name}
             fill
+            sizes="100vw"
             className="object-cover"
             priority
           />
@@ -886,6 +887,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
               src={business.logo}
               alt={`Logo ${business.name}`}
               fill
+              sizes="160px"
               className="object-cover cursor-pointer hover:scale-105 transition-transform"
               onClick={() => business.logo && setLightboxImg(business.logo)}
             />
@@ -963,6 +965,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                             src={product.image_url}
                             alt={product.name}
                             fill
+                            sizes="(max-width: 768px) 50vw, 400px"
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                         ) : (
@@ -1029,6 +1032,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                         src={imgUrl}
                         alt={`${business.name} galeria ${i + 1}`}
                         fill
+                        sizes="(max-width: 768px) 33vw, 300px"
                         className="object-cover group-hover:opacity-90 transition-opacity"
                       />
                       <div className="absolute inset-0 bg-[#0F172A]/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">

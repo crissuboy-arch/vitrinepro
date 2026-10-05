@@ -16,7 +16,9 @@ import {
   DISTANCE_FILTERS,
 } from "@/lib/geo";
 import { businessMatchesQuery, productMatchesQuery } from "@/lib/local-search";
-import NearbyMap from "../components/NearbyMap";
+import dynamic from "next/dynamic";
+
+const NearbyMap = dynamic(() => import("../components/NearbyMap"), { ssr: false });
 import SaveToCollection from "../components/SaveToCollection";
 import { splitExploreSlices } from "@/lib/explore-slices";
 // A5 — "Preciso Hoje": disponibilidade honesta (camada pura, sem React).
@@ -131,7 +133,9 @@ export default function ExplorarPage() {
         const [bizRes, catsRes, citiesRes] = await Promise.all([
           supabase
             .from("businesses")
-            .select("*")
+            .select(
+              "id, name, slug, description, category, city, country, logo_url, cover_url, premium, rating, owner_origin_country, opening_hours, service_today, latitude, longitude"
+            )
             .eq("published", true)
             .order("created_at", { ascending: false }),
           supabase.from("categories").select("id, name, icon").eq("is_active", true),
@@ -915,10 +919,12 @@ function ExplorarCard({ biz, onResultClick }: { biz: any; onResultClick?: () => 
       {/* Cover — 140px */}
       <div className="relative h-[140px] w-full bg-slate-900 flex-shrink-0">
         {biz.cover ? (
-          <img
+          <Image
             src={biz.cover}
             alt={`Capa de ${biz.name}`}
-            className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
+            fill
+            sizes="(max-width: 768px) 100vw, 400px"
+            className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-950 opacity-40 flex items-center justify-center text-4xl">
@@ -956,7 +962,7 @@ function ExplorarCard({ biz, onResultClick }: { biz: any; onResultClick?: () => 
           <div className="flex gap-3">
             <div className="w-10 h-10 rounded-full bg-slate-950 border-2 border-slate-800 flex items-center justify-center text-lg overflow-hidden relative -mt-8 z-20 shadow-xl flex-shrink-0">
               {biz.logo && biz.logo.startsWith("http") ? (
-                <img src={biz.logo} alt={`Logo de ${biz.name}`} className="w-full h-full object-cover" />
+                <Image src={biz.logo} alt={`Logo de ${biz.name}`} fill sizes="96px" className="object-cover" />
               ) : (
                 <span className="text-sm">{biz.logo}</span>
               )}
@@ -1043,9 +1049,9 @@ function ProductResultCard({
         onClick={onClick}
         className="flex"
       >
-      <div className="w-24 h-24 m-4 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 flex items-center justify-center text-3xl">
+      <div className="relative w-24 h-24 m-4 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 flex items-center justify-center text-3xl">
         {hit.image_url ? (
-          <img src={hit.image_url} alt={hit.name} className="w-full h-full object-cover" />
+          <Image src={hit.image_url} alt={hit.name} fill sizes="(max-width: 768px) 50vw, 300px" className="object-cover" />
         ) : (
           <span>🛍️</span>
         )}
