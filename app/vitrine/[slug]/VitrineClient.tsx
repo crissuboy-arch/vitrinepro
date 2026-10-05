@@ -17,6 +17,7 @@ import { shouldRenderChannel } from "@/lib/business-profile";
 import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib/analytics";
 import { pixelContact } from "@/app/lib/meta-pixel";
 import SocialBar from "../../components/SocialBar";
+import SaveToCollection from "../../components/SaveToCollection";
 
 interface OpeningHour {
   day: string;
@@ -984,18 +985,26 @@ export default function VitrineClient({ slug }: { slug: string }) {
                           <p className="text-xs text-slate-400 font-light leading-relaxed line-clamp-3">{product.description}</p>
                         </div>
 
-                        {shouldRenderChannel(business.whatsApp) && (
-                          <a
-                            href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}?text=${encodeURIComponent(
-                              `Olá! Vi o vosso produto *${product.name}* no VitrinePro e gostava de obter mais informações.`
-                            )}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-5 flex items-center justify-center gap-2 py-2 bg-slate-800 hover:bg-[#C8A96B] hover:text-[#0F172A] text-[#C8A96B] rounded-lg text-xs font-semibold transition-all border border-[#C8A96B]/20 hover:border-transparent active:scale-95"
-                          >
-                            Pedir Informações
-                          </a>
-                        )}
+                        <div className="mt-5 flex gap-2">
+                          {shouldRenderChannel(business.whatsApp) && (
+                            <a
+                              href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}?text=${encodeURIComponent(
+                                `Olá! Vi o vosso produto *${product.name}* no VitrinePro e gostava de obter mais informações.`
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 flex items-center justify-center gap-2 py-2 bg-slate-800 hover:bg-[#C8A96B] hover:text-[#0F172A] text-[#C8A96B] rounded-lg text-xs font-semibold transition-all border border-[#C8A96B]/20 hover:border-transparent active:scale-95"
+                            >
+                              Pedir Informações
+                            </a>
+                          )}
+                          {/* A6 — guardar produto em coleção */}
+                          <SaveToCollection
+                            itemRef={{ productId: product.id }}
+                            label="Guardar"
+                            loginNext={`/vitrine/${business.slug}`}
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}

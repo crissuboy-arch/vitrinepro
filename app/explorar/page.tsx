@@ -18,6 +18,7 @@ import {
 import { businessMatchesQuery, productMatchesQuery } from "@/lib/local-search";
 import NearbyMap from "../components/NearbyMap";
 import SaveToCollection from "../components/SaveToCollection";
+import { splitExploreSlices } from "@/lib/explore-slices";
 // A5 — "Preciso Hoje": disponibilidade honesta (camada pura, sem React).
 import {
   isOpenNow,
@@ -486,8 +487,10 @@ export default function ExplorarPage() {
     return scoped;
   }, [displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity, userLoc, maxDistanceKm, sortMode, needToday]);
 
-  const featuredSlice = filteredBusinesses.filter((b) => b.premium).slice(0, 3);
-  const regularSlice = filteredBusinesses.filter((b) => !b.premium);
+  // A6 fix (Problema 3): premium além do cap desce para a secção regular —
+  // a contagem "Vitrinas Publicadas (N)" corresponde sempre aos cartões visíveis.
+  const { featured: featuredSlice, regular: regularSlice } =
+    splitExploreSlices(filteredBusinesses, 3);
 
   if (!mounted || loading) {
     return (

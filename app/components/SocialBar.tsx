@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { getSiteUrl } from "@/lib/site";
 import { supabase } from "@/app/lib/supabase";
 import SaveToCollection from "./SaveToCollection";
@@ -44,6 +44,14 @@ export default function SocialBar({
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const shareRef = useRef<HTMLDivElement>(null);
+  // A6 fix (React #418): navigator só existe no cliente. Renderizar o botão
+  // de partilha nativa condicionalmente causa mismatch SSR/hidratação.
+  // useSyncExternalStore: false no servidor, true no cliente (padrão canónico).
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   // A6 (correção C): fonte canónica do domínio — vitrinepro.digital.
   const vitrineUrl = `${getSiteUrl()}/vitrine/${businessSlug}`;
@@ -287,7 +295,7 @@ export default function SocialBar({
               >
                 <span>💬</span> Partilhar no WhatsApp
               </button>
-              {typeof navigator !== "undefined" && "share" in navigator && (
+              {mounted && typeof navigator !== "undefined" && "share" in navigator && (
                 <button
                   onClick={handleNativeShare}
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 transition-colors border-t border-slate-800"
