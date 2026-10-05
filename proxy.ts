@@ -35,7 +35,7 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  const protectedRoutes = ["/dashboard", "/onboarding", "/favoritos", "/admin"];
+  const protectedRoutes = ["/dashboard", "/onboarding", "/favoritos", "/admin", "/conta"];
   const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
 
   if (isProtected && !user) {
@@ -53,5 +53,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/onboarding/:path*", "/favoritos/:path*", "/admin/:path*"],
+  matcher: ["/dashboard/:path*", "/onboarding/:path*", "/favoritos/:path*", "/admin/:path*", "/conta/:path*"],
 };

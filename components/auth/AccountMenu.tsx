@@ -103,6 +103,14 @@ export default function AccountMenu() {
 
           <nav className="py-1.5">
             <Link
+              href="/conta"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/5 hover:text-white transition-colors"
+            >
+              Gestão da conta
+            </Link>
+            <Link
               href="/dashboard"
               role="menuitem"
               onClick={() => setOpen(false)}
