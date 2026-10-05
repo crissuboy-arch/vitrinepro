@@ -64,7 +64,7 @@ export default async function MarketplaceCategoryPage({ params }: MarketplacePag
             </Link>
           </div>
           <Link href="/" className="hover:opacity-90 transition-opacity">
-            <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+            <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
           </Link>
         </div>
       </header>
@@ -139,7 +139,7 @@ export default async function MarketplaceCategoryPage({ params }: MarketplacePag
       <footer className="bg-slate-950 border-t border-slate-800 py-12 text-center text-slate-500 text-xs">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-3">
           <Link href="/">
-            <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-2" />
+            <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-2" />
           </Link>
           <p className="text-slate-400">VitrinePro - Marketplace Local & Digital em Portugal</p>
           <p>© 2026 VitrinePro. Todos os direitos reservados.</p>

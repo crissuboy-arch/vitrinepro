@@ -14,15 +14,17 @@ const read = (p: string) => readFileSync(join(root, p), "utf8");
 describe("brand — fonte única", () => {
   it("lib/brand.ts existe com os 7 assets", () => {
     const src = read("lib/brand.ts");
-    for (const k of ["logo", "logoLight", "symbol", "ogInstitutional", "icon192", "icon512", "appleTouchIcon"]) {
+    for (const k of ["logo", "logoHorizontal", "symbol", "ogInstitutional", "icon192", "icon512", "appleTouchIcon"]) {
       assert.ok(src.includes(k), k);
     }
+    assert.ok(src.includes("logo-horizontal-transparent.png"), "nova identidade");
+    assert.ok(src.includes("brand-symbol-transparent.png"), "símbolo V");
   });
 
   it("assets existem e têm tamanho razoável", () => {
     assert.ok(existsSync(join(root, "public/logo-vitrinepro.png")));
-    assert.ok(existsSync(join(root, "public/brand/logo-vitrinepro-light.png")));
-    assert.ok(existsSync(join(root, "public/brand/symbol.png")));
+    assert.ok(existsSync(join(root, "public/brand/logo-horizontal-transparent.png")));
+    assert.ok(existsSync(join(root, "public/brand/brand-symbol-transparent.png")));
     assert.ok(existsSync(join(root, "public/brand/og-institutional.jpg")));
     assert.ok(existsSync(join(root, "public/brand/icon-192.png")));
     assert.ok(existsSync(join(root, "public/brand/icon-512.png")));
@@ -34,19 +36,21 @@ describe("brand — fonte única", () => {
   });
 
   it("logo tem transparência real (RGBA)", () => {
-    const buf = readFileSync(join(root, "public/logo-vitrinepro.png"));
+    const buf = readFileSync(join(root, "public/brand/logo-horizontal-transparent.png"));
     // PNG RGBA = color type 6 no byte 25 do header IHDR
     assert.equal(buf[25], 6, "color type RGBA");
   });
 
-  it("símbolo tem transparência real (RGBA)", () => {
-    const buf = readFileSync(join(root, "public/brand/symbol.png"));
+  it("símbolo V tem transparência real (RGBA)", () => {
+    const buf = readFileSync(join(root, "public/brand/brand-symbol-transparent.png"));
     assert.equal(buf[25], 6, "color type RGBA");
   });
 
   it("assets obsoletos removidos", () => {
     assert.ok(!existsSync(join(root, "public/og-default.png")), "og-default removido");
     assert.ok(!existsSync(join(root, "public/logo-vitrinepro-icon.png")), "ícone antigo removido");
+    assert.ok(!existsSync(join(root, "public/brand/logo-vitrinepro-light.png")), "variante provisória removida");
+    assert.ok(!existsSync(join(root, "public/brand/symbol.png")), "pin antigo removido");
     assert.ok(!existsSync(join(root, "public/favicon.ico")), "favicon antigo removido");
   });
 
@@ -67,6 +71,12 @@ describe("brand — fonte única", () => {
   it("fallback social das Montras é a imagem institucional", () => {
     const src = read("lib/social-metadata.ts");
     assert.ok(src.includes("/brand/og-institutional.jpg"), "fallback institucional");
+  });
+
+  it("nenhuma referência à identidade antiga nos componentes", async () => {
+    const { execSync } = await import("node:child_process");
+    const out = execSync('grep -rn "logo-vitrinepro-light\|brand/symbol.png" app components --include="*.tsx" || true', { cwd: root }).toString();
+    assert.ok(!out.trim(), "sem refs antigas: " + out.slice(0, 120));
   });
 
   it("manifest referencia os icons PWA", () => {

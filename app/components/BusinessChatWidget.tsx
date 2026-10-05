@@ -150,7 +150,7 @@ export default function BusinessChatWidget({ business }: BusinessChatWidgetProps
           <div className="bg-[#0b1326] px-4 py-3 flex items-center justify-between border-b border-slate-800/80">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-transparent flex items-center justify-center overflow-hidden flex-shrink-0">
-                <img src="/brand/logo-vitrinepro-light.png" alt="" className="w-full h-full object-contain" />
+                <img src="/brand/logo-horizontal-transparent.png" alt="" className="w-full h-full object-contain" />
               </div>
               <div>
                 <h4 className="text-xs font-bold text-white font-display leading-tight">{business.name}</h4>

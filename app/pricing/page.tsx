@@ -116,7 +116,7 @@ export default function PricingPage() {
       <header className="bg-[#0F172A] border-b border-[#1F2937]">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+            <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="text-[#E5E7EB] hover:text-white text-sm transition-colors">Dashboard</Link>

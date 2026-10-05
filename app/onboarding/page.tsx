@@ -283,7 +283,7 @@ export default function OnboardingPage() {
             >
               ← Voltar ao início
             </Link>
-            <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 w-auto object-contain bg-transparent" />
+            <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 w-auto object-contain bg-transparent" />
           </div>
           <span className="text-sm text-gray-400">Passo {step} de 4</span>
         </div>

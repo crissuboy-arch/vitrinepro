@@ -524,7 +524,7 @@ export default function HomePage() {
 
       <footer className="py-16 bg-[#030610] border-t border-white/5 text-slate-500 text-xs z-10">
         <div className="max-w-6xl mx-auto px-4 space-y-6 text-center">
-          <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-12 mx-auto object-contain bg-transparent" />
+          <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-12 mx-auto object-contain bg-transparent" />
           <p className="text-slate-400 font-light max-w-md mx-auto">
             A ferramenta SaaS definitiva para simplificar a presença online de pequenos negócios e profissionais liberais.
           </p>

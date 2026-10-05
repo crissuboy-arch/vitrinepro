@@ -53,7 +53,7 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
           {/* Logo */}
           <Link href="/" className="hover:opacity-90 transition-opacity flex-shrink-0" onClick={closeMenu} aria-label="VitrinePro">
             <img
-              src="/brand/logo-vitrinepro-light.png"
+              src="/brand/logo-horizontal-transparent.png"
               alt="VitrinePro"
               className="h-8 w-auto object-contain"
             />
@@ -136,7 +136,7 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
         {/* Drawer header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/5">
           <img
-            src="/brand/logo-vitrinepro-light.png"
+            src="/brand/logo-horizontal-transparent.png"
             alt="VitrinePro"
             className="h-7 w-auto object-contain"
           />
