@@ -2674,7 +2674,7 @@ function buildCatalogHtml_DELETED_PLACEHOLDER_DO_NOT_USE(biz: any, products: any
     </div>
     <div class="footer-right">
       <div class="footer-url">${vitrineUrl}</div>
-      <div class="footer-brand">vitrinepro.pt</div>
+      <div class="footer-brand">vitrinepro.digital</div>
     </div>
   </div>
 
@@ -3284,7 +3284,7 @@ function ShortLinkCard({ plan }: { plan: string }) {
               <h4 className="text-sm font-bold text-white">O teu link curto</h4>
             </div>
             <p className="text-xs text-slate-400 font-light leading-relaxed">
-              Cria um redirecionamento amigável e fácil de lembrar para a tua vitrina: <span className="text-[#C8A96B]">vitrinepro.pt/v/o-teu-codigo</span>.
+              Cria um redirecionamento amigável e fácil de lembrar para a tua vitrina: <span className="text-[#C8A96B]">vitrinepro.digital/v/o-teu-codigo</span>.
             </p>
             <div className="inline-flex items-center gap-1.5 bg-purple-950/40 border border-purple-850 px-3 py-1.5 rounded-lg mt-2 text-[10px] font-bold text-purple-300">
               🔒 Disponível no plano Business €29,90/mês
@@ -3311,7 +3311,7 @@ function ShortLinkCard({ plan }: { plan: string }) {
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <div className="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 flex items-center justify-between text-xs sm:text-sm text-slate-200 select-all font-mono">
-              <span>{typeof window !== "undefined" ? `${window.location.host}/v/${shortLink.short_code}` : `vitrinepro.pt/v/${shortLink.short_code}`}</span>
+              <span>{typeof window !== "undefined" ? `${window.location.host}/v/${shortLink.short_code}` : `vitrinepro.digital/v/${shortLink.short_code}`}</span>
               <a
                 href={`/v/${shortLink.short_code}`}
                 target="_blank"
@@ -3357,7 +3357,7 @@ function ShortLinkCard({ plan }: { plan: string }) {
           <div className="flex flex-col sm:flex-row items-stretch gap-2">
             <div className="flex-grow bg-slate-950 border border-slate-800 rounded-xl flex items-center px-3.5 focus-within:border-purple-600">
               <span className="text-slate-500 text-xs sm:text-sm font-light select-none font-mono">
-                {typeof window !== "undefined" ? `${window.location.host}/v/` : "vitrinepro.pt/v/"}
+                {typeof window !== "undefined" ? `${window.location.host}/v/` : "vitrinepro.digital/v/"}
               </span>
               <input
                 type="text"

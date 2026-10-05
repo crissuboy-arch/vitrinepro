@@ -319,7 +319,7 @@ export default function CatalogFlipbook({ onCadastrar }: Props) {
             {[
               { icon: "📍", text: "Rua do Comércio 45, Lisboa" },
               { icon: "📞", text: "+351 912 345 678" },
-              { icon: "🌐", text: "vitrinepro.pt/burgerhouse" },
+              { icon: "🌐", text: "vitrinepro.digital/burgerhouse" },
             ].map((c, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 }}>
                 <span style={{ fontSize: 10 }}>{c.icon}</span>
@@ -351,7 +351,7 @@ export default function CatalogFlipbook({ onCadastrar }: Props) {
           </div>
           <div style={{ marginTop: "auto", borderTop: "1px solid rgba(201,169,110,0.15)", paddingTop: 8 }}>
             <div style={{ fontSize: 7.5, color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em" }}>
-              Gerado pela VitrinePro · vitrinepro.pt
+              Gerado pela VitrinePro · vitrinepro.digital
             </div>
           </div>
         </div>

@@ -3,17 +3,19 @@
  *
  * SOURCE OF TRUTH for the canonical domain / site URL.
  *
- * Canonical production domain: https://vitrinepro.pt
+ * Canonical production domain: https://vitrinepro.digital
+ * (owner decision 2026-10-05 — replaces the former vitrinepro.pt
+ * assumption; vitrinepro.pt was never registered/connected.)
  *
  * Resolution order:
  *   1. NEXT_PUBLIC_APP_URL (explicit override — Vercel project setting)
  *   2. VERCEL_URL (preview deployments keep working)
- *   3. https://vitrinepro.pt (canonical fallback)
+ *   3. https://vitrinepro.digital (canonical fallback)
  *
  * Local dev: set NEXT_PUBLIC_APP_URL=http://localhost:3000 in .env.local.
  */
 
-export const CANONICAL_DOMAIN = "vitrinepro.pt";
+export const CANONICAL_DOMAIN = "vitrinepro.digital";
 export const CANONICAL_URL = `https://${CANONICAL_DOMAIN}`;
 
 function stripTrailingSlash(url: string): string {

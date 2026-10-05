@@ -163,7 +163,7 @@ function buildHtml(biz: CatalogBiz, products: CatalogProduct[], settings: Catalo
   <div class="divisor"></div>
   <div class="divisor-bar">
     <span>Produtos · Serviços · Portfólio</span>
-    <a>vitrinepro.pt/${slug}</a>
+    <a>vitrinepro.digital/${slug}</a>
   </div>
 
   ${incluirProdutos && products.length > 0 ? `
@@ -246,7 +246,7 @@ function buildHtml(biz: CatalogBiz, products: CatalogProduct[], settings: Catalo
   <div class="rodape">
     <div>
       <div class="rodape-brand">${nome}</div>
-      <div class="rodape-url">vitrinepro.pt/${slug}</div>
+      <div class="rodape-url">vitrinepro.digital/${slug}</div>
     </div>
     <div class="rodape-info">
       ${fraseRodape || "Contacte-nos para mais informações"}<br>

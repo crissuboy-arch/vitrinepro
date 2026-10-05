@@ -6,7 +6,7 @@ Legenda de estado:
 
 > Preços de referência temporários (fonte central: `lib/plans.ts`):
 > Free €0 · Pro €12/mês · Business €29,90/mês.
-> Domínio canónico: **https://vitrinepro.pt** (fonte central: `lib/site.ts`).
+> Domínio canónico: **https://vitrinepro.digital** (fonte central: `lib/site.ts`; decisão da proprietária 2026-10-05).
 
 ## 1. SUPABASE
 
@@ -29,7 +29,7 @@ Legenda de estado:
   - Pro €12/mês → copiar o Price ID para `STRIPE_PRICE_PREMIUM`
   - Business €29,90/mês → copiar o Price ID para `STRIPE_PRICE_BUSINESS`
   - **CONFIRMADO** — Nenhum Price ID hard-coded no código (só de env; `lib/plans.ts`).
-- [ ] **PRECISA VERIFICAR** — Webhook `https://vitrinepro.pt/api/stripe/webhook` com os eventos:
+- [ ] **PRECISA VERIFICAR** — Webhook `https://vitrinepro.digital/api/stripe/webhook` com os eventos:
   `checkout.session.completed`, `invoice.payment_succeeded`, **`invoice.payment_failed`** (novo na A2.6),
   `customer.subscription.updated`, `customer.subscription.deleted`.
 - [ ] **PRECISA VERIFICAR** — `STRIPE_WEBHOOK_SECRET` e `STRIPE_SECRET_KEY` (LIVE) configurados na Vercel.
@@ -47,7 +47,7 @@ Copiar cada nome e preencher com os valores reais; nunca commitar `.env.local`.
 | `NEXT_PUBLIC_SUPABASE_URL` | **PRECISA VERIFICAR** |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **PRECISA VERIFICAR** |
 | `SUPABASE_SERVICE_ROLE_KEY` (server-only) | **PRECISA VERIFICAR** |
-| `NEXT_PUBLIC_APP_URL` = `https://vitrinepro.pt` | **PRECISA VERIFICAR** |
+| `NEXT_PUBLIC_APP_URL` = `https://vitrinepro.digital` | **PRECISA VERIFICAR** |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | **PRECISA VERIFICAR** |
 | `STRIPE_PRICE_PREMIUM` / `STRIPE_PRICE_BUSINESS` | **PRECISA VERIFICAR** |
 | `ANTHROPIC_API_KEY` (server-only) | **PRECISA VERIFICAR** — sem ela, o chat usa fallback por regras |
@@ -56,7 +56,7 @@ Copiar cada nome e preencher com os valores reais; nunca commitar `.env.local`.
 
 ## 4. VERCEL
 
-- [ ] **PRECISA VERIFICAR** — Deploy da branch `main`; domínio `vitrinepro.pt` apontado.
+- [ ] **PRECISA VERIFICAR** — Deploy da branch `main`; domínio `vitrinepro.digital` apontado na Vercel (Settings → Domains) + DNS configurado.
 - [ ] **PRECISA VERIFICAR** — Preview deployments continuam a funcionar (fallback `VERCEL_URL` em `lib/site.ts`).
 - [ ] Testar fluxo completo: `/login` → `/onboarding` → `/dashboard` → `/vitrine/[slug]`.
 
@@ -91,9 +91,9 @@ Copiar cada nome e preencher com os valores reais; nunca commitar `.env.local`.
 
 ## 6. DOMAIN
 
-- **CONFIRMADO** — Fallbacks antigos (`vitrinepro.com`, `vitrine.vitriodigital.com`) removidos do código; fallback canónico é `https://vitrinepro.pt`.
-- [ ] **PRECISA VERIFICAR** — DNS e SSL de `vitrinepro.pt` na Vercel.
-- [ ] **PRECISA VERIFICAR** — `https://vitrinepro.pt/og-default.png` acessível (OG image).
+- **CONFIRMADO** — Fallbacks antigos (`vitrinepro.com`, `vitrine.vitriodigital.com`) removidos do código; domínio canónico é `https://vitrinepro.digital` (2026-10-05). `vitrinepro.pt` nunca foi registado.
+- [ ] **PRECISA VERIFICAR** — DNS e SSL de `vitrinepro.digital` na Vercel.
+- [ ] **PRECISA VERIFICAR** — `https://vitrinepro.digital/og-default.png` acessível (OG image).
 
 ## 7. SECURITY CHECK (pós-deploy)
 

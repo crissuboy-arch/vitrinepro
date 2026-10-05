@@ -262,43 +262,68 @@ describe("A4 — ranking existente preservado", () => {
   });
 });
 
-describe("A4 — .pt canónico (regressão vitrinepro.com)", () => {
-  it("CANONICAL_URL é https://vitrinepro.pt, sem .com", () => {
-    assert.equal(CANONICAL_URL, "https://vitrinepro.pt");
+describe("domínio canónico vitrinepro.digital (regressão .pt/.com)", () => {
+  it("CANONICAL_URL é https://vitrinepro.digital", () => {
+    assert.equal(CANONICAL_URL, "https://vitrinepro.digital");
     assert.ok(!CANONICAL_URL.includes("vitrinepro.com"));
+    assert.ok(!CANONICAL_URL.includes("vitrinepro.pt"));
   });
 
-  it("getSiteUrl() nunca devolve .com nos cenários padrão", () => {
+  it("getSiteUrl() nunca devolve .pt nem .com nos cenários padrão", () => {
     delete process.env.NEXT_PUBLIC_APP_URL;
     delete process.env.VERCEL_URL;
-    assert.ok(!getSiteUrl().includes("vitrinepro.com"));
-    process.env.VERCEL_URL = "vitrinepro-abc123.vercel.app";
-    assert.ok(!getSiteUrl().includes("vitrinepro.com"));
-    delete process.env.VERCEL_URL;
+    const url = getSiteUrl();
+    assert.equal(url, "https://vitrinepro.digital");
+    assert.ok(!url.includes("vitrinepro.pt"));
+    assert.ok(!url.includes("vitrinepro.com"));
     process.env.NEXT_PUBLIC_APP_URL = "not a url";
-    assert.equal(getSiteUrl(), "https://vitrinepro.pt");
+    assert.equal(getSiteUrl(), "https://vitrinepro.digital");
     delete process.env.NEXT_PUBLIC_APP_URL;
   });
 
   it("nenhum literal vitrinepro.com no código operacional", () => {
-    const roots = ["app", "lib", "components"];
-    const hits: string[] = [];
-    const walk = (dir: string) => {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-          if (entry.name === "node_modules") continue;
-          walk(full);
-        } else if (/\.(ts|tsx|js|jsx|css|json)$/.test(entry.name)) {
-          const content = fs.readFileSync(full, "utf8");
-          if (content.includes("vitrinepro.com")) hits.push(full);
-        }
-      }
-    };
-    for (const r of roots) walk(r);
+    const hits = scanRepoFor("vitrinepro.com");
     assert.deepEqual(hits, [], `vitrinepro.com encontrado em: ${hits.join(", ")}`);
   });
+
+  it("nenhum literal vitrinepro.pt operacional restante", () => {
+    // Exceções legítimas: e-mails legais (decisão pendente da proprietária)
+    // e o comentário histórico em lib/site.ts. Todo o resto é .digital.
+    const hits = scanRepoFor("vitrinepro.pt").filter(
+      (f) =>
+        !f.endsWith("politica-privacidade/page.tsx") &&
+        !f.endsWith("termos-de-servico/page.tsx") &&
+        !f.endsWith("lib/site.ts")
+    );
+    assert.deepEqual(hits, [], `vitrinepro.pt operacional em: ${hits.join(", ")}`);
+  });
+
+  it("nenhuma URL pública permanente depende de *.vercel.app", () => {
+    // getSiteUrl() só usa VERCEL_URL como fallback de preview; o canónico
+    // nunca é um domínio vercel.app.
+    assert.ok(!CANONICAL_URL.includes("vercel.app"));
+  });
 });
+
+/** Varre app/, lib/, components/ por um literal (testes e docs excluídos). */
+function scanRepoFor(literal: string): string[] {
+  const roots = ["app", "lib", "components"];
+  const hits: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === "node_modules") continue;
+        walk(full);
+      } else if (/\.(ts|tsx|js|jsx|css|json)$/.test(entry.name)) {
+        const content = fs.readFileSync(full, "utf8");
+        if (content.includes(literal)) hits.push(full);
+      }
+    }
+  };
+  for (const r of roots) walk(r);
+  return hits;
+}
 
 describe("A4 — payload de localização (ownership)", () => {
   const base = {

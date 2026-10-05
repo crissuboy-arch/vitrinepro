@@ -371,7 +371,7 @@ export default function CatalogEditorPage() {
         {catalog.publico && catalog.slug && (
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto" }}>
             <span style={{ fontSize: "12px", color: "#555", fontFamily: "monospace" }}>
-              vitrinepro.pt/catalogo/{catalog.slug}
+              vitrinepro.digital/catalogo/{catalog.slug}
             </span>
             <button
               onClick={async () => {

@@ -174,6 +174,6 @@ describe("A3 — publication, plan, Ver Montra", () => {
     delete process.env.NEXT_PUBLIC_APP_URL;
     delete process.env.VERCEL_URL;
     const url = `${getSiteUrl()}/vitrine/cantinho-da-lu`;
-    assert.equal(url, "https://vitrinepro.pt/vitrine/cantinho-da-lu");
+    assert.equal(url, "https://vitrinepro.digital/vitrine/cantinho-da-lu");
   });
 });

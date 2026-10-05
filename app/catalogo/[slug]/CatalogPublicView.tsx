@@ -100,7 +100,7 @@ export default function CatalogPublicView({ catalog }: { catalog: Catalog }) {
       <footer style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "20px 24px", textAlign: "center", fontSize: "12px", color: "#333" }}>
         Criado com{" "}
         <Link href="/" style={{ color: "#c9a96e", textDecoration: "none" }}>VitrinePro</Link>
-        {" "}· vitrinepro.pt
+        {" "}· vitrinepro.digital
       </footer>
     </div>
   )

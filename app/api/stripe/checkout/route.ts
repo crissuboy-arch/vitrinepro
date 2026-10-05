@@ -4,14 +4,14 @@
  * BEFORE: created a Stripe session for ANY businessId with no
  * authentication and no ownership check — anyone could start (or probe)
  * checkouts for other merchants' businesses. Live price IDs were
- * hard-coded as fallbacks, and the URL fallback used vitrinepro.pt.
+ * hard-coded as fallbacks, and the URL fallback used the old .pt domain.
  *
  * AFTER:
  *  - Requires an authenticated session (cookie) or Bearer token.
  *  - Verifies the caller OWNS the business (user_id match).
  *  - planId validated server-side against the CHECKOUT_PLANS allowlist.
  *  - Stripe Price IDs come ONLY from env (no hard-coded live IDs).
- *  - Base URL from lib/site (canonical https://vitrinepro.pt fallback).
+ *  - Base URL from lib/site (canonical https://vitrinepro.digital fallback).
  *  - No internal error details leaked to the client.
  */
 

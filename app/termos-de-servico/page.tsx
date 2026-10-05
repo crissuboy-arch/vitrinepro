@@ -44,7 +44,7 @@ export default function TermosDeServicoPag() {
               <p><strong>Denominação:</strong> VitrinePro</p>
               <p><strong>País de estabelecimento:</strong> Portugal</p>
               <p><strong>Email:</strong> <a href="mailto:suporte@vitrinepro.pt" className="text-[#C8A96B] hover:underline">suporte@vitrinepro.pt</a></p>
-              <p><strong>Website:</strong> <a href="https://vitrinepro.pt" className="text-[#C8A96B] hover:underline">vitrinepro.pt</a></p>
+              <p><strong>Website:</strong> <a href="https://vitrinepro.digital" className="text-[#C8A96B] hover:underline">vitrinepro.digital</a></p>
             </div>
           </section>
 

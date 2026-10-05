@@ -44,7 +44,7 @@ const features = [
   {
     icon: "🔗",
     title: "Link Público para Partilhar",
-    desc: "URL limpo e memorável (vitrinepro.pt/o-seu-negocio) para colocar no Instagram, WhatsApp, cartão de visita e emails.",
+    desc: "URL limpo e memorável (vitrinepro.digital/o-seu-negocio) para colocar no Instagram, WhatsApp, cartão de visita e emails.",
   },
   {
     icon: "📊",
@@ -243,7 +243,7 @@ export default function PlanoBusiness() {
               Um link para enviar a<br />qualquer cliente
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed font-light max-w-md">
-              O seu endereço público <strong className="text-white">vitrinepro.pt/o-seu-negocio</strong> funciona como o seu site completo. Cole no Instagram, WhatsApp, TikTok, cartão de visita, Google e onde quiser.
+              O seu endereço público <strong className="text-white">vitrinepro.digital/o-seu-negocio</strong> funciona como o seu site completo. Cole no Instagram, WhatsApp, TikTok, cartão de visita, Google e onde quiser.
             </p>
             <ul className="space-y-2 text-sm">
               {["Carrega em menos de 2 segundos", "Otimizado para telemóvel", "Funciona offline (PWA)", "Partilhável via QR Code (em breve)"].map((t) => (
@@ -259,7 +259,7 @@ export default function PlanoBusiness() {
             <p className="text-xs text-slate-500 mb-2">O seu link público</p>
             <div className="flex items-center gap-2 bg-[#0F172A] border border-white/10 rounded-xl px-4 py-3">
               <span className="text-[#C8A96B] text-xs">🔗</span>
-              <span className="text-white text-sm font-mono">vitrinepro.pt/o-seu-negocio</span>
+              <span className="text-white text-sm font-mono">vitrinepro.digital/o-seu-negocio</span>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
               {["📱 WhatsApp", "📷 Instagram", "📧 Email"].map((t) => (
