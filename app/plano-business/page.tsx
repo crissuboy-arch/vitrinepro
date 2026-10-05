@@ -123,7 +123,7 @@ export default function PlanoBusiness() {
       <header className="border-b border-white/5 sticky top-0 z-50 bg-[#0F172A]/95 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/">
-            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-9 w-auto object-contain" />
+            <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-9 w-auto object-contain" />
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/pricing" className="text-slate-400 hover:text-white text-sm transition-colors hidden sm:block">

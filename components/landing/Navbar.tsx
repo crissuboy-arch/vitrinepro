@@ -51,11 +51,12 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
       >
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="hover:opacity-90 transition-opacity flex-shrink-0" onClick={closeMenu}>
-            <span style={{ fontFamily: "Playfair Display, serif", fontSize: "22px", fontWeight: 700 }}>
-              <span style={{ color: "#FFFFFF" }}>Vitrine</span>
-              <span style={{ color: "#C8A96B" }}>Pro</span>
-            </span>
+          <Link href="/" className="hover:opacity-90 transition-opacity flex-shrink-0" onClick={closeMenu} aria-label="VitrinePro">
+            <img
+              src="/brand/logo-vitrinepro-light.png"
+              alt="VitrinePro"
+              className="h-8 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop nav links */}
@@ -134,10 +135,11 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
       >
         {/* Drawer header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/5">
-          <span style={{ fontFamily: "Playfair Display, serif", fontSize: "18px", fontWeight: 700 }}>
-            <span style={{ color: "#FFFFFF" }}>Vitrine</span>
-            <span style={{ color: "#C8A96B" }}>Pro</span>
-          </span>
+          <img
+            src="/brand/logo-vitrinepro-light.png"
+            alt="VitrinePro"
+            className="h-7 w-auto object-contain"
+          />
           <button
             onClick={closeMenu}
             className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white transition-colors"

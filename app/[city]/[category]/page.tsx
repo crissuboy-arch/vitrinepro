@@ -171,7 +171,7 @@ export default async function CityCategoryPage({ params }: CityPageProps) {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center">
-              <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+              <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
             </Link>
             <Link href="/explorar" className="text-[#E5E7EB] hover:text-white transition-colors text-xs font-semibold uppercase tracking-wider">
               Ver todos os negócios
@@ -348,7 +348,7 @@ export default async function CityCategoryPage({ params }: CityPageProps) {
       <footer className="py-12 bg-[#0F172A] border-t border-slate-900 text-center text-slate-500 text-xs">
         <div className="container mx-auto px-4 flex flex-col items-center gap-3">
           <Link href="/">
-            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-2" />
+            <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-2" />
           </Link>
           <p>© 2026 VitrinePro. Todos os direitos reservados.</p>
         </div>

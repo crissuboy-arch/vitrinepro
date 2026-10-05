@@ -42,7 +42,7 @@ describe("pickSocialImage — prioridade", () => {
   it("5. padrão VitrinePro quando a Montra não tem nenhuma imagem", () => {
     const img = pickSocialImage({});
     assert.ok(img.startsWith("https://"), "URL absoluta");
-    assert.ok(img.endsWith("/og-default.png"), "imagem padrão");
+    assert.ok(img.endsWith("/brand/og-institutional.jpg"), "imagem institucional");
   });
 
   it("ignora URLs inválidas/relativas e avança na prioridade", () => {

@@ -10,7 +10,7 @@
  *
  * Retorna sempre URL ABSOLUTA (crawlers como o do WhatsApp exigem).
  */
-export const DEFAULT_SOCIAL_IMAGE_PATH = "/og-default.png";
+export const DEFAULT_SOCIAL_IMAGE_PATH = "/brand/og-institutional.jpg";
 export const SOCIAL_IMAGE_WIDTH = 1200;
 export const SOCIAL_IMAGE_HEIGHT = 630;
 

@@ -490,7 +490,7 @@ function DashboardContent() {
   if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center flex-col gap-4">
-        <img src="/logo-vitrinepro.png" alt="Loading..." className="w-16 h-16 animate-pulse bg-transparent object-contain" />
+        <img src="/brand/logo-vitrinepro-light.png" alt="Loading..." className="w-16 h-16 animate-pulse bg-transparent object-contain" />
         <div className="text-[#C8A96B] font-display text-xl animate-pulse">Carregando painel...</div>
       </div>
     );
@@ -506,7 +506,7 @@ function DashboardContent() {
         <header className="border-b border-gray-800 bg-[#0F172A]/90 backdrop-blur sticky top-0 z-30">
           <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-1.5">
-              <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+              <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
             </Link>
             <div className="flex items-center gap-3">
               <Link
@@ -1086,7 +1086,7 @@ function DashboardContent() {
               🔍 Explorar
             </Link>
             <Link href="/" className="flex items-center gap-1.5 ml-1 md:ml-2">
-              <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+              <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
             </Link>
           </div>
           <div className="flex items-center gap-3">

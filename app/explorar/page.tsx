@@ -500,7 +500,7 @@ export default function ExplorarPage() {
     return (
       <div className="min-h-screen bg-[#050816] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <img src="/logo-vitrinepro.png" alt="Loading..." className="w-16 h-16 animate-pulse bg-transparent object-contain" />
+          <img src="/brand/logo-vitrinepro-light.png" alt="Loading..." className="w-16 h-16 animate-pulse bg-transparent object-contain" />
           <div className="w-12 h-12 border-4 border-[#C8A96B] border-t-transparent rounded-full animate-spin"></div>
           <p className="text-[#C8A96B] text-sm font-semibold tracking-widest uppercase animate-pulse mt-2">
             Carregando Vitrines...
@@ -530,7 +530,7 @@ export default function ExplorarPage() {
             </Link>
           </div>
           <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
-            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+            <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
           </Link>
         </div>
       </header>
@@ -898,7 +898,7 @@ export default function ExplorarPage() {
       <footer className="bg-[#050816] border-t border-white/5 py-12 mt-20 text-center text-slate-500 text-xs">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-3">
           <Link href="/">
-            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-1" />
+            <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-1" />
           </Link>
           <p className="text-slate-400">O maior Pinterest de negócios locais em Portugal.</p>
           <p className="text-[10px] text-slate-600 mt-2">© 2026 VitrinePro. Todos os direitos reservados.</p>

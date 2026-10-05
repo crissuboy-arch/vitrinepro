@@ -25,7 +25,7 @@ export async function generateMetadata({
       const desc = (
         data.description || `${name}${city ? ` em ${city}` : ""}. Veja contactos, produtos e serviços na VitrinePro.`
       ).slice(0, 155);
-      const image = data.cover_url || data.logo_url || "/og-default.png";
+      const image = data.cover_url || data.logo_url || "/brand/og-institutional.jpg";
       const title = `${name}${city ? ` em ${city}` : ""} | VitrinePro`;
 
       return {

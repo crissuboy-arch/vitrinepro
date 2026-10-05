@@ -30,6 +30,15 @@ export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   applicationName: "VitrinePro",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "16x16 32x32 48x48" },
+      { url: "/brand/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/brand/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  manifest: "/manifest.webmanifest",
   openGraph: {
     type: "website",
     siteName: "VitrinePro",
@@ -37,13 +46,13 @@ export const metadata: Metadata = {
     url: siteUrl,
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: [{ url: "/og-default.png", width: 1200, height: 630, alt: "VitrinePro" }],
+    images: [{ url: "/brand/og-institutional.jpg", width: 1200, height: 630, alt: "VitrinePro — Negócios locais, mais perto de si" }],
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/og-default.png"],
+    images: ["/brand/og-institutional.jpg"],
   },
   // Verification tokens come from env vars; the placeholders were removed.
   ...(googleVerification || bingVerification

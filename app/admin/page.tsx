@@ -484,7 +484,7 @@ export default function AdminPage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center">
-              <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+              <img src="/brand/logo-vitrinepro-light.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
             </Link>
             <span className="px-2 py-0.5 bg-red-600 text-white text-xs rounded-full font-medium">Admin</span>
           </div>

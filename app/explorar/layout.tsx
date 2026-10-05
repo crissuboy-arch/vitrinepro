@@ -19,13 +19,13 @@ export const metadata: Metadata = {
     url: `${siteUrl}/explorar`,
     title: TITLE,
     description: DESCRIPTION,
-    images: [{ url: "/og-default.png", width: 1200, height: 630, alt: "VitrinePro" }],
+    images: [{ url: "/brand/og-institutional.jpg", width: 1200, height: 630, alt: "VitrinePro" }],
   },
   twitter: {
     card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
-    images: ["/og-default.png"],
+    images: ["/brand/og-institutional.jpg"],
   },
 };
 
