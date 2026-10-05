@@ -7,6 +7,7 @@ import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import { createBusiness } from "@/lib/business-actions";
 import { uploadLogo, uploadCover, uploadGallery } from "@/lib/supabase-storage";
+import { persistBusinessImageField, persistGalleryImages } from "@/lib/business-images";
 import { trackVitrineCreate } from "@/app/lib/analytics";
 
 interface Category {
@@ -241,24 +242,20 @@ export default function OnboardingPage() {
       }
 
       // 3. Update business with upload URLs
-      const updateData: any = {};
-      if (uploadedLogoUrl) updateData.logo_url = uploadedLogoUrl;
-      if (uploadedCoverUrl) updateData.cover_url = uploadedCoverUrl;
-
-      if (Object.keys(updateData).length > 0) {
-        await supabase.from("businesses").update(updateData).eq("id", businessId);
+      // BUGFIX: o erro do UPDATE era ignorado — a UI concluía o onboarding
+      // com sucesso mesmo sem as imagens persistidas (caso Turma da Mônica).
+      if (uploadedLogoUrl) {
+        await persistBusinessImageField(supabase, businessId, "logo_url", uploadedLogoUrl);
+      }
+      if (uploadedCoverUrl) {
+        await persistBusinessImageField(supabase, businessId, "cover_url", uploadedCoverUrl);
       }
 
-      // 4. Save gallery images to database (automatically syncs to gallery_images via triggers)
-      if (uploadedGalleryUrls.length > 0) {
-        const imageInserts = uploadedGalleryUrls.map((url, index) => ({
-          business_id: businessId,
-          url,
-          type: "gallery",
-          order_index: index,
-        }));
-        await supabase.from("business_images").insert(imageInserts);
-      }
+      // 4. Save gallery images to database
+      // BUGFIX: gravava em business_images (tabela legada) — o trigger de sync
+      // é gallery_images → business_images, nunca o inverso, por isso as fotos
+      // nunca apareciam. Agora grava em gallery_images, a tabela que o app lê.
+      await persistGalleryImages(supabase, businessId, uploadedGalleryUrls);
 
       trackVitrineCreate(businessId, name, categoryId || "");
       setSuccess("Negócio criado com sucesso! A redirecionar...");

@@ -14,6 +14,7 @@ import { buildVitrineUrl, buildVitrineQrSrc } from "@/lib/vitrine-share";
 import { MONTRA_TABS, DEFAULT_MONTRA_TAB, isValidMontraTab } from "@/lib/montra-tabs";
 import { buildBusinessUpdatePayload } from "@/lib/business-profile";
 import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/lib/supabase-storage";
+import { persistBusinessImageField } from "@/lib/business-images";
 import { Sparkles, Lock, Copy, Check, ExternalLink } from "lucide-react";
 import { trackCatalogPdfDownload } from "@/app/lib/analytics";
 
@@ -691,7 +692,9 @@ function DashboardContent() {
     setUploadingLogo(true);
     try {
       const logoUrl = await uploadLogo(file, business.id);
-      await supabase.from("businesses").update({ logo_url: logoUrl }).eq("id", business.id);
+      // BUGFIX: o erro do UPDATE era ignorado — a UI mostrava a imagem
+      // sem ela estar persistida (caso Turma da Mônica).
+      await persistBusinessImageField(supabase, business.id, "logo_url", logoUrl);
       setBusiness((prev: any) => ({ ...prev, logo_url: logoUrl }));
     } catch (err: any) {
       alert("Erro no upload do logótipo: " + err.message);
@@ -706,7 +709,8 @@ function DashboardContent() {
     setUploadingCover(true);
     try {
       const coverUrl = await uploadCover(file, business.id);
-      await supabase.from("businesses").update({ cover_url: coverUrl }).eq("id", business.id);
+      // BUGFIX: ver comentário no handleLogoUpload.
+      await persistBusinessImageField(supabase, business.id, "cover_url", coverUrl);
       setBusiness((prev: any) => ({ ...prev, cover_url: coverUrl }));
     } catch (err: any) {
       alert("Erro no upload da capa: " + err.message);
