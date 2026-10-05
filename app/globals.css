@@ -26,6 +26,13 @@
   --font-display: var(--font-playfair);
 }
 
+html,
+body {
+  /* UX mobile: glows decorativos com right negativo causavam scroll
+     horizontal e empurravam o hamburger para fora da viewport. */
+  overflow-x: clip;
+}
+
 body {
   background: var(--warm-white);
   color: var(--navy-deep);
