@@ -64,3 +64,18 @@ describe("mobile perf — assets", () => {
     assert.ok(st.size <= 150 * 1024, `logo tem ${Math.round(st.size / 1024)}KB`);
   });
 });
+
+describe("mobile perf — /explorar select usa apenas colunas reais (regressão 400)", () => {
+  it("nenhuma coluna fantasma no select de businesses", () => {
+    const src = read("app/explorar/page.tsx");
+    const m = src.match(/\.from\("businesses"\)\s*\n?\s*\.select\(\s*"([^"]+)"\s*\)/);
+    assert.ok(m, "select de businesses encontrado");
+    const cols = m[1].split(",").map((c) => c.trim());
+    // Colunas fantasma que nunca existiram em produção (causavam 400)
+    for (const phantom of ["premium", "rating"]) {
+      assert.ok(!cols.includes(phantom), `coluna fantasma no select: ${phantom}`);
+    }
+    // O rating real vem de rating_average/rating_count
+    assert.ok(cols.includes("rating_average"), "rating_average no select");
+  });
+});
