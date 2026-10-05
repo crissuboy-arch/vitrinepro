@@ -15,6 +15,7 @@ import { MONTRA_TABS, DEFAULT_MONTRA_TAB, isValidMontraTab } from "@/lib/montra-
 import { buildBusinessUpdatePayload } from "@/lib/business-profile";
 import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/lib/supabase-storage";
 import { persistBusinessImageField } from "@/lib/business-images";
+import { assertFreshUploadOwnership } from "@/lib/storage-upload-guard";
 import { Sparkles, Lock, Copy, Check, ExternalLink } from "lucide-react";
 import { trackCatalogPdfDownload } from "@/app/lib/analytics";
 
@@ -202,6 +203,32 @@ function DashboardContent() {
     setMounted(true);
   }, []);
 
+  // BUGFIX (Turma da Mônica): se a conta mudar depois de a página carregar
+  // (ex.: logout/login com outra conta noutra aba), o estado `business`
+  // fica stale e os uploads falham no Storage RLS com erro críptico.
+  // Recarrega para revalidar ownership em vez de operar com estado velho.
+  const loadedUserIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        router.push("/login");
+        return;
+      }
+      const currentId = session?.user?.id ?? null;
+      if (
+        loadedUserIdRef.current &&
+        currentId &&
+        currentId !== loadedUserIdRef.current &&
+        (event === "SIGNED_IN" || event === "USER_UPDATED")
+      ) {
+        window.location.reload();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router]);
+
   // Fetch all business data and lists — A2.5 multi-business aware.
   // 0 businesses → /onboarding · 1 → auto-select · 2+ → minimal selector
   // (never bounce a multi-business owner to onboarding).
@@ -213,6 +240,7 @@ function DashboardContent() {
         return;
       }
 
+      loadedUserIdRef.current = session.user.id;
       const all = await getMyBusinesses(session.user.id);
       setBusinesses(all);
 
@@ -685,12 +713,24 @@ function DashboardContent() {
     }
   };
 
+  // BUGFIX (Turma da Mônica): a sessão pode ter mudado (troca de conta)
+  // depois de a página carregar, deixando o estado `business` stale.
+  // Confirma ownership fresca antes de cada upload para falhar com
+  // mensagem acionável em vez de "row-level security policy" do Storage.
+  const assertCanUploadNow = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    assertFreshUploadOwnership(session?.user?.id, business?.user_id);
+  };
+
   // Edit Profile Image Upload Handlers
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !business) return;
     setUploadingLogo(true);
     try {
+      await assertCanUploadNow();
       const logoUrl = await uploadLogo(file, business.id);
       // BUGFIX: o erro do UPDATE era ignorado — a UI mostrava a imagem
       // sem ela estar persistida (caso Turma da Mônica).
@@ -708,6 +748,7 @@ function DashboardContent() {
     if (!file || !business) return;
     setUploadingCover(true);
     try {
+      await assertCanUploadNow();
       const coverUrl = await uploadCover(file, business.id);
       // BUGFIX: ver comentário no handleLogoUpload.
       await persistBusinessImageField(supabase, business.id, "cover_url", coverUrl);
@@ -733,6 +774,7 @@ function DashboardContent() {
     if (!prodName) return;
     setSavingProduct(true);
     try {
+      await assertCanUploadNow();
       let imageUrl = "";
       if (prodFile) {
         imageUrl = await uploadProductImage(prodFile, business.id);
@@ -812,6 +854,7 @@ function DashboardContent() {
     if (!editingProduct || !editProdName) return;
     setSavingEditProduct(true);
     try {
+      await assertCanUploadNow();
       let imageUrl = editingProduct.image_url || "";
       if (editProdFile) {
         imageUrl = await uploadProductImage(editProdFile, business.id);
@@ -934,6 +977,7 @@ function DashboardContent() {
     if (!files || files.length === 0) return;
     setUploadingGallery(true);
     try {
+      await assertCanUploadNow();
       const filesArray = Array.from(files);
       for (const file of filesArray) {
         const url = await uploadGallery(file, business.id);

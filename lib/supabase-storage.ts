@@ -1,4 +1,5 @@
 import { supabase } from "@/app/lib/supabase";
+import { mapStorageUploadError } from "./storage-upload-guard";
 
 // A2: only allow real image types and cap the size, so SVGs/HTML/binaries
 // can't be uploaded to the public buckets and storage can't be abused.
@@ -27,7 +28,7 @@ async function uploadFile(bucketName: string, file: File, businessId: string): P
     });
 
   if (uploadError) {
-    throw new Error(`Erro no upload para o bucket ${bucketName}: ${uploadError.message}`);
+    throw mapStorageUploadError(bucketName, uploadError.message);
   }
 
   const { data: { publicUrl } } = supabase.storage
