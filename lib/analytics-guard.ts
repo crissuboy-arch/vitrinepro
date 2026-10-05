@@ -6,7 +6,14 @@
  */
 
 /** Events the public POST endpoint accepts. Nothing else is ever stored. */
-export const ALLOWED_EVENTS = ["page_view", "whatsapp_click", "product_view"] as const;
+export const ALLOWED_EVENTS = [
+  "page_view",
+  "whatsapp_click",
+  "product_view",
+  // A4 — discovery clicks (per-business, no coordinates in the payload).
+  "business_result_click",
+  "product_result_click",
+] as const;
 export type AllowedEvent = (typeof ALLOWED_EVENTS)[number];
 
 export function isAllowedEvent(value: unknown): value is AllowedEvent {

@@ -33,12 +33,17 @@ export interface BusinessEditInput {
   linkedin: string;
   website: string;
   hours: unknown;
+  /** Código postal da Montra (A4). Opcional — ausente = coluna intocada. */
+  postalCode?: string;
+  /** WGS84 — null/ausente quando desconhecidas. O comerciante nunca é obrigado a saber. */
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export function buildBusinessUpdatePayload(
   f: BusinessEditInput
 ): Record<string, unknown> {
-  return {
+  const payload: Record<string, unknown> = {
     name: f.name,
     description: f.description,
     category_id: f.categoryId || undefined,
@@ -59,4 +64,14 @@ export function buildBusinessUpdatePayload(
     website: f.website || undefined,
     opening_hours: f.hours,
   };
+  // A4: localização fina — as chaves SÓ entram no payload quando há valor
+  // real. (latitude/longitude vêm da geocodificação, nunca inventadas.)
+  // Chaves ausentes = coluna intocada (sem wipe acidental de coordenadas).
+  const postal = f.postalCode?.trim();
+  if (postal) payload.postal_code = postal;
+  if (f.latitude !== null && f.latitude !== undefined)
+    payload.latitude = f.latitude;
+  if (f.longitude !== null && f.longitude !== undefined)
+    payload.longitude = f.longitude;
+  return payload;
 }

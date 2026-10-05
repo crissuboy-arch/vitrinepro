@@ -28,6 +28,9 @@ export interface BusinessInput {
   category_id?: string;
   city_id?: string;
   type?: string;
+  postal_code?: string;
+  latitude?: number;
+  longitude?: number;
   is_verified_store?: boolean;
   owner_origin_country?: string;
   [key: string]: unknown;

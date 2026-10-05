@@ -50,6 +50,10 @@ interface Business {
   reviewCount?: number;
   email?: string;
   slug: string;
+  // A4 — localização fina (nullable até geocodificação).
+  postal_code?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   opening_hours?: OpeningHour[];
   published?: boolean;
   is_published?: boolean;
@@ -1231,6 +1235,20 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 >
                   📍 Ver no Google Maps
                 </a>
+                {/* A4.14 — "Como chegar": direções (link simples, sem API key).
+                    Usa coordenadas reais quando existem; senão, a morada. */}
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                    typeof business.latitude === "number" && typeof business.longitude === "number"
+                      ? `${business.latitude},${business.longitude}`
+                      : business.address
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 border border-slate-700 hover:border-[#C8A96B]/50 text-slate-300 hover:text-[#C8A96B] rounded-xl font-bold transition-all text-xs active:scale-95"
+                >
+                  🧭 Como chegar
+                </a>
               </div>
             )}
 
@@ -1314,7 +1332,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
               </button>
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
-                  `Vê a vitrine de ${business.name} em ${business.city}! \n${(process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : ""))}/vitrine/${business.slug}`
+                  `Vê a vitrine de ${business.name} em ${business.city}! \n${getSiteUrl()}/vitrine/${business.slug}`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

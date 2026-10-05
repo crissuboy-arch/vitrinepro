@@ -115,6 +115,12 @@ function DashboardContent() {
   const [editCityId, setEditCityId] = useState("");
   const [editCountry, setEditCountry] = useState("Portugal");
   const [editAddress, setEditAddress] = useState("");
+  // A4 — localização fina (migration 000006; nullable até ser aplicada).
+  const [editPostalCode, setEditPostalCode] = useState("");
+  const [editLatitude, setEditLatitude] = useState<number | null>(null);
+  const [editLongitude, setEditLongitude] = useState<number | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoMessage, setGeoMessage] = useState<string | null>(null);
   const [editWhatsapp, setEditWhatsapp] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editEmail, setEditEmail] = useState("");
@@ -245,6 +251,11 @@ function DashboardContent() {
       setEditCityId(biz.city_id || "");
       setEditCountry(biz.country || "Portugal");
       setEditAddress(biz.address || "");
+      // A4: coordenadas existentes (null até a migration 000006 / geocodificação).
+      setEditPostalCode(biz.postal_code || "");
+      setEditLatitude(typeof biz.latitude === "number" ? biz.latitude : null);
+      setEditLongitude(typeof biz.longitude === "number" ? biz.longitude : null);
+      setGeoMessage(null);
       setEditWhatsapp(biz.whatsapp || "");
       setEditPhone(biz.phone || "");
       setEditEmail(biz.email || "");
@@ -583,6 +594,10 @@ function DashboardContent() {
         linkedin: editLinkedin,
         website: editWebsite,
         hours: editHours,
+        // A4: código postal + coordenadas (vêm da geocodificação, nunca inventadas).
+        postalCode: editPostalCode,
+        latitude: editLatitude,
+        longitude: editLongitude,
       }));
 
       if (!result.success) throw new Error(result.error);
@@ -592,9 +607,53 @@ function DashboardContent() {
       setBusiness(updated);
       setToast("Informações guardadas com sucesso.");
     } catch (err: any) {
-      alert("Erro ao guardar dados: " + err.message);
+      // A4: se a migration 000006 ainda não foi aplicada, o banco rejeita
+      // as novas colunas — mensagem clara em vez de erro técnico.
+      const msg = String(err?.message || err);
+      if (/postal_code|latitude|longitude/i.test(msg)) {
+        alert(
+          "Para guardar código postal e coordenadas, aplique primeiro a migration " +
+          "20261005000006_a4_local_discovery.sql no Supabase SQL Editor. " +
+          "Os restantes dados foram mantidos no formulário."
+        );
+      } else {
+        alert("Erro ao guardar dados: " + msg);
+      }
     } finally {
       setSavingBusiness(false);
+    }
+  };
+
+  // A4.4 — geocodificação: morada + cidade + código postal → coordenadas.
+  // O comerciante nunca precisa saber latitude/longitude; o Nominatim
+  // (OpenStreetMap, gratuito, sem chave) resolve. Ponto único de integração:
+  // lib/geocode.ts. Null = "sem coordenadas", nunca inventadas.
+  const handleGeocodeAddress = async () => {
+    setGeoMessage(null);
+    if (!editAddress.trim()) {
+      setGeoMessage("Preencha a morada antes de localizar.");
+      return;
+    }
+    setGeoLoading(true);
+    try {
+      const { forwardGeocode } = await import("@/lib/geocode");
+      const cityName = cities.find((c: any) => c.id === editCityId)?.name || "";
+      const result = await forwardGeocode(editAddress, cityName, editPostalCode, editCountry);
+      if (result) {
+        setEditLatitude(result.lat);
+        setEditLongitude(result.lng);
+        setGeoMessage(
+          `Localização encontrada: ${result.lat.toFixed(5)}, ${result.lng.toFixed(5)}.` +
+          (result.displayName ? ` (${result.displayName.split(",").slice(0, 2).join(",")})` : "") +
+          " Guarde para aplicar."
+        );
+      } else {
+        setGeoMessage("Não foi possível localizar esta morada. Verifique os dados e tente de novo.");
+      }
+    } catch {
+      setGeoMessage("Serviço de localização indisponível no momento.");
+    } finally {
+      setGeoLoading(false);
     }
   };
 
@@ -1546,17 +1605,100 @@ function DashboardContent() {
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Localização</h3>
-                <button
-                  onClick={() => goTab("informacoes")}
-                  className="text-xs text-[#C8A96B] font-bold hover:underline whitespace-nowrap"
-                >
-                  Editar localização →
-                </button>
               </div>
               <p className="text-sm text-gray-300">
-                {[business?.address, cities.find((c) => c.id === business?.city_id)?.name, business?.country].filter(Boolean).join(" · ") || "Morada não definida."}
+                {[business?.address, cities.find((c) => c.id === business?.city_id)?.name, business?.country, business?.postal_code].filter(Boolean).join(" · ") || "Morada não definida."}
               </p>
-              <p className="text-[11px] text-gray-600">Código postal, latitude/longitude e "Perto de Mim" ainda não existem — esta área está preparada para os receber.</p>
+              {(typeof business?.latitude === "number" && typeof business?.longitude === "number") ? (
+                <p className="text-[11px] text-gray-500">
+                  📍 Coordenadas: {business.latitude.toFixed(5)}, {business.longitude.toFixed(5)} — a sua Montra aparece no "Perto de Mim".
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-500">
+                  Sem coordenadas: adicione a morada abaixo e localize automaticamente para aparecer no "Perto de Mim".
+                </p>
+              )}
+            </div>
+
+            {/* A4.4 — editor de localização */}
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-5">
+              <h3 className="font-display font-semibold text-[#C8A96B] border-b border-gray-800 pb-3">Dados de localização</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Morada</label>
+                  <input
+                    type="text"
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    placeholder="Rua, número…"
+                    className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Código postal</label>
+                  <input
+                    type="text"
+                    value={editPostalCode}
+                    onChange={(e) => setEditPostalCode(e.target.value)}
+                    placeholder="3750-…"
+                    className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">País</label>
+                  <select
+                    value={editCountry}
+                    onChange={(e) => { setEditCountry(e.target.value); setEditCityId(""); }}
+                    className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white focus:outline-none"
+                  >
+                    <option value="Portugal">Portugal</option>
+                    <option value="Brasil">Brasil</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Cidade</label>
+                  <select
+                    value={editCityId}
+                    onChange={(e) => setEditCityId(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white focus:outline-none"
+                  >
+                    <option value="">Selecionar cidade...</option>
+                    {cities.filter((c: any) => c.country === editCountry).map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Geocodificação — o comerciante não precisa saber lat/lng */}
+              <div className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleGeocodeAddress}
+                    disabled={geoLoading}
+                    className="px-4 py-2 text-xs font-bold rounded-xl bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+                  >
+                    {geoLoading ? "A localizar…" : "📍 Localizar morada automaticamente"}
+                  </button>
+                  <p className="text-[11px] text-gray-500">
+                    {editLatitude !== null && editLongitude !== null
+                      ? `Coordenadas: ${editLatitude.toFixed(5)}, ${editLongitude.toFixed(5)}`
+                      : "Sem coordenadas — a geocodificação preenche automaticamente."}
+                  </p>
+                </div>
+                {geoMessage && (
+                  <p className="text-[11px] text-gray-400 leading-relaxed">{geoMessage}</p>
+                )}
+              </div>
+
+              <button
+                onClick={handleSaveBusiness}
+                disabled={savingBusiness}
+                className="w-full py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl text-sm transition-all active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+              >
+                {savingBusiness ? "A guardar…" : "Guardar localização"}
+              </button>
             </div>
             {/* Location Mini Map */}
             {business?.address && (

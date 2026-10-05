@@ -12,7 +12,8 @@
  *    Supabase Bearer token, and only returns metrics for businesses the
  *    caller owns (businesses.user_id = auth.uid()).
  *
- * Public events (POST, no login):  page_view, whatsapp_click, product_view
+ * Public events (POST, no login):  page_view, whatsapp_click, product_view,
+ *   business_result_click, product_result_click (A4 discovery)
  * Private (GET, owner only):       aggregated metrics per business
  */
 

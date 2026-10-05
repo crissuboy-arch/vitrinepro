@@ -42,6 +42,7 @@ import { resolveBusinessCountTarget } from "@/lib/visibility";
 // Landing components
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
+import DiscoverySearch from "@/components/landing/DiscoverySearch";
 import StatsSection from "@/components/landing/StatsSection";
 import BusinessTypesSection from "@/components/landing/BusinessTypesSection";
 import ShowcaseSection from "@/components/landing/ShowcaseSection";
@@ -371,6 +372,8 @@ export default function HomePage() {
 
       {/* SECÇÃO 1 — HERO */}
       <HeroSection onCadastrar={handleCadastrarClick} />
+      {/* A4.2 — descoberta local: "O que você procura perto de você?" */}
+      <DiscoverySearch />
       <StatsSection />
       <BusinessTypesSection />
 

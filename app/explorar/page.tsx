@@ -8,6 +8,15 @@ import { supabase } from "../lib/supabase";
 import { getCommunityByCountry } from "@/lib/communities";
 import { isPaidTier } from "@/lib/plans";
 import { scoreBusiness } from "@/lib/ranking";
+// A4 — descoberta local: distância, busca reutilizável, mapa.
+import {
+  businessCoords,
+  distanceKm,
+  formatDistance,
+  DISTANCE_FILTERS,
+} from "@/lib/geo";
+import { businessMatchesQuery, productMatchesQuery } from "@/lib/local-search";
+import NearbyMap from "../components/NearbyMap";
 
 interface Business {
   id: string;
@@ -78,6 +87,13 @@ export default function ExplorarPage() {
   const [dbCategories, setDbCategories] = useState<any[]>([]);
   const [dbCities, setDbCities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // A4 — "Perto de Mim": localização do visitante (sessão apenas, nunca persistida).
+  const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoState, setGeoState] = useState<"idle" | "requesting" | "granted" | "denied" | "unsupported" | "error">("idle");
+  const [maxDistanceKm, setMaxDistanceKm] = useState<number | null>(null);
+  const [sortMode, setSortMode] = useState<"relevance" | "nearest">("relevance");
+  // A4.9 — resultados de produtos (buscados só quando há pesquisa).
+  const [productHits, setProductHits] = useState<any[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -156,6 +172,46 @@ export default function ExplorarPage() {
     }
   };
 
+  // A4.5 — "Perto de Mim": pede a localização UMA vez, só após clique.
+  // A4.13 — as coordenadas vivem só nesta sessão; nada é persistido nem
+  // enviado para analytics.
+  const requestNearMe = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoState("unsupported");
+      return;
+    }
+    setGeoState("requesting");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoState("granted");
+        setSortMode("nearest");
+      },
+      () => setGeoState("denied"),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
+  const clearNearMe = () => {
+    setUserLoc(null);
+    setGeoState("idle");
+    setMaxDistanceKm(null);
+    setSortMode("relevance");
+  };
+
+  // A4.18 — cliques de descoberta (sem coordenadas no payload).
+  const trackDiscoveryClick = (businessId: string, eventType: "business_result_click" | "product_result_click") => {
+    try {
+      fetch("/api/analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ business_id: businessId, event_type: eventType }),
+      }).catch(() => {});
+    } catch {
+      // analytics nunca quebra a navegação
+    }
+  };
+
   const displayBusinesses = useMemo(() => {
     const categoryMap = new Map(dbCategories.map((c) => [c.id, c]));
     const cityMap = new Map(dbCities.map((c) => [c.id, c]));
@@ -208,22 +264,70 @@ export default function ExplorarPage() {
         favorite_count: b.favorite_count ?? 0,
         share_count: b.share_count ?? 0,
         rating_average: b.rating_average ?? 0,
+        // A4: coordenadas (nullable até a migration 000006 ser aplicada).
+        latitude: b.latitude ?? null,
+        longitude: b.longitude ?? null,
       };
     });
   }, [realBusinesses, dbCategories, dbCities]);
 
+  // A4.8/A4.9 — busca de produtos: só quando há pesquisa, com debounce,
+  // filtrada no servidor (ilike) para não trazer o catálogo inteiro.
+  useEffect(() => {
+    if (!mounted) return;
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setProductHits([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        // Sanitiza para o filtro PostgREST: só letras/números/espaços.
+        const safe = q.replace(/[^\p{L}\p{N} ]/gu, "").trim();
+        if (safe.length < 2) {
+          setProductHits([]);
+          return;
+        }
+        const like = `%${safe}%`;
+        const { data } = await supabase
+          .from("products")
+          .select("id, name, description, price, image_url, business_id")
+          .or(`name.ilike.${like},description.ilike.${like}`)
+          .limit(30);
+        // RLS já restringe a produtos de negócios publicados; reforço
+        // client-side com o helper reutilizável + join com os negócios.
+        const bizById = new Map(displayBusinesses.map((b: any) => [b.id, b]));
+        const hits = (data || [])
+          .filter((p: any) => productMatchesQuery(p, q))
+          .map((p: any) => ({ ...p, business: bizById.get(p.business_id) || null }))
+          .filter((h: any) => h.business);
+        setProductHits(hits);
+      } catch {
+        setProductHits([]);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery, mounted, displayBusinesses]);
+
+
   const filteredBusinesses = useMemo(() => {
     let result = [...displayBusinesses];
 
-    // Search query filter
+    // Search query filter — A4.8: camada reutilizável (nome, descrição,
+    // categoria, cidade, comunidade; insensível a acentos).
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (b) =>
-          b.name.toLowerCase().includes(query) ||
-          b.category.toLowerCase().includes(query) ||
-          b.city.toLowerCase().includes(query) ||
-          b.description.toLowerCase().includes(query)
+      result = result.filter((b) =>
+        businessMatchesQuery(
+          {
+            id: b.id,
+            name: b.name,
+            description: b.description,
+            category: b.category,
+            city: b.city,
+            community: b.owner_origin_country || b.country,
+          },
+          searchQuery
+        )
       );
     }
 
@@ -256,12 +360,46 @@ export default function ExplorarPage() {
       }
     }
 
-    // Ranking: premium plan bonus (200pts) + engagement score.
-    // A2.5: scoreBusiness is the single implementation (lib/ranking.ts).
-    result.sort((a, b) => scoreBusiness(b) - scoreBusiness(a));
+    // A4.6/A4.7 — distância: calculada uma vez por negócio (helper central).
+    // Sem localização do visitante, ou sem coordenadas no negócio,
+    // a distância é null → nunca exibida, nunca filtrada por ela.
+    const withDistance = result.map((b) => {
+      const coords = businessCoords(b);
+      const d =
+        userLoc && coords
+          ? distanceKm(userLoc.lat, userLoc.lng, coords.lat, coords.lng)
+          : null;
+      return { ...b, _distanceKm: d };
+    });
 
-    return result;
-  }, [displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity]);
+    // A4.5 — filtro de distância: mostra SÓ negócios com coordenadas válidas
+    // dentro do raio. Sem localização, o filtro nem é oferecido (UI).
+    let scoped = withDistance;
+    if (maxDistanceKm !== null && userLoc) {
+      scoped = withDistance.filter(
+        (b) => b._distanceKm !== null && b._distanceKm <= maxDistanceKm
+      );
+    }
+
+    // Ordenação — A4.6: "Relevância" preserva o ranking atual (scoreBusiness);
+    // "Mais perto" ordena por distância (desconhecidas por último).
+    if (sortMode === "nearest" && userLoc) {
+      scoped.sort((a, b) => {
+        if (a._distanceKm === null && b._distanceKm === null)
+          return scoreBusiness(b) - scoreBusiness(a);
+        if (a._distanceKm === null) return 1;
+        if (b._distanceKm === null) return -1;
+        if (a._distanceKm !== b._distanceKm) return a._distanceKm - b._distanceKm;
+        return scoreBusiness(b) - scoreBusiness(a);
+      });
+    } else {
+      // Ranking: premium plan bonus (200pts) + engagement score.
+      // A2.5: scoreBusiness is the single implementation (lib/ranking.ts).
+      scoped.sort((a, b) => scoreBusiness(b) - scoreBusiness(a));
+    }
+
+    return scoped;
+  }, [displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity, userLoc, maxDistanceKm, sortMode]);
 
   const featuredSlice = filteredBusinesses.filter((b) => b.premium).slice(0, 3);
   const regularSlice = filteredBusinesses.filter((b) => !b.premium);
@@ -399,7 +537,153 @@ export default function ExplorarPage() {
               ))}
             </div>
           </div>
+
+          {/* A4.5 — Perto de Mim */}
+          <div className="border-t border-gray-850 pt-5 space-y-3">
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              📍 Perto de Mim
+            </span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              {geoState !== "granted" ? (
+                <button
+                  onClick={requestNearMe}
+                  disabled={geoState === "requesting"}
+                  className="px-5 py-2.5 text-xs font-bold rounded-xl bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+                >
+                  {geoState === "requesting" ? "A localizar…" : "📍 Usar a minha localização"}
+                </button>
+              ) : (
+                <button
+                  onClick={clearNearMe}
+                  className="px-5 py-2.5 text-xs font-semibold rounded-xl border border-[#C8A96B]/40 text-[#C8A96B] hover:bg-[#C8A96B]/10 transition-all cursor-pointer"
+                >
+                  ✕ Limpar localização
+                </button>
+              )}
+
+              {/* Distance filters — only when we know where the visitor is */}
+              {geoState === "granted" &&
+                DISTANCE_FILTERS.map((f) => (
+                  <button
+                    key={f.km}
+                    onClick={() => setMaxDistanceKm(maxDistanceKm === f.km ? null : f.km)}
+                    className={`px-4 py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                      maxDistanceKm === f.km
+                        ? "bg-[#C8A96B] border-transparent text-[#0F172A]"
+                        : "bg-[#0F172A] border-gray-800 text-slate-300 hover:border-slate-700 hover:text-white"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+
+              {/* Sort — Relevância (ranking atual) vs Mais perto */}
+              {geoState === "granted" && (
+                <div className="flex items-center gap-1 ml-1 text-xs">
+                  <span className="text-slate-500 mr-1">Ordenar:</span>
+                  <button
+                    onClick={() => setSortMode("relevance")}
+                    className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                      sortMode === "relevance"
+                        ? "bg-slate-700 text-white"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Relevância
+                  </button>
+                  <button
+                    onClick={() => setSortMode("nearest")}
+                    className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                      sortMode === "nearest"
+                        ? "bg-slate-700 text-white"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Mais perto
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* A4.13 — privacy notice */}
+            <p className="text-[11px] text-slate-500 leading-relaxed max-w-2xl">
+              Usamos a sua localização para mostrar negócios próximos. A sua
+              localização exata não é publicada nem guardada — serve apenas
+              para calcular distâncias nesta sessão.
+              {geoState === "denied" && (
+                <span className="text-slate-400">
+                  {" "}Localização recusada: a Vitrine continua a funcionar normalmente
+                  por pesquisa, cidade e categoria.
+                </span>
+              )}
+              {geoState === "unsupported" && (
+                <span className="text-slate-400">
+                  {" "}Este navegador não suporta geolocalização: use a pesquisa,
+                  cidade e categoria.
+                </span>
+              )}
+              {geoState === "error" && (
+                <span className="text-slate-400">
+                  {" "}Não foi possível obter a localização: use a pesquisa,
+                  cidade e categoria.
+                </span>
+              )}
+            </p>
+          </div>
         </section>
+
+        {/* A4.12 — Mapa (Leaflet): mesmos resultados filtrados, com coordenadas */}
+        {(() => {
+          const mappable = filteredBusinesses.filter((b) =>
+            businessCoords(b)
+          );
+          if (mappable.length === 0 && !userLoc) return null;
+          return (
+            <section className="space-y-3">
+              <h3 className="font-display font-semibold text-lg text-white px-2">
+                🗺️ No mapa
+              </h3>
+              {mappable.length > 0 ? (
+                <NearbyMap
+                  businesses={mappable.map((b) => ({
+                    id: b.id,
+                    name: b.name,
+                    slug: b.slug,
+                    lat: b.latitude,
+                    lng: b.longitude,
+                  }))}
+                  userLocation={userLoc}
+                />
+              ) : (
+                <div className="text-center py-10 bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl">
+                  <p className="text-xs text-slate-400">
+                    Ainda nenhum negócio com localização no mapa — os comerciantes
+                    podem adicionar as coordenadas na sua Montra.
+                  </p>
+                </div>
+              )}
+            </section>
+          );
+        })()}
+
+        {/* A4.9 — Resultados de produtos (quando a pesquisa encontra produtos) */}
+        {searchQuery.trim().length >= 2 && productHits.length > 0 && (
+          <section className="space-y-4">
+            <h3 className="font-display font-semibold text-lg text-white px-2">
+              🛍️ Produtos ({productHits.length})
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {productHits.map((hit) => (
+                <ProductResultCard
+                  key={hit.id}
+                  hit={hit}
+                  userLoc={userLoc}
+                  onClick={() => trackDiscoveryClick(hit.business.id, "product_result_click")}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Directory Showcase Cards */}
         <section className="space-y-6">
@@ -418,7 +702,13 @@ export default function ExplorarPage() {
                     <span>✦</span> Negócios em Destaque
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {featuredSlice.map((biz) => <ExplorarCard key={biz.id} biz={biz} />)}
+                    {featuredSlice.map((biz) => (
+                      <ExplorarCard
+                        key={biz.id}
+                        biz={biz}
+                        onResultClick={() => trackDiscoveryClick(biz.id, "business_result_click")}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
@@ -431,7 +721,13 @@ export default function ExplorarPage() {
                     </p>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {regularSlice.map((biz) => <ExplorarCard key={biz.id} biz={biz} />)}
+                    {regularSlice.map((biz) => (
+                      <ExplorarCard
+                        key={biz.id}
+                        biz={biz}
+                        onResultClick={() => trackDiscoveryClick(biz.id, "business_result_click")}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
@@ -472,10 +768,12 @@ export default function ExplorarPage() {
   );
 }
 
-function ExplorarCard({ biz }: { biz: any }) {
+function ExplorarCard({ biz, onResultClick }: { biz: any; onResultClick?: () => void }) {
+  const distLabel = formatDistance(biz._distanceKm);
   return (
     <Link
       href={`/vitrine/${biz.slug}`}
+      onClick={onResultClick}
       className="group bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl overflow-hidden flex flex-col shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02]"
     >
       {/* Cover — 140px */}
@@ -533,6 +831,9 @@ function ExplorarCard({ biz }: { biz: any }) {
               </h4>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-slate-400">
                 <span>📍 {biz.city}</span>
+                {distLabel && (
+                  <span className="text-[#C8A96B] font-semibold">• {distLabel}</span>
+                )}
                 {biz.country && (
                   <span className="text-[#C8A96B]">• 🌍 {biz.country}</span>
                 )}
@@ -551,6 +852,73 @@ function ExplorarCard({ biz }: { biz: any }) {
           </div>
           <span className="font-bold text-[#C8A96B] bg-[#C8A96B]/5 group-hover:bg-[#C8A96B] group-hover:text-[#0F172A] border border-[#C8A96B]/20 group-hover:border-transparent px-3 py-1.5 rounded-xl transition-all text-[10px]">
             Ver Vitrine →
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+/**
+ * A4.9 — cartão de resultado de PRODUTO: mostra [produto] [preço]
+ * [negócio] [cidade] [distância, quando disponível] [Ver produto/Montra].
+ * Usa a relação real produto → business (sem duplicar cadastros).
+ */
+function ProductResultCard({
+  hit,
+  userLoc,
+  onClick,
+}: {
+  hit: any;
+  userLoc: { lat: number; lng: number } | null;
+  onClick?: () => void;
+}) {
+  const b = hit.business;
+  const coords = b ? businessCoords(b) : null;
+  const d =
+    userLoc && coords
+      ? distanceKm(userLoc.lat, userLoc.lng, coords.lat, coords.lng)
+      : null;
+  const distLabel = formatDistance(d);
+  const price =
+    hit.price !== null && hit.price !== undefined && hit.price !== ""
+      ? `€ ${Number(hit.price).toFixed(2).replace(".", ",")}`
+      : null;
+
+  return (
+    <Link
+      href={`/vitrine/${b.slug}`}
+      onClick={onClick}
+      className="group bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 rounded-2xl overflow-hidden flex shadow-lg transition-all duration-300 hover:-translate-y-1"
+    >
+      <div className="w-24 h-24 m-4 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 flex items-center justify-center text-3xl">
+        {hit.image_url ? (
+          <img src={hit.image_url} alt={hit.name} className="w-full h-full object-cover" />
+        ) : (
+          <span>🛍️</span>
+        )}
+      </div>
+      <div className="py-4 pr-4 flex flex-col justify-between min-w-0 flex-1">
+        <div className="min-w-0">
+          <p className="text-[9px] font-bold text-[#C8A96B] uppercase tracking-widest">
+            Produto
+          </p>
+          <h4 className="font-bold text-white text-sm truncate group-hover:text-[#C8A96B] transition-colors">
+            {hit.name}
+          </h4>
+          <p className="text-[11px] text-slate-400 truncate">
+            {b.name} • 📍 {b.city}
+            {distLabel && <span className="text-[#C8A96B] font-semibold"> • {distLabel}</span>}
+          </p>
+        </div>
+        <div className="flex items-center justify-between pt-2">
+          {price ? (
+            <span className="text-sm font-bold text-[#C8A96B]">{price}</span>
+          ) : (
+            <span />
+          )}
+          <span className="text-[10px] font-bold text-[#C8A96B] group-hover:underline">
+            Ver produto →
           </span>
         </div>
       </div>
