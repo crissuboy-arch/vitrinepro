@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { WaveText } from "@/components/ui/wave-text";
 import { useAuth } from "@/app/context/SupabaseAuthContext";
+import AccountMenu from "@/components/auth/AccountMenu";
 
 interface NavbarProps {
   onCadastrar: (e: React.MouseEvent) => void;
@@ -71,12 +72,9 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
             {loading ? (
               <span className="hidden sm:block w-44 h-9" aria-hidden="true" />
             ) : isLoggedIn ? (
-              <Link
-                href="/dashboard"
-                className="hidden sm:flex px-5 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-[10px] font-bold rounded-lg uppercase tracking-widest active:scale-95 transition-all shadow-[0_4px_20px_rgba(200,169,107,0.15)]"
-              >
-                Meu Painel
-              </Link>
+              <div className="hidden sm:block">
+                <AccountMenu />
+              </div>
             ) : (
               <>
                 <Link
@@ -168,13 +166,9 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
         {/* Auth actions at bottom */}
         <div className="px-6 pb-8 pt-4 border-t border-white/5 flex flex-col gap-3">
           {loading ? null : isLoggedIn ? (
-            <Link
-              href="/dashboard"
-              onClick={closeMenu}
-              className="w-full py-4 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl text-sm uppercase tracking-wider active:scale-95 transition-all text-center shadow-[0_4px_20px_rgba(200,169,107,0.2)]"
-            >
-              Meu Painel
-            </Link>
+            <div onClick={closeMenu}>
+              <AccountMenu />
+            </div>
           ) : (
             <>
               <Link

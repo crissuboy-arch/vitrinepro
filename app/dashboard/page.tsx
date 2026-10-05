@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import AccountMenu from "@/components/auth/AccountMenu";
 import Image from "next/image";
 import { supabase } from "../lib/supabase";
 import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/business-actions";
@@ -492,11 +493,6 @@ function DashboardContent() {
     );
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
-
   // A3.1/A3.2 — DASHBOARD GERAL (vista de conta).
   // CONTA → MINHAS MONTRAS → GERENCIAR MONTRA → MONTRA PÚBLICA.
   // Shown whenever no ?montra= is selected (0 → onboarding happens earlier).
@@ -516,12 +512,7 @@ function DashboardContent() {
               >
                 🔍 Explorar
               </Link>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-950/40 border border-red-900 text-red-400 hover:bg-red-900 hover:text-white rounded-lg text-xs md:text-sm transition-colors"
-              >
-                Sair
-              </button>
+              <AccountMenu />
             </div>
           </div>
         </header>
@@ -1056,12 +1047,7 @@ function DashboardContent() {
             >
               Ver Montra ↗
             </Link>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-950/40 border border-red-900 text-red-400 hover:bg-red-900 hover:text-white rounded-lg text-xs md:text-sm transition-colors"
-            >
-              Sair
-            </button>
+              <AccountMenu />
           </div>
         </div>
       </header>

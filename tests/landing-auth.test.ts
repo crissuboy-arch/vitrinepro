@@ -31,10 +31,9 @@ describe("landing navbar — visitante", () => {
 });
 
 describe("landing navbar — autenticado", () => {
-  it("mostra Meu Painel para /dashboard e esconde Entrar/Cadastrar", () => {
+  it("mostra AccountMenu para o logado e esconde Entrar/Cadastrar", () => {
     const src = read("components/landing/Navbar.tsx");
-    assert.ok(src.includes('href="/dashboard"'), "link para /dashboard");
-    assert.ok(src.includes("Meu Painel"), "rótulo Meu Painel");
+    assert.ok(src.includes("<AccountMenu"), "chip de conta para o logado");
     // Condicional por estado de auth — nunca os dois ao mesmo tempo
     assert.ok(src.includes("isLoggedIn ?"), "render condicional por login");
   });
@@ -47,12 +46,12 @@ describe("landing navbar — autenticado", () => {
 });
 
 describe("landing navbar — mobile", () => {
-  it("drawer tem as mesmas ações (Entrar / Cadastrar / Meu Painel)", () => {
+  it("drawer tem as mesmas ações (Entrar / Cadastrar / Conta)", () => {
     const src = read("components/landing/Navbar.tsx");
     const drawer = src.slice(src.indexOf("Mobile drawer"));
     assert.ok(drawer.includes('href="/login"'), "Entrar no drawer");
     assert.ok(drawer.includes("Cadastrar meu negócio"), "Cadastrar no drawer");
-    assert.ok(drawer.includes('href="/dashboard"'), "Meu Painel no drawer");
+    assert.ok(drawer.includes("<AccountMenu"), "chip de conta no drawer");
   });
 });
 
