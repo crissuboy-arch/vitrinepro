@@ -145,9 +145,9 @@ describe("A3 — profile edit payload", () => {
     }
   });
 
-  it("A3.6: empty community persists as undefined (column stays null)", () => {
+  it("A3.6: empty community → NULL explícito (bugfix: coluna é limpa no UPDATE)", () => {
     const p = buildBusinessUpdatePayload({ ...base, ownerOriginCountry: "" });
-    assert.equal(p.owner_origin_country, undefined);
+    assert.equal(p.owner_origin_country, null);
     assert.equal(p.country, "Portugal");
   });
 

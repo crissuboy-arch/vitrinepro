@@ -13,6 +13,7 @@ import { getCommunityByCountry } from "@/lib/communities";
 import { isPublishedBusiness } from "@/lib/visibility";
 import { isPaidTier, planHasChatbot } from "@/lib/plans";
 import { getSiteUrl } from "@/lib/site";
+import { shouldRenderChannel } from "@/lib/business-profile";
 import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib/analytics";
 import { pixelContact } from "@/app/lib/meta-pixel";
 import SocialBar from "../../components/SocialBar";
@@ -738,7 +739,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
 
               <div className="flex flex-col gap-2.5 pt-1">
                 {/* WhatsApp */}
-                {business.whatsApp && (
+                {shouldRenderChannel(business.whatsApp) && (
                   <a
                     href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Vi a vossa vitrine no VitrinePro e gostaria de saber mais.`)}`}
                     target="_blank"
@@ -801,7 +802,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
       )}
 
       {/* Floating green WhatsApp Button */}
-      {business.whatsApp && (
+      {shouldRenderChannel(business.whatsApp) && (
         <a
           href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}`}
           target="_blank"
@@ -983,7 +984,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                           <p className="text-xs text-slate-400 font-light leading-relaxed line-clamp-3">{product.description}</p>
                         </div>
 
-                        {business.whatsApp && (
+                        {shouldRenderChannel(business.whatsApp) && (
                           <a
                             href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}?text=${encodeURIComponent(
                               `Olá! Vi o vosso produto *${product.name}* no VitrinePro e gostava de obter mais informações.`
@@ -1066,7 +1067,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
               
               <div className="flex flex-col gap-3">
                 {/* Whatsapp */}
-                {business.whatsApp && (
+                {shouldRenderChannel(business.whatsApp) && (
                   <a
                     href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}`}
                     target="_blank"
@@ -1079,7 +1080,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 )}
 
                 {/* Telephone */}
-                {business.phone && (
+                {shouldRenderChannel(business.phone) && (
                   <a
                     href={`tel:${business.phone}`}
                     onClick={() => trackPhoneClick(business.id, business.name)}
@@ -1093,7 +1094,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
               {/* Social Grid */}
               <div className="grid grid-cols-1 gap-2 pt-2 border-t border-slate-800/80">
                 {/* Email */}
-                {business.email && (
+                {shouldRenderChannel(business.email) && (
                   <SocialLink
                     href={`mailto:${business.email}`}
                     label="E-mail"
@@ -1107,7 +1108,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 )}
 
                 {/* Instagram */}
-                {business.instagram && (
+                {shouldRenderChannel(business.instagram) && (
                   <SocialLink
                     href={`https://instagram.com/${business.instagram.replace("@", "")}`}
                     label="Instagram"
@@ -1123,7 +1124,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 )}
 
                 {/* Facebook */}
-                {business.facebook && (
+                {shouldRenderChannel(business.facebook) && (
                   <SocialLink
                     href={`https://facebook.com/${business.facebook}`}
                     label="Facebook"
@@ -1137,7 +1138,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 )}
 
                 {/* TikTok */}
-                {business.tiktok && (
+                {shouldRenderChannel(business.tiktok) && (
                   <SocialLink
                     href={`https://tiktok.com/@${business.tiktok.replace("@", "")}`}
                     label="TikTok"
@@ -1151,7 +1152,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 )}
 
                 {/* YouTube */}
-                {business.youtube && (
+                {shouldRenderChannel(business.youtube) && (
                   <SocialLink
                     href={`https://youtube.com/c/${business.youtube}`}
                     label="YouTube"
@@ -1166,7 +1167,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 )}
 
                 {/* LinkedIn */}
-                {business.linkedin && (
+                {shouldRenderChannel(business.linkedin) && (
                   <SocialLink
                     href={`https://linkedin.com/in/${business.linkedin}`}
                     label="LinkedIn"
@@ -1182,7 +1183,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 )}
 
                 {/* Official Website */}
-                {business.website && (
+                {shouldRenderChannel(business.website) && (
                   <SocialLink
                     href={business.website.startsWith("http") ? business.website : `https://${business.website}`}
                     label="Site Oficial"

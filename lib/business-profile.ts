@@ -45,23 +45,29 @@ export function buildBusinessUpdatePayload(
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     name: f.name,
-    description: f.description,
+    // BUGFIX (produção): campos opcionais — string vazia/branco significa
+    // "o proprietário APAGOU o valor" e é normalizada para NULL, de forma
+    // que o UPDATE realmente limpa a coluna. O padrão antigo
+    // (`f.email || undefined`) transformava "" em `undefined`, que o
+    // postgrest-js remove da serialização — a coluna era omitida do UPDATE
+    // e o valor antigo persistia silenciosamente no banco.
+    description: nullIfBlank(f.description),
     category_id: f.categoryId || undefined,
     city_id: f.cityId || undefined,
     // A3.6: location stays location…
     country: f.country,
     // …and community goes to its own column, never into `country`.
-    owner_origin_country: f.ownerOriginCountry || undefined,
-    address: f.address,
-    whatsapp: f.whatsapp,
-    phone: f.phone || undefined,
-    email: f.email || undefined,
-    instagram: f.instagram || undefined,
-    facebook: f.facebook || undefined,
-    tiktok: f.tiktok || undefined,
-    youtube: f.youtube || undefined,
-    linkedin: f.linkedin || undefined,
-    website: f.website || undefined,
+    owner_origin_country: nullIfBlank(f.ownerOriginCountry),
+    address: nullIfBlank(f.address),
+    whatsapp: nullIfBlank(f.whatsapp),
+    phone: nullIfBlank(f.phone),
+    email: nullIfBlank(f.email),
+    instagram: nullIfBlank(f.instagram),
+    facebook: nullIfBlank(f.facebook),
+    tiktok: nullIfBlank(f.tiktok),
+    youtube: nullIfBlank(f.youtube),
+    linkedin: nullIfBlank(f.linkedin),
+    website: nullIfBlank(f.website),
     opening_hours: f.hours,
   };
   // A4: localização fina — as chaves SÓ entram no payload quando há valor
@@ -69,9 +75,28 @@ export function buildBusinessUpdatePayload(
   // Chaves ausentes = coluna intocada (sem wipe acidental de coordenadas).
   const postal = f.postalCode?.trim();
   if (postal) payload.postal_code = postal;
+  else if (f.postalCode !== undefined) payload.postal_code = null;
   if (f.latitude !== null && f.latitude !== undefined)
     payload.latitude = f.latitude;
   if (f.longitude !== null && f.longitude !== undefined)
     payload.longitude = f.longitude;
   return payload;
+}
+
+/**
+ * Normalizes an optional text field: blank/whitespace-only → NULL
+ * (explicit removal). Non-blank values pass through untouched.
+ */
+function nullIfBlank(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  return value.trim() === "" ? null : value;
+}
+
+/**
+ * Public vitrine rule (A4 bugfix): render a contact/social channel ONLY
+ * when it holds a real value. null, undefined, "" and whitespace-only
+ * never render — no stale/empty channel cards.
+ */
+export function shouldRenderChannel(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "";
 }

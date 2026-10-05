@@ -333,16 +333,20 @@ describe("A4 — payload de localização (ownership)", () => {
     assert.equal(p.longitude, -8.4456);
   });
 
-  it("não envia as colunas quando vazias (sem wipe acidental)", () => {
-    const p = buildBusinessUpdatePayload({
+  it("postal em branco → null explícito; omitido → coluna intocada", () => {
+    const cleared = buildBusinessUpdatePayload({
       ...base,
       postalCode: "",
       latitude: null,
       longitude: null,
     });
-    assert.ok(!("postal_code" in p));
-    assert.ok(!("latitude" in p));
-    assert.ok(!("longitude" in p));
+    assert.equal(cleared.postal_code, null);
+    // lat/lng sem input manual: ausentes = sem wipe acidental de coordenadas
+    assert.ok(!("latitude" in cleared));
+    assert.ok(!("longitude" in cleared));
+
+    const untouched = buildBusinessUpdatePayload(base);
+    assert.ok(!("postal_code" in untouched));
   });
 
   it("mantém a separação country vs owner_origin_country", () => {
