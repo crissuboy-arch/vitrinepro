@@ -9,7 +9,8 @@ import dynamic from "next/dynamic";
 // Floating chat widget — lazy-loaded (not needed for first paint).
 const BusinessChatWidget = dynamic(() => import("../../components/BusinessChatWidget"), { ssr: false });
 import AutomationPopup from "../../components/AutomationPopup";
-import { getCommunityByCountry } from "@/lib/communities";
+import { getCommunityByCountry } from "@/lib/communities"
+import { normalizeCoverFraming, coverImgStyle, CoverFraming } from "@/lib/cover-framing";
 import { isPublishedBusiness } from "@/lib/visibility";
 import { isPaidTier, planHasChatbot } from "@/lib/plans";
 import { getSiteUrl } from "@/lib/site";
@@ -35,6 +36,7 @@ interface Business {
   country?: string;
   logo?: string;
   cover?: string;
+  coverFraming?: CoverFraming;
   gallery?: string[];
   premium: boolean;
   plan?: string;
@@ -295,7 +297,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
     const fetchSimilar = async () => {
       const { data } = await supabase
         .from("businesses")
-        .select("id, name, slug, category, city, logo_url, cover_url, rating_average, plan")
+        .select("id, name, slug, category, city, logo_url, cover_url, cover_position_x, cover_position_y, cover_zoom, rating_average, plan")
         .eq("published", true)
         .eq("category", business.category)
         .neq("id", business.id)
@@ -395,6 +397,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
               country: data.country || "Portugal",
               logo: data.logo_url || "",
               cover: data.cover_url || "",
+              coverFraming: normalizeCoverFraming(data),
               gallery: galleryUrls,
               description: data.description || "",
               whatsApp: data.whatsapp || "",
@@ -467,6 +470,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
               country: data.country || "Portugal",
               logo: data.logo_url || "",
               cover: data.cover_url || "",
+              coverFraming: normalizeCoverFraming(data),
               gallery: galleryUrls,
               description: data.description || "",
               whatsApp: data.whatsapp || "",
@@ -554,6 +558,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
             country: data.country || "Portugal",
             logo: data.logo_url || "",
             cover: data.cover_url || "",
+              coverFraming: normalizeCoverFraming(data),
             gallery: galleryUrls,
             description: data.description || "",
             whatsApp: data.whatsapp || "",
@@ -869,6 +874,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
             fill
             sizes="100vw"
             className="object-cover"
+            style={coverImgStyle(business.coverFraming ?? normalizeCoverFraming(null))}
             priority
           />
         ) : (

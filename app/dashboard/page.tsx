@@ -5,6 +5,8 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AccountMenu from "@/components/auth/AccountMenu";
+import CoverFramingEditor from "@/components/dashboard/CoverFramingEditor";
+import { normalizeCoverFraming, coverImgStyle, CoverFraming } from "@/lib/cover-framing";
 import Image from "next/image";
 import { supabase } from "../lib/supabase";
 import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/business-actions";
@@ -146,6 +148,7 @@ function DashboardContent() {
   const [savingBusiness, setSavingBusiness] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [framingOpen, setFramingOpen] = useState(false);
 
   // Product Form State
   const [prodName, setProdName] = useState("");
@@ -751,6 +754,60 @@ function DashboardContent() {
     }
   };
 
+  // Editor de enquadramento da capa — só parâmetros de apresentação,
+  // a imagem original nunca é alterada. RLS/ownership inalterados.
+  const handleSaveFraming = async (f: CoverFraming) => {
+    if (!business) return;
+    const { error } = await supabase
+      .from("businesses")
+      .update({
+        cover_position_x: f.x,
+        cover_position_y: f.y,
+        cover_zoom: f.zoom,
+      })
+      .eq("id", business.id);
+    if (error) {
+      alert("Erro ao guardar enquadramento: " + error.message);
+      return;
+    }
+    setBusiness((prev: any) => (prev ? {
+      ...prev,
+      cover_position_x: f.x,
+      cover_position_y: f.y,
+      cover_zoom: f.zoom,
+    } : prev));
+    setFramingOpen(false);
+  };
+
+  const handleRemoveCover = async () => {
+    if (!business) return;
+    const { error } = await supabase
+      .from("businesses")
+      .update({
+        cover_url: null,
+        cover_position_x: null,
+        cover_position_y: null,
+        cover_zoom: null,
+      })
+      .eq("id", business.id);
+    if (error) {
+      alert("Erro ao remover capa: " + error.message);
+      return;
+    }
+    setBusiness((prev: any) => (prev ? {
+      ...prev,
+      cover_url: null,
+      cover_position_x: null,
+      cover_position_y: null,
+      cover_zoom: null,
+    } : prev));
+    setFramingOpen(false);
+  };
+
+  const handleReplaceCover = () => {
+    document.getElementById("cover-upload-input")?.click();
+  };
+
   // 3. Add Product Action
   const handleProductImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1079,7 +1136,7 @@ function DashboardContent() {
         <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-2xl relative">
           <div className="h-44 w-full bg-gray-950 relative">
             {business?.cover_url && isValidStorageUrl(business.cover_url) ? (
-              <img src={business.cover_url} alt="Cover" className="w-full h-full object-cover opacity-60" />
+              <img src={business.cover_url} alt="Cover" className="w-full h-full object-cover opacity-60" style={coverImgStyle(normalizeCoverFraming(business))} />
             ) : (
               <div
                 className="w-full h-full flex items-center justify-center text-4xl"
@@ -1090,10 +1147,20 @@ function DashboardContent() {
             )}
             
             {/* Upload Cover button */}
-            <label className="absolute bottom-4 right-4 z-20 cursor-pointer bg-[#0f172a]/80 backdrop-blur px-3 py-1.5 border border-gray-700 hover:border-[#C8A96B] text-xs text-[#C8A96B] font-semibold rounded-lg transition-all">
-              {uploadingCover ? "Carregando..." : "Alterar Capa"}
-              <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
-            </label>
+            <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+              {business?.cover_url && (
+                <button
+                  onClick={() => setFramingOpen(true)}
+                  className="cursor-pointer bg-[#0f172a]/80 backdrop-blur px-3 py-1.5 border border-gray-700 hover:border-[#C8A96B] text-xs text-white font-semibold rounded-lg transition-all"
+                >
+                  Editar enquadramento
+                </button>
+              )}
+              <label className="cursor-pointer bg-[#0f172a]/80 backdrop-blur px-3 py-1.5 border border-gray-700 hover:border-[#C8A96B] text-xs text-[#C8A96B] font-semibold rounded-lg transition-all">
+                {uploadingCover ? "Carregando..." : "Alterar Capa"}
+                <input id="cover-upload-input" type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+              </label>
+            </div>
           </div>
 
           <div className="px-8 pb-8 pt-0 flex flex-col md:flex-row items-start md:items-end justify-between -mt-10 gap-6 relative z-10">
@@ -1196,7 +1263,7 @@ function DashboardContent() {
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
               <div className="flex flex-col md:flex-row gap-6">
                 {business?.cover_url && isValidStorageUrl(business.cover_url) ? (
-                  <img src={business.cover_url} alt="Capa" className="w-full md:w-64 h-36 object-cover rounded-xl border border-gray-800" />
+                  <img src={business.cover_url} alt="Capa" className="w-full md:w-64 h-36 object-cover rounded-xl border border-gray-800" style={coverImgStyle(normalizeCoverFraming(business))} />
                 ) : (
                   <div className="w-full md:w-64 h-36 rounded-xl bg-gray-950 border border-gray-800 flex items-center justify-center text-4xl">🏪</div>
                 )}
@@ -1319,7 +1386,7 @@ function DashboardContent() {
                 <label className="block text-xs font-medium text-gray-400">Capa</label>
                 <div className="w-full h-24 rounded-xl bg-gray-900 border border-gray-800 overflow-hidden">
                   {business?.cover_url && isValidStorageUrl(business.cover_url) ? (
-                    <img src={business.cover_url} alt="Capa" className="w-full h-full object-cover" />
+                    <img src={business.cover_url} alt="Capa" className="w-full h-full object-cover" style={coverImgStyle(normalizeCoverFraming(business))} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">Sem capa</div>
                   )}
@@ -2464,6 +2531,18 @@ function DashboardContent() {
           {toast}
         </div>
       )}
+
+      {/* Editor de enquadramento da capa */}
+      {framingOpen && business?.cover_url && (
+        <CoverFramingEditor
+          coverUrl={business.cover_url}
+          initial={normalizeCoverFraming(business)}
+          onSave={handleSaveFraming}
+          onReplace={handleReplaceCover}
+          onRemove={handleRemoveCover}
+          onClose={() => setFramingOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -3593,6 +3672,7 @@ function ShortLinkCard({ plan }: { plan: string }) {
           )}
         </form>
       )}
+
     </div>
   );
 }
