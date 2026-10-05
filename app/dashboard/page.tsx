@@ -1090,13 +1090,13 @@ function DashboardContent() {
             )}
             
             {/* Upload Cover button */}
-            <label className="absolute bottom-4 right-4 cursor-pointer bg-[#0f172a]/80 backdrop-blur px-3 py-1.5 border border-gray-700 hover:border-[#C8A96B] text-xs text-[#C8A96B] font-semibold rounded-lg transition-all">
+            <label className="absolute bottom-4 right-4 z-20 cursor-pointer bg-[#0f172a]/80 backdrop-blur px-3 py-1.5 border border-gray-700 hover:border-[#C8A96B] text-xs text-[#C8A96B] font-semibold rounded-lg transition-all">
               {uploadingCover ? "Carregando..." : "Alterar Capa"}
               <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
             </label>
           </div>
 
-          <div className="px-8 pb-8 pt-0 flex flex-col md:flex-row items-start md:items-end justify-between -mt-10 gap-6">
+          <div className="px-8 pb-8 pt-0 flex flex-col md:flex-row items-start md:items-end justify-between -mt-10 gap-6 relative z-10">
             <div className="flex flex-col md:flex-row items-start md:items-end gap-4">
               {/* Logo Badge */}
               <div className="relative group z-10">
