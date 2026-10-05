@@ -10,6 +10,7 @@ import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/
 import { isProTier, isBusinessTier, isPaidTier, normalizePlan } from "@/lib/plans";
 import { isPublishedBusiness, isOwnerOf, resolveBusinessCountTarget } from "@/lib/visibility";
 import { getSiteUrl } from "@/lib/site";
+import { buildVitrineUrl, buildVitrineQrSrc } from "@/lib/vitrine-share";
 import { MONTRA_TABS, DEFAULT_MONTRA_TAB, isValidMontraTab } from "@/lib/montra-tabs";
 import { buildBusinessUpdatePayload } from "@/lib/business-profile";
 import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/lib/supabase-storage";
@@ -2335,10 +2336,12 @@ export default function DashboardPage() {
 // ─── Vitrine Share Card ────────────────────────────────────────────────────
 function VitrineShareCard({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
-  const vitrineUrl = `${getSiteUrl()}/vitrine/${slug}`;
+  // QR/data: fonte central única (lib/vitrine-share) — o QR codifica
+  // EXATAMENTE a mesma URL do "Copiar Link".
+  const vitrineUrl = buildVitrineUrl(slug);
   const waText = encodeURIComponent(`Visita a minha vitrine profissional: ${vitrineUrl}`);
   const waUrl = `https://wa.me/?text=${waText}`;
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&bgcolor=0F172A&color=C8A96B&data=${encodeURIComponent(vitrineUrl)}`;
+  const qrSrc = buildVitrineQrSrc(slug);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(vitrineUrl);
@@ -2399,7 +2402,10 @@ function VitrineShareCard({ slug }: { slug: string }) {
 
         {/* Right: QR Code */}
         <div className="flex-shrink-0 flex flex-col items-center gap-2">
-          <div className="w-[90px] h-[90px] rounded-xl overflow-hidden border border-gray-800 bg-[#0F172A] flex items-center justify-center">
+          {/* p-2 + qzone=4 no QR: os padrões de localização nunca tocam
+              os cantos arredondados (bug: rounded-xl cortava os finders
+              e o QR deixava de ser legível). */}
+          <div className="w-[90px] h-[90px] rounded-xl overflow-hidden border border-gray-800 bg-[#0F172A] flex items-center justify-center p-2">
             <img
               src={qrSrc}
               alt={`QR Code da vitrine de ${slug}`}
