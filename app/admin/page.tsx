@@ -11,7 +11,7 @@ import { isPaidTier } from "@/lib/plans";
 
 // UI-only gate: hides admin controls in the browser.
 // Real authorization happens server-side (app/api/admin/* checks ADMIN_EMAILS).
-const ADMIN_EMAILS = ["cris.suboy@gmail.com"];
+const ADMIN_EMAILS = ["cris.suboy@gmail.com", "geralvitrinepropt@gmail.com"];
 
 interface Business {
   id: string;

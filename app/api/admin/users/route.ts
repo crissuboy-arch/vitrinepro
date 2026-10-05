@@ -16,7 +16,7 @@ import { createClient as createServerSupabase } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
 
-const DEFAULT_ADMIN_EMAILS = ["cris.suboy@gmail.com"];
+const DEFAULT_ADMIN_EMAILS = ["cris.suboy@gmail.com", "geralvitrinepropt@gmail.com"];
 
 function getAdminEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS;
