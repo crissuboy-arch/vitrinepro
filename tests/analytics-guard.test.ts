@@ -12,19 +12,22 @@ import {
 } from "../lib/analytics-guard.ts";
 
 describe("analytics event allowlist", () => {
-  it("only the public events are accepted (A4 adds discovery clicks)", () => {
+  it("only the public events are accepted (A4 adds discovery clicks, A5 adds need-today)", () => {
     assert.deepEqual([...ALLOWED_EVENTS], [
       "page_view",
       "whatsapp_click",
       "product_view",
       "business_result_click",
       "product_result_click",
+      "need_today_result_click",
     ]);
     assert.equal(isAllowedEvent("page_view"), true);
     assert.equal(isAllowedEvent("whatsapp_click"), true);
     assert.equal(isAllowedEvent("product_view"), true);
     assert.equal(isAllowedEvent("business_result_click"), true);
     assert.equal(isAllowedEvent("product_result_click"), true);
+    assert.equal(isAllowedEvent("need_today_result_click"), true);
+    assert.equal(isAllowedEvent("need_today_toggle"), false); // intencional: sem business_id, não vai ao servidor
     assert.equal(isAllowedEvent("purchase"), false);
     assert.equal(isAllowedEvent(""), false);
     assert.equal(isAllowedEvent(null), false);

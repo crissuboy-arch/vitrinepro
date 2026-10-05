@@ -17,6 +17,15 @@ import {
 } from "@/lib/geo";
 import { businessMatchesQuery, productMatchesQuery } from "@/lib/local-search";
 import NearbyMap from "../components/NearbyMap";
+// A5 — "Preciso Hoje": disponibilidade honesta (camada pura, sem React).
+import {
+  isOpenNow,
+  businessServiceState,
+  businessQualifiesNeedToday,
+  productAvailabilityState,
+  productCapabilities,
+  productQualifiesNeedToday,
+} from "@/lib/availability";
 
 interface Business {
   id: string;
@@ -92,6 +101,8 @@ export default function ExplorarPage() {
   const [geoState, setGeoState] = useState<"idle" | "requesting" | "granted" | "denied" | "unsupported" | "error">("idle");
   const [maxDistanceKm, setMaxDistanceKm] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<"relevance" | "nearest">("relevance");
+  // A5 — "⚡ Preciso Hoje": modo/filtro adicional sobre a descoberta A4.
+  const [needToday, setNeedToday] = useState(false);
   // A4.9 — resultados de produtos (buscados só quando há pesquisa).
   const [productHits, setProductHits] = useState<any[]>([]);
 
@@ -200,7 +211,11 @@ export default function ExplorarPage() {
   };
 
   // A4.18 — cliques de descoberta (sem coordenadas no payload).
-  const trackDiscoveryClick = (businessId: string, eventType: "business_result_click" | "product_result_click") => {
+  // A5: em modo "Preciso Hoje", o clique é registado como need_today_result_click.
+  const trackDiscoveryClick = (
+    businessId: string,
+    eventType: "business_result_click" | "product_result_click" | "need_today_result_click"
+  ) => {
     try {
       fetch("/api/analytics", {
         method: "POST",
@@ -267,6 +282,10 @@ export default function ExplorarPage() {
         // A4: coordenadas (nullable até a migration 000006 ser aplicada).
         latitude: b.latitude ?? null,
         longitude: b.longitude ?? null,
+        // A5: disponibilidade "hoje" (tri-state; null = não informado).
+        // "Aberto agora" é derivado de opening_hours em tempo de leitura.
+        service_today: b.service_today ?? null,
+        opening_hours: b.opening_hours ?? null,
       };
     });
   }, [realBusinesses, dbCategories, dbCities]);
@@ -291,7 +310,7 @@ export default function ExplorarPage() {
         const like = `%${safe}%`;
         const { data } = await supabase
           .from("products")
-          .select("id, name, description, price, image_url, business_id")
+          .select("id, name, description, price, image_url, business_id, available_today, pickup_today, delivery_today")
           .or(`name.ilike.${like},description.ilike.${like}`)
           .limit(30);
         // RLS já restringe a produtos de negócios publicados; reforço
@@ -300,14 +319,31 @@ export default function ExplorarPage() {
         const hits = (data || [])
           .filter((p: any) => productMatchesQuery(p, q))
           .map((p: any) => ({ ...p, business: bizById.get(p.business_id) || null }))
-          .filter((h: any) => h.business);
+          .filter((h: any) => h.business)
+          // A5 — modo "Preciso Hoje": só exclui com evidência negativa.
+          // Produto FALSE nunca aparece como disponível; UNKNOWN passa.
+          // Negócio fechado agora: só passa se o produto tem capacidade confirmada.
+          .filter((h: any) => {
+            if (!needToday) return true;
+            if (!productQualifiesNeedToday(h)) return false;
+            const b = h.business;
+            if (isOpenNow(b.opening_hours) === "CLOSED") {
+              const caps = productCapabilities(h);
+              return (
+                productAvailabilityState(h) === "AVAILABLE" ||
+                caps.pickup === "AVAILABLE" ||
+                caps.delivery === "AVAILABLE"
+              );
+            }
+            return true;
+          });
         setProductHits(hits);
       } catch {
         setProductHits([]);
       }
     }, 350);
     return () => clearTimeout(timer);
-  }, [searchQuery, mounted, displayBusinesses]);
+  }, [searchQuery, mounted, displayBusinesses, needToday]);
 
 
   const filteredBusinesses = useMemo(() => {
@@ -363,26 +399,52 @@ export default function ExplorarPage() {
     // A4.6/A4.7 — distância: calculada uma vez por negócio (helper central).
     // Sem localização do visitante, ou sem coordenadas no negócio,
     // a distância é null → nunca exibida, nunca filtrada por ela.
+    // A5: estado de disponibilidade/"aberto agora" calculado uma vez aqui
+    // (camada pura lib/availability.ts — sem lógica em componentes).
     const withDistance = result.map((b) => {
       const coords = businessCoords(b);
       const d =
         userLoc && coords
           ? distanceKm(userLoc.lat, userLoc.lng, coords.lat, coords.lng)
           : null;
-      return { ...b, _distanceKm: d };
+      return {
+        ...b,
+        _distanceKm: d,
+        _openState: isOpenNow(b.opening_hours),
+        _serviceState: businessServiceState({ service_today: b.service_today }),
+      };
     });
 
+    // A5 — "⚡ Preciso Hoje": filtro adicional. Só exclui com evidência
+    // negativa (service_today=false ou horário CLOSED). UNKNOWN passa —
+    // disponibilidade e "aberto agora" são sinais diferentes, e não se
+    // esconde um resultado útil só porque o horário é desconhecido.
+    let scoped = withDistance;
+    if (needToday) {
+      scoped = withDistance.filter((b) =>
+        businessQualifiesNeedToday({
+          service_today: b.service_today,
+          opening_hours: b.opening_hours,
+        })
+      );
+    }
     // A4.5 — filtro de distância: mostra SÓ negócios com coordenadas válidas
     // dentro do raio. Sem localização, o filtro nem é oferecido (UI).
-    let scoped = withDistance;
+    // Encadeia após o filtro "Preciso Hoje" (usa `scoped`, não `withDistance`).
     if (maxDistanceKm !== null && userLoc) {
-      scoped = withDistance.filter(
+      scoped = scoped.filter(
         (b) => b._distanceKm !== null && b._distanceKm <= maxDistanceKm
       );
     }
 
     // Ordenação — A4.6: "Relevância" preserva o ranking atual (scoreBusiness);
     // "Mais perto" ordena por distância (desconhecidas por último).
+    // A5: no modo "Preciso Hoje", disponibilidade confirmada e "aberto agora"
+    // somam bónus ao ranking existente — sem criar um segundo motor.
+    const needTodayBoost = (b: any) =>
+      (b._serviceState === "AVAILABLE" ? 500 : 0) +
+      (b._openState === "OPEN" ? 300 : 0);
+
     if (sortMode === "nearest" && userLoc) {
       scoped.sort((a, b) => {
         if (a._distanceKm === null && b._distanceKm === null)
@@ -395,11 +457,15 @@ export default function ExplorarPage() {
     } else {
       // Ranking: premium plan bonus (200pts) + engagement score.
       // A2.5: scoreBusiness is the single implementation (lib/ranking.ts).
-      scoped.sort((a, b) => scoreBusiness(b) - scoreBusiness(a));
+      scoped.sort((a, b) => {
+        const sa = scoreBusiness(a) + (needToday ? needTodayBoost(a) : 0);
+        const sb = scoreBusiness(b) + (needToday ? needTodayBoost(b) : 0);
+        return sb - sa;
+      });
     }
 
     return scoped;
-  }, [displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity, userLoc, maxDistanceKm, sortMode]);
+  }, [displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity, userLoc, maxDistanceKm, sortMode, needToday]);
 
   const featuredSlice = filteredBusinesses.filter((b) => b.premium).slice(0, 3);
   const regularSlice = filteredBusinesses.filter((b) => !b.premium);
@@ -630,6 +696,40 @@ export default function ExplorarPage() {
               )}
             </p>
           </div>
+
+          {/* A5 — ⚡ Preciso Hoje: modo de urgência sobre a descoberta A4.
+              Só usa dados reais: UNKNOWN nunca recebe badge "Disponível hoje". */}
+          <div className="border-t border-gray-850 pt-5 space-y-3">
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              ⚡ Preciso Hoje
+            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setNeedToday((v) => !v)}
+                aria-pressed={needToday}
+                className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all active:scale-95 cursor-pointer ${
+                  needToday
+                    ? "bg-[#C8A96B] text-[#0F172A] shadow-[0_4px_15px_rgba(200,169,107,0.35)]"
+                    : "border border-[#C8A96B]/40 text-[#C8A96B] hover:bg-[#C8A96B]/10"
+                }`}
+              >
+                {needToday ? "⚡ Preciso Hoje: ATIVO" : "⚡ Preciso Hoje"}
+              </button>
+              {needToday && (
+                <button
+                  onClick={() => setNeedToday(false)}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-gray-800 text-slate-300 hover:border-slate-700 hover:text-white transition-all cursor-pointer"
+                >
+                  ✕ Desativar
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed max-w-2xl">
+              {needToday
+                ? "A mostrar negócios e produtos que podem atender hoje, com base em dados reais dos comerciantes. Sem informação de disponibilidade, mostramos o resultado sem selo — nunca inventamos."
+                : "Ative para ver quem pode atender ainda hoje: disponibilidade confirmada, negócio aberto agora e distância."}
+            </p>
+          </div>
         </section>
 
         {/* A4.12 — Mapa (Leaflet): mesmos resultados filtrados, com coordenadas */}
@@ -678,7 +778,7 @@ export default function ExplorarPage() {
                   key={hit.id}
                   hit={hit}
                   userLoc={userLoc}
-                  onClick={() => trackDiscoveryClick(hit.business.id, "product_result_click")}
+                  onClick={() => trackDiscoveryClick(hit.business.id, needToday ? "need_today_result_click" : "product_result_click")}
                 />
               ))}
             </div>
@@ -706,7 +806,7 @@ export default function ExplorarPage() {
                       <ExplorarCard
                         key={biz.id}
                         biz={biz}
-                        onResultClick={() => trackDiscoveryClick(biz.id, "business_result_click")}
+                        onResultClick={() => trackDiscoveryClick(biz.id, needToday ? "need_today_result_click" : "business_result_click")}
                       />
                     ))}
                   </div>
@@ -725,7 +825,7 @@ export default function ExplorarPage() {
                       <ExplorarCard
                         key={biz.id}
                         biz={biz}
-                        onResultClick={() => trackDiscoveryClick(biz.id, "business_result_click")}
+                        onResultClick={() => trackDiscoveryClick(biz.id, needToday ? "need_today_result_click" : "business_result_click")}
                       />
                     ))}
                   </div>
@@ -838,6 +938,21 @@ function ExplorarCard({ biz, onResultClick }: { biz: any; onResultClick?: () => 
                   <span className="text-[#C8A96B]">• 🌍 {biz.country}</span>
                 )}
               </div>
+              {/* A5 — badges honestos: só com confirmação do comerciante/dados reais */}
+              {(biz._serviceState === "AVAILABLE" || biz._openState === "OPEN") && (
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {biz._serviceState === "AVAILABLE" && (
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-[#C8A96B]/15 border border-[#C8A96B]/30 text-[#C8A96B]">
+                      ⚡ Atende hoje
+                    </span>
+                  )}
+                  {biz._openState === "OPEN" && (
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                      🟢 Aberto agora
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed font-light line-clamp-2">
@@ -910,6 +1025,27 @@ function ProductResultCard({
             {b.name} • 📍 {b.city}
             {distLabel && <span className="text-[#C8A96B] font-semibold"> • {distLabel}</span>}
           </p>
+          {/* A5 — badges honestos: só com confirmação do comerciante */}
+          {(() => {
+            const badges: string[] = [];
+            if (productAvailabilityState(hit) === "AVAILABLE") badges.push("⚡ Disponível hoje");
+            const caps = productCapabilities(hit);
+            if (caps.pickup === "AVAILABLE") badges.push("🛍️ Retirada hoje");
+            if (caps.delivery === "AVAILABLE") badges.push("🚚 Entrega hoje");
+            if (badges.length === 0) return null;
+            return (
+              <p className="flex flex-wrap gap-1 mt-1">
+                {badges.map((bd) => (
+                  <span
+                    key={bd}
+                    className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-[#C8A96B]/15 border border-[#C8A96B]/30 text-[#C8A96B]"
+                  >
+                    {bd}
+                  </span>
+                ))}
+              </p>
+            );
+          })()}
         </div>
         <div className="flex items-center justify-between pt-2">
           {price ? (

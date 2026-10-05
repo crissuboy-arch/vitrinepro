@@ -33,6 +33,15 @@ export interface BusinessEditInput {
   linkedin: string;
   website: string;
   hours: unknown;
+  /**
+   * A5 — "Atendo hoje" (serviços). Tri-state intencional:
+   *   true  = comerciante confirmou SIM
+   *   false = comerciante confirmou NÃO
+   *   null  = não informado (UNKNOWN)
+   *   undefined = campo não gerido por este formulário → coluna intocada.
+   * Nunca converter null em false automaticamente.
+   */
+  serviceToday?: boolean | null;
   /** Código postal da Montra (A4). Opcional — ausente = coluna intocada. */
   postalCode?: string;
   /** WGS84 — null/ausente quando desconhecidas. O comerciante nunca é obrigado a saber. */
@@ -70,6 +79,9 @@ export function buildBusinessUpdatePayload(
     website: nullIfBlank(f.website),
     opening_hours: f.hours,
   };
+  // A5: tri-state passa exatamente como está (null = não informado, nunca
+  // convertido). undefined = formulário não gere o campo → coluna intocada.
+  if (f.serviceToday !== undefined) payload.service_today = f.serviceToday;
   // A4: localização fina — as chaves SÓ entram no payload quando há valor
   // real. (latitude/longitude vêm da geocodificação, nunca inventadas.)
   // Chaves ausentes = coluna intocada (sem wipe acidental de coordenadas).

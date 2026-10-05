@@ -13,7 +13,8 @@
  *    caller owns (businesses.user_id = auth.uid()).
  *
  * Public events (POST, no login):  page_view, whatsapp_click, product_view,
- *   business_result_click, product_result_click (A4 discovery)
+ *   business_result_click, product_result_click (A4 discovery),
+ *   need_today_result_click (A5 "Preciso Hoje")
  * Private (GET, owner only):       aggregated metrics per business
  */
 

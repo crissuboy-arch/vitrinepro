@@ -42,6 +42,10 @@ interface Product {
   description?: string;
   price?: number;
   image_url?: string;
+  // A5 — disponibilidade "hoje" (tri-state: true/false/null=não informado).
+  available_today?: boolean | null;
+  pickup_today?: boolean | null;
+  delivery_today?: boolean | null;
 }
 
 interface Testimonial {
@@ -133,6 +137,8 @@ function DashboardContent() {
   const [editWebsite, setEditWebsite] = useState("");
   const [editOwnerOriginCountry, setEditOwnerOriginCountry] = useState("");
   const [editHours, setEditHours] = useState<OpeningHour[]>([]);
+  // A5 — "Atendo hoje" (tri-state: null = não informado).
+  const [editServiceToday, setEditServiceToday] = useState<boolean | null>(null);
 
   const [savingBusiness, setSavingBusiness] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -144,6 +150,10 @@ function DashboardContent() {
   const [prodPrice, setProdPrice] = useState("");
   const [prodFile, setProdFile] = useState<File | null>(null);
   const [prodPreview, setProdPreview] = useState("");
+  // A5 — disponibilidade "hoje" (tri-state: null = não informado).
+  const [prodAvailable, setProdAvailable] = useState<boolean | null>(null);
+  const [prodPickup, setProdPickup] = useState<boolean | null>(null);
+  const [prodDelivery, setProdDelivery] = useState<boolean | null>(null);
   const [savingProduct, setSavingProduct] = useState(false);
 
   // Edit Product State
@@ -153,6 +163,10 @@ function DashboardContent() {
   const [editProdPrice, setEditProdPrice] = useState("");
   const [editProdFile, setEditProdFile] = useState<File | null>(null);
   const [editProdPreview, setEditProdPreview] = useState("");
+  // A5 — disponibilidade "hoje" (tri-state: null = não informado).
+  const [editProdAvailable, setEditProdAvailable] = useState<boolean | null>(null);
+  const [editProdPickup, setEditProdPickup] = useState<boolean | null>(null);
+  const [editProdDelivery, setEditProdDelivery] = useState<boolean | null>(null);
   const [savingEditProduct, setSavingEditProduct] = useState(false);
 
   // Testimonial Form State
@@ -268,6 +282,10 @@ function DashboardContent() {
       setEditWebsite(biz.website || "");
       setEditOwnerOriginCountry((biz as any).owner_origin_country || "");
       setEditHours((biz.opening_hours as unknown as OpeningHour[]) || []);
+      // A5 — tri-state preservado: null continua null (não informado).
+      setEditServiceToday(
+        biz.service_today === true ? true : biz.service_today === false ? false : null
+      );
 
       // Parallel fetch list endpoints
       const [prodRes, testRes, gallRes, catsRes, citiesRes] = await Promise.all([
@@ -599,6 +617,8 @@ function DashboardContent() {
         postalCode: editPostalCode,
         latitude: editLatitude,
         longitude: editLongitude,
+        // A5: "Atendo hoje" — tri-state passa exatamente como está.
+        serviceToday: editServiceToday,
       }));
 
       if (!result.success) throw new Error(result.error);
@@ -608,13 +628,19 @@ function DashboardContent() {
       setBusiness(updated);
       setToast("Informações guardadas com sucesso.");
     } catch (err: any) {
-      // A4: se a migration 000006 ainda não foi aplicada, o banco rejeita
+      // A4/A5: se a migration ainda não foi aplicada, o banco rejeita
       // as novas colunas — mensagem clara em vez de erro técnico.
       const msg = String(err?.message || err);
       if (/postal_code|latitude|longitude/i.test(msg)) {
         alert(
           "Para guardar código postal e coordenadas, aplique primeiro a migration " +
           "20261005000006_a4_local_discovery.sql no Supabase SQL Editor. " +
+          "Os restantes dados foram mantidos no formulário."
+        );
+      } else if (/service_today|available_today|pickup_today|delivery_today/i.test(msg)) {
+        alert(
+          "Para guardar a disponibilidade de hoje, aplique primeiro a migration " +
+          "20261005000007_a5_availability.sql no Supabase SQL Editor. " +
           "Os restantes dados foram mantidos no formulário."
         );
       } else {
@@ -717,6 +743,10 @@ function DashboardContent() {
           price: prodPrice ? parseFloat(prodPrice) : null,
           image_url: imageUrl || null,
           order_index: products.length,
+          // A5 — tri-state: null = não informado (nunca convertido).
+          available_today: prodAvailable,
+          pickup_today: prodPickup,
+          delivery_today: prodDelivery,
         })
         .select()
         .single();
@@ -731,8 +761,19 @@ function DashboardContent() {
       setProdPrice("");
       setProdFile(null);
       setProdPreview("");
+      setProdAvailable(null);
+      setProdPickup(null);
+      setProdDelivery(null);
     } catch (err: any) {
-      alert("Erro ao adicionar produto: " + err.message);
+      const msg = String(err?.message || err);
+      if (/available_today|pickup_today|delivery_today/i.test(msg)) {
+        alert(
+          "Para guardar a disponibilidade de hoje, aplique primeiro a migration " +
+          "20261005000007_a5_availability.sql no Supabase SQL Editor."
+        );
+      } else {
+        alert("Erro ao adicionar produto: " + msg);
+      }
     } finally {
       setSavingProduct(false);
     }
@@ -755,6 +796,10 @@ function DashboardContent() {
     setEditProdPrice(p.price !== null && p.price !== undefined ? String(p.price) : "");
     setEditProdFile(null);
     setEditProdPreview(p.image_url || "");
+    // A5 — tri-state preservado: null continua null (não informado).
+    setEditProdAvailable(p.available_today === true ? true : p.available_today === false ? false : null);
+    setEditProdPickup(p.pickup_today === true ? true : p.pickup_today === false ? false : null);
+    setEditProdDelivery(p.delivery_today === true ? true : p.delivery_today === false ? false : null);
   };
 
   // 6. Save Edit
@@ -772,6 +817,10 @@ function DashboardContent() {
         description: editProdDesc || null,
         price: editProdPrice ? parseFloat(editProdPrice) : null,
         image_url: imageUrl || null,
+        // A5 — tri-state: null = não informado (nunca convertido).
+        available_today: editProdAvailable,
+        pickup_today: editProdPickup,
+        delivery_today: editProdDelivery,
       };
       const { error } = await supabase.from("products").update(dbUpdates).eq("id", editingProduct.id);
       if (error) throw error;
@@ -781,6 +830,9 @@ function DashboardContent() {
         description: editProdDesc || undefined,
         price: editProdPrice ? parseFloat(editProdPrice) : undefined,
         image_url: imageUrl || undefined,
+        available_today: editProdAvailable,
+        pickup_today: editProdPickup,
+        delivery_today: editProdDelivery,
       };
       setProducts((prev) =>
         prev.map((p) => (p.id === editingProduct.id ? { ...p, ...localUpdates } : p))
@@ -788,7 +840,15 @@ function DashboardContent() {
       setEditingProduct(null);
       setToast("Produto atualizado.");
     } catch (err: any) {
-      alert("Erro ao atualizar: " + err.message);
+      const msg = String(err?.message || err);
+      if (/available_today|pickup_today|delivery_today/i.test(msg)) {
+        alert(
+          "Para guardar a disponibilidade de hoje, aplique primeiro a migration " +
+          "20261005000007_a5_availability.sql no Supabase SQL Editor."
+        );
+      } else {
+        alert("Erro ao atualizar: " + msg);
+      }
     } finally {
       setSavingEditProduct(false);
     }
@@ -1550,6 +1610,16 @@ function DashboardContent() {
         {activeTab === "horarios" && (
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
             <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Horários de Funcionamento</h3>
+              {/* A5 — "Atendo hoje": afirmação explícita para negócios de serviço.
+                  Tri-state: "Não informado" = NULL (nunca convertido em Não). */}
+              <div className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 max-w-sm">
+                <TriStateControl
+                  label="⚡ Atendo hoje"
+                  value={editServiceToday}
+                  onChange={setEditServiceToday}
+                  hint="Para serviços: confirma que tens disponibilidade para atender hoje. Aparece no modo 'Preciso Hoje'."
+                />
+              </div>
               {/* Hours section in edit profile */}
               <div className="space-y-2 border-t border-gray-800 pt-4">
                 <label className="block text-xs font-medium text-gray-400">Horários de Funcionamento</label>
@@ -1930,6 +2000,29 @@ function DashboardContent() {
                 />
               </div>
 
+              {/* A5 — Disponibilidade "hoje" (tri-state; "Não informado" = NULL) */}
+              <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg space-y-3">
+                <p className="text-xs font-semibold text-[#C8A96B]">⚡ Disponibilidade hoje</p>
+                <TriStateControl
+                  label="Disponível hoje"
+                  value={prodAvailable}
+                  onChange={setProdAvailable}
+                  hint="O produto pode ser comprado/levantado hoje."
+                />
+                <TriStateControl
+                  label="Retirada hoje"
+                  value={prodPickup}
+                  onChange={setProdPickup}
+                  hint="O cliente pode levantar hoje (independente de 'Disponível hoje')."
+                />
+                <TriStateControl
+                  label="Entrega hoje"
+                  value={prodDelivery}
+                  onChange={setProdDelivery}
+                  hint="Entrega no próprio dia (independente de 'Disponível hoje')."
+                />
+              </div>
+
               {/* Product Image Upload */}
               <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg">
                 <label className="block text-xs font-medium text-gray-400 mb-2">Imagem do Produto</label>
@@ -2016,6 +2109,29 @@ function DashboardContent() {
                   onChange={(e) => setEditProdPrice(e.target.value)}
                   className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
                   placeholder="Ex: 15.50"
+                />
+              </div>
+
+              {/* A5 — Disponibilidade "hoje" (tri-state; "Não informado" = NULL) */}
+              <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg space-y-3">
+                <p className="text-xs font-semibold text-[#C8A96B]">⚡ Disponibilidade hoje</p>
+                <TriStateControl
+                  label="Disponível hoje"
+                  value={editProdAvailable}
+                  onChange={setEditProdAvailable}
+                  hint="O produto pode ser comprado/levantado hoje."
+                />
+                <TriStateControl
+                  label="Retirada hoje"
+                  value={editProdPickup}
+                  onChange={setEditProdPickup}
+                  hint="O cliente pode levantar hoje (independente de 'Disponível hoje')."
+                />
+                <TriStateControl
+                  label="Entrega hoje"
+                  value={editProdDelivery}
+                  onChange={setEditProdDelivery}
+                  hint="Entrega no próprio dia (independente de 'Disponível hoje')."
                 />
               </div>
 
@@ -2330,6 +2446,50 @@ export default function DashboardPage() {
     >
       <DashboardContent />
     </Suspense>
+  );
+}
+
+// ─── Tri-state control (A5 "Preciso Hoje") ────────────────────────────────
+// Segmented "Não informado | Sim | Não". NULL é um estado real e visível:
+// o comerciante pode voltar um campo para "Não informado" a qualquer momento.
+// Nunca converter null em false automaticamente.
+function TriStateControl({
+  label,
+  value,
+  onChange,
+  hint,
+}: {
+  label: string;
+  value: boolean | null;
+  onChange: (v: boolean | null) => void;
+  hint?: string;
+}) {
+  const opts: { v: boolean | null; label: string }[] = [
+    { v: null, label: "Não informado" },
+    { v: true, label: "Sim" },
+    { v: false, label: "Não" },
+  ];
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
+      <div className="flex rounded-lg overflow-hidden border border-gray-800">
+        {opts.map((o) => (
+          <button
+            key={o.label}
+            type="button"
+            onClick={() => onChange(o.v)}
+            className={`flex-1 px-2 py-1.5 text-xs font-semibold transition-colors ${
+              value === o.v
+                ? "bg-[#C8A96B] text-[#0F172A]"
+                : "bg-[#0F172A] text-gray-400 hover:text-white"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {hint && <p className="text-[10px] text-gray-500 mt-1">{hint}</p>}
+    </div>
   );
 }
 

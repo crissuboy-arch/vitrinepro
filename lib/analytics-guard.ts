@@ -13,6 +13,12 @@ export const ALLOWED_EVENTS = [
   // A4 — discovery clicks (per-business, no coordinates in the payload).
   "business_result_click",
   "product_result_click",
+  // A5 — "Preciso Hoje" result clicks (per-business, no coordinates).
+  // NOTE: there is intentionally NO "need_today_toggle" server event:
+  // the toggle has no business to attribute to, and sending it with a
+  // fabricated business_id would weaken the A2 per-business validation.
+  // Mode usage is measured honestly via need_today_result_click volume.
+  "need_today_result_click",
 ] as const;
 export type AllowedEvent = (typeof ALLOWED_EVENTS)[number];
 
