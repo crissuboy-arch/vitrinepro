@@ -83,18 +83,22 @@ export function businessServiceState(
 
 /**
  * O negócio pode aparecer no modo "Preciso Hoje"?
- * Sinais diferentes, avaliados separadamente:
- *  - service_today = FALSE  → excluído (evidência negativa)
- *  - horário = CLOSED       → excluído (evidência negativa)
- *  - UNKNOWN em ambos        → incluído, sem badge (não esconder o útil)
+ * Sinais diferentes, avaliados separadamente — e o sinal EXPLÍCITO do
+ * comerciante vence o horário derivado (template semanal):
+ *  - service_today = FALSE → excluído (confirmação negativa explícita)
+ *  - service_today = TRUE  → incluído, mesmo com horário CLOSED
+ *    (ex.: canalizador que atende ao domicílio hoje apesar de domingo)
+ *  - service_today = NULL  → vale o horário: CLOSED exclui; OPEN/UNKNOWN passam
+ *  - UNKNOWN em ambos       → incluído, sem badge (não esconder o útil)
  */
 export function businessQualifiesNeedToday(
   b: BusinessAvailabilityInput | null | undefined,
   now: Date = new Date()
 ): boolean {
-  if (toAvailabilityState(b?.service_today) === "UNAVAILABLE") return false;
-  if (isOpenNow(b?.opening_hours, now) === "CLOSED") return false;
-  return true;
+  const service = toAvailabilityState(b?.service_today);
+  if (service === "UNAVAILABLE") return false;
+  if (service === "AVAILABLE") return true;
+  return isOpenNow(b?.opening_hours, now) !== "CLOSED";
 }
 
 // ─── Aberto agora (derivado de opening_hours) ───────────────────────────────

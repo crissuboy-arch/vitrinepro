@@ -868,7 +868,9 @@ export default function ExplorarPage() {
               <div className="space-y-2 max-w-md mx-auto">
                 <h4 className="text-lg font-bold text-white font-display">Nenhum negócio encontrado</h4>
                 <p className="text-xs text-slate-450 leading-relaxed">
-                  Não encontramos negócios locais que atendam aos filtros selecionados.
+                  {needToday
+                    ? "Em modo ⚡ Preciso Hoje mostramos apenas negócios e produtos que podem atender hoje, com base em dados reais dos comerciantes. Nenhum resultado confirma disponibilidade para esta pesquisa — experimente desativar o modo ou tentar outra pesquisa."
+                    : "Não encontramos negócios locais que atendam aos filtros selecionados."}
                 </p>
               </div>
               <div className="pt-2">

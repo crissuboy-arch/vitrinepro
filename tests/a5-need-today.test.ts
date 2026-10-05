@@ -218,6 +218,63 @@ describe("A5 — produtos em modo Preciso Hoje", () => {
   });
 });
 
+describe("A5 — CASO REAL Cantinho da Lu (regressão do bug de produção)", () => {
+  // Dados reais do Supabase em 2026-10-05 (segunda-feira):
+  //  - business.service_today = NULL, opening_hours com Segunda closed=true
+  //  - produto com available_today = TRUE
+  // Regra: service_today NULL NÃO invalida produto com available_today TRUE;
+  // e disponibilidade confirmada do produto passa mesmo com negócio CLOSED.
+  const MONDAY = new Date("2026-10-05T10:00:00+01:00");
+  const closedMonday = [
+    { day: "Segunda-feira", open: "09:00", close: "18:00", closed: true },
+    { day: "Terça-feira", open: "09:30", close: "20:00", closed: false },
+  ];
+  const business = {
+    id: "b-lu",
+    name: "Cantinho da Lu",
+    published: true,
+    service_today: null,
+    opening_hours: closedMonday,
+  };
+  const bizById = new Map([[business.id, business]]);
+
+  it("produto available_today=TRUE aparece com Preciso Hoje (service_today NULL não invalida)", () => {
+    const products = [
+      { id: "p-cone", name: "Coxinha no Cone", business_id: "b-lu", available_today: true, pickup_today: true, delivery_today: false },
+    ];
+    const matched = products.filter((p) =>
+      productMatchesQuery({ id: p.id, name: p.name, business_id: p.business_id }, "coxinha")
+    );
+    assert.equal(matched.length, 1);
+    const qualified = needTodayProducts(matched, bizById, MONDAY).map((p) => p.id);
+    assert.deepEqual(qualified, ["p-cone"], "produto com available_today=TRUE DEVE aparecer");
+  });
+
+  it("badges corretos: Disponível + Retirada hoje; sem Entrega hoje", () => {
+    const p = { available_today: true, pickup_today: true, delivery_today: false };
+    assert.equal(productAvailabilityState(p), "AVAILABLE");
+    assert.equal(productCapabilities(p).pickup, "AVAILABLE");
+    assert.equal(productCapabilities(p).delivery, "UNAVAILABLE");
+  });
+
+  it("negócio CLOSED continua excluído das vitrines sem sinal explícito", () => {
+    assert.equal(isOpenNow(closedMonday, MONDAY), "CLOSED");
+    assert.deepEqual(needTodayBusinesses([business], MONDAY), []);
+  });
+
+  it("service_today=TRUE explícito vence horário CLOSED (sinal do comerciante)", () => {
+    const b = { ...business, service_today: true };
+    assert.deepEqual(needTodayBusinesses([b], MONDAY).map((x) => x.id), ["b-lu"]);
+  });
+
+  it("service_today=FALSE explícito exclui mesmo com horário OPEN", () => {
+    const openDay = new Date("2026-10-06T10:00:00+01:00"); // terça
+    const b = { ...business, service_today: false };
+    assert.equal(isOpenNow(closedMonday, openDay), "OPEN");
+    assert.deepEqual(needTodayBusinesses([b], openDay), []);
+  });
+});
+
 describe("A5 — guards estruturais", () => {
   it("negócio não publicado nunca aparece (mesmo com service_today=TRUE)", () => {
     const b = { published: false, service_today: true, opening_hours: stdWeek() };
