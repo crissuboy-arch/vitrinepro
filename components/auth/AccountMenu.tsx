@@ -2,22 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/SupabaseAuthContext";
 
 /**
  * AccountMenu — identificação discreta da sessão autenticada (padrão SaaS).
  *
- * - Mostra avatar com inicial + nome/e-mail (truncado no mobile).
- * - Dropdown: nome (se houver), e-mail REAL da sessão, Minhas Montras,
- *   Trocar de conta (logout → /login), Sair (logout → /).
+ * - `compact`: só avatar (sem nome/e-mail no header) — para a landing.
+ * - Dropdown: Sessão (e-mail REAL), Meu Painel, Gestão da conta,
+ *   Trocar de conta (logout REAL → /login), Sair (logout REAL → /).
+ * - Logout usa reload real (window.location.href): mata qualquer estado
+ *   SPA stale e força o middleware a revalidar a sessão.
  * - Nunca expõe user_id/UUID nem dados de outra conta.
  */
-export default function AccountMenu() {
+export default function AccountMenu({ compact = false }: { compact?: boolean }) {
   const { user, profile, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
 
   const email = user?.email ?? "";
@@ -50,8 +50,9 @@ export default function AccountMenu() {
       await signOut();
     } finally {
       setOpen(false);
-      router.push(target);
-      router.refresh();
+      // Reload real (não router.push): garante cookies limpos, middleware
+      // revalidado e zero estado stale — a sessão anterior morre aqui.
+      window.location.href = target;
     }
   };
 
@@ -70,9 +71,11 @@ export default function AccountMenu() {
         >
           {initial}
         </span>
-        <span className="hidden sm:block text-xs text-slate-200 truncate">
-          {displayName || email}
-        </span>
+        {!compact && (
+          <span className="hidden sm:block text-xs text-slate-200 truncate">
+            {displayName || email}
+          </span>
+        )}
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -116,7 +119,7 @@ export default function AccountMenu() {
               onClick={() => setOpen(false)}
               className="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/5 hover:text-white transition-colors"
             >
-              Minhas Montras
+              Meu Painel
             </Link>
             <button
               role="menuitem"

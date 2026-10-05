@@ -74,7 +74,7 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
               <span className="hidden sm:block w-44 h-9" aria-hidden="true" />
             ) : isLoggedIn ? (
               <div className="hidden sm:block">
-                <AccountMenu />
+                <AccountMenu compact />
               </div>
             ) : (
               <>
@@ -169,7 +169,7 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
         <div className="px-6 pb-8 pt-4 border-t border-white/5 flex flex-col gap-3">
           {loading ? null : isLoggedIn ? (
             <div onClick={closeMenu}>
-              <AccountMenu />
+              <AccountMenu compact />
             </div>
           ) : (
             <>

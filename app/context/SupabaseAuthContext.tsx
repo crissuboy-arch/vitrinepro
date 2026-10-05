@@ -143,11 +143,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    setUser(null);
-    setSession(null);
-    setProfile(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } finally {
+      // A UI nunca fica presa numa sessão stale: mesmo que a chamada
+      // de rede falhe, o estado local morre aqui (o supabase-js já
+      // limpou o armazenamento local antes da chamada de rede).
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+    }
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {

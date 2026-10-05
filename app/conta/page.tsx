@@ -98,8 +98,8 @@ export default function ContaPage() {
     try {
       await signOut();
     } finally {
-      router.push(target);
-      router.refresh();
+      // Reload real: mata estado stale e força revalidação da sessão.
+      window.location.href = target;
     }
   };
 

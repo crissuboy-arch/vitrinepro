@@ -1,6 +1,7 @@
 /* eslint-disable */
 "use client";
 
+import { CANONICAL_URL } from "@/lib/site";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -174,7 +175,8 @@ function BusinessMinisite({ business, reviews }: { business: Business; reviews: 
   )}`;
 
   const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    // URL pública sempre canónica — nunca o domínio ambiente (Preview).
+    navigator.clipboard.writeText(`${CANONICAL_URL}/business/${business.id}`);
     setShareMsg("Copiado!");
     setTimeout(() => setShareMsg("Copiar link"), 2000);
   };
@@ -468,7 +470,7 @@ function BusinessMinisite({ business, reviews }: { business: Business; reviews: 
               <h4 className="text-[#0F172A] font-medium mb-3 text-sm">Partilhar este negócio</h4>
               <div className="flex gap-2">
                 <a
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`}
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${CANONICAL_URL}/business/${business.id}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 py-2 bg-[#1877F2] text-white rounded-lg text-xs text-center font-medium hover:opacity-90 transition-opacity"
@@ -476,7 +478,7 @@ function BusinessMinisite({ business, reviews }: { business: Business; reviews: 
                   Facebook
                 </a>
                 <a
-                  href={`https://wa.me/?text=${encodeURIComponent(business.name + " - " + (typeof window !== "undefined" ? window.location.href : ""))}`}
+                  href={`https://wa.me/?text=${encodeURIComponent(business.name + " - " + `${CANONICAL_URL}/business/${business.id}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 py-2 bg-[#25D366] text-white rounded-lg text-xs text-center font-medium hover:opacity-90 transition-opacity"

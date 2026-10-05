@@ -12,11 +12,22 @@
  * `rounded-* overflow-hidden` no container corta os padrões de
  * localização dos cantos → o QR deixa de ser legível no telemóvel.
  */
-import { getSiteUrl } from "./site.ts";
+import { CANONICAL_URL } from "./site.ts";
 
-/** URL pública canónica da Montra: https://vitrinepro.digital/vitrine/[slug] */
+/**
+ * URL pública canónica da Montra: https://vitrinepro.digital/vitrine/[slug]
+ *
+ * REGRA DURA: partilha pública usa SEMPRE o domínio canónico, nunca o
+ * domínio ambiente (window.location.origin / VERCEL_URL). Mesmo testando
+ * dentro de um Preview da Vercel, o link entregue ao cliente é o canónico.
+ */
 export function buildVitrineUrl(slug: string): string {
-  return `${getSiteUrl()}/vitrine/${slug}`;
+  return `${CANONICAL_URL}/vitrine/${slug}`;
+}
+
+/** URL pública canónica de um link curto: https://vitrinepro.digital/v/[code] */
+export function buildShortLinkUrl(code: string): string {
+  return `${CANONICAL_URL}/v/${code}`;
 }
 
 /**

@@ -21,6 +21,12 @@ import {
   buildVitrineQrSrc,
   qrSrcDataUrl,
 } from "../lib/vitrine-share.ts";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __shareDirname = dirname(fileURLToPath(import.meta.url));
+const read = (p: string) => readFileSync(join(__shareDirname, "..", p), "utf8");
 
 describe("QR da Montra — regressão", () => {
   it("QR data === URL pública da Montra (mesma string do Copiar Link)", () => {
@@ -55,5 +61,37 @@ describe("QR da Montra — regressão", () => {
 
   it("qrSrcDataUrl devolve null para src inválido", () => {
     assert.equal(qrSrcDataUrl("not a url"), null);
+  });
+});
+
+describe("URLs públicas — sempre canónicas", () => {
+  it("buildVitrineUrl usa CANONICAL_URL (nunca domínio ambiente)", () => {
+    const src = read("lib/vitrine-share.ts");
+    assert.ok(src.includes("CANONICAL_URL"), "usa CANONICAL_URL");
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\/\/.*$/gm, "");
+    assert.ok(!code.includes("window.location"), "sem window.location no código");
+    assert.ok(!code.includes("VERCEL_URL"), "sem VERCEL_URL no código");
+  });
+
+  it("buildShortLinkUrl existe e é canónico", () => {
+    const src = read("lib/vitrine-share.ts");
+    assert.ok(src.includes("buildShortLinkUrl"), "helper existe");
+  });
+
+  it("dashboard: copiar link curto usa URL canónica", () => {
+    const src = read("app/dashboard/page.tsx");
+    assert.ok(src.includes("buildShortLinkUrl(shortLink.short_code)"), "usa helper canónico");
+  });
+
+  it("nenhum caminho de partilha usa window.location.origin", async () => {
+    const { execSync } = await import("node:child_process");
+    const out = execSync(
+      'grep -rn "window.location.origin" app/dashboard/page.tsx app/components/SocialBar.tsx "app/vitrine/[slug]/VitrineClient.tsx" "app/business/[id]/page.tsx" || true',
+      { cwd: join(__shareDirname, "..") }
+    ).toString();
+    // OAuth/reset-password podem usar origin (fluxo de auth, não partilha pública)
+    const lines = out.trim().split("\n").filter(Boolean);
+    const bad = lines.filter((l) => !l.includes("auth/callback") && !l.includes("reset-password"));
+    assert.ok(bad.length === 0, "partilha sem origin: " + bad.join("; ").slice(0, 200));
   });
 });

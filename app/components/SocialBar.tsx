@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useSyncExternalStore } from "react";
-import { getSiteUrl } from "@/lib/site";
+import { buildVitrineUrl } from "@/lib/vitrine-share";
 import { supabase } from "@/app/lib/supabase";
 import SaveToCollection from "./SaveToCollection";
 
@@ -53,8 +53,8 @@ export default function SocialBar({
     () => false
   );
 
-  // A6 (correção C): fonte canónica do domínio — vitrinepro.digital.
-  const vitrineUrl = `${getSiteUrl()}/vitrine/${businessSlug}`;
+  // Fonte canónica: https://vitrinepro.digital/vitrine/[slug] — nunca o domínio ambiente.
+  const vitrineUrl = buildVitrineUrl(businessSlug);
 
   // Fetch fresh counts + user status on mount
   useEffect(() => {

@@ -13,7 +13,7 @@ import { getCommunityByCountry } from "@/lib/communities"
 import { normalizeCoverFraming, coverImgStyle, CoverFraming } from "@/lib/cover-framing";
 import { isPublishedBusiness } from "@/lib/visibility";
 import { isPaidTier, planHasChatbot } from "@/lib/plans";
-import { getSiteUrl } from "@/lib/site";
+import { CANONICAL_URL } from "@/lib/site";
 import { shouldRenderChannel } from "@/lib/business-profile";
 import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib/analytics";
 import { pixelContact } from "@/app/lib/meta-pixel";
@@ -1329,7 +1329,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
             {/* Invite button */}
             <button
               onClick={() => {
-                const url = window.location.origin + "/login?ref=" + business.slug;
+                const url = CANONICAL_URL + "/login?ref=" + business.slug;
                 navigator.clipboard.writeText(url);
                 alert("Link de convite copiado! Partilha com outro negócio.");
               }}
@@ -1352,7 +1352,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
               </button>
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
-                  `Vê a vitrine de ${business.name} em ${business.city}! \n${getSiteUrl()}/vitrine/${business.slug}`
+                  `Vê a vitrine de ${business.name} em ${business.city}! \n${CANONICAL_URL}/vitrine/${business.slug}`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -1415,7 +1415,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
             <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 object-contain bg-transparent" />
           </Link>
           <p className="text-slate-400">
-            <a href={`${getSiteUrl()}?ref=${business.slug}`} 
+            <a href={`${CANONICAL_URL}?ref=${business.slug}`} 
                target="_blank"
                rel="noopener noreferrer"
                style={{ color: "#C8A96B", textDecoration: "none", fontSize: "13px" }}>

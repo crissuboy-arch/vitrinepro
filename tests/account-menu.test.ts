@@ -40,9 +40,9 @@ describe("AccountMenu — identificação da sessão", () => {
 });
 
 describe("AccountMenu — ações", () => {
-  it("tem Minhas Montras → /dashboard", () => {
+  it("tem Meu Painel → /dashboard", () => {
     const src = read("components/auth/AccountMenu.tsx");
-    assert.ok(src.includes("Minhas Montras"), "item Minhas Montras");
+    assert.ok(src.includes("Meu Painel"), "item Meu Painel");
     assert.ok(src.includes('href="/dashboard"'), "aponta para /dashboard");
   });
 
@@ -56,7 +56,7 @@ describe("AccountMenu — ações", () => {
     const src = read("components/auth/AccountMenu.tsx");
     assert.ok(src.includes("await signOut()"), "chama signOut do contexto");
     assert.ok(src.includes('doSignOut("/")'), "Sair → /");
-    assert.ok(src.includes("router.refresh()"), "refresh após logout");
+    assert.ok(src.includes("window.location.href = target"), "reload real após logout");
   });
 
   it("usa o signOut do AuthProvider existente (sem novo sistema)", () => {
@@ -84,5 +84,48 @@ describe("AccountMenu — integração", () => {
     const src = read("components/auth/AccountMenu.tsx");
     assert.ok(src.includes('"Escape"'), "fecha com Escape");
     assert.ok(src.includes("mousedown"), "fecha ao clicar fora");
+  });
+});
+
+describe("AccountMenu — logout robusto (sessão nunca presa)", () => {
+  it("doSignOut usa reload real (window.location.href), não router.push+refresh", () => {
+    const src = read("components/auth/AccountMenu.tsx");
+    assert.ok(src.includes("window.location.href = target"), "reload real");
+    assert.ok(!src.includes("router.push(target)"), "sem router.push no logout");
+    assert.ok(!src.includes("router.refresh()"), "sem refresh após push");
+  });
+
+  it("tem variante compacta (avatar discreto, sem nome/e-mail no header)", () => {
+    const src = read("components/auth/AccountMenu.tsx");
+    assert.ok(src.includes("compact"), "prop compact");
+    assert.ok(src.includes("!compact"), "texto só quando não-compacto");
+  });
+
+  it("menu do avatar tem Meu Painel / Gestão da conta / Trocar de conta / Sair", () => {
+    const src = read("components/auth/AccountMenu.tsx");
+    for (const item of ["Meu Painel", "Gestão da conta", "Trocar de conta", "Sair"]) {
+      assert.ok(src.includes(item), item);
+    }
+  });
+
+  it("signOut do contexto limpa estado local mesmo se a rede falhar (finally)", () => {
+    const src = read("app/context/SupabaseAuthContext.tsx");
+    const fn = src.slice(src.indexOf("const signOut"));
+    assert.ok(fn.includes("finally"), "finally presente");
+    assert.ok(fn.includes("setUser(null)"), "limpa user");
+    assert.ok(fn.includes("setSession(null)"), "limpa session");
+    assert.ok(fn.includes("setProfile(null)"), "limpa profile");
+  });
+
+  it("página /conta também usa reload real no logout", () => {
+    const src = read("app/conta/page.tsx");
+    assert.ok(src.includes("window.location.href = target"), "reload real");
+  });
+});
+
+describe("Landing — header institucional", () => {
+  it("usa AccountMenu compacto (sem e-mail protagonista)", () => {
+    const src = read("components/landing/Navbar.tsx");
+    assert.ok(src.includes("<AccountMenu compact"), "compacto na landing");
   });
 });

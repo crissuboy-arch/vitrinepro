@@ -13,7 +13,7 @@ import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/
 import { isProTier, isBusinessTier, isPaidTier, normalizePlan } from "@/lib/plans";
 import { isPublishedBusiness, isOwnerOf, resolveBusinessCountTarget } from "@/lib/visibility";
 import { getSiteUrl } from "@/lib/site";
-import { buildVitrineUrl, buildVitrineQrSrc } from "@/lib/vitrine-share";
+import { buildVitrineUrl, buildVitrineQrSrc, buildShortLinkUrl } from "@/lib/vitrine-share";
 import { MONTRA_TABS, DEFAULT_MONTRA_TAB, isValidMontraTab } from "@/lib/montra-tabs";
 import { buildBusinessUpdatePayload } from "@/lib/business-profile";
 import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/lib/supabase-storage";
@@ -3536,7 +3536,7 @@ function ShortLinkCard({ plan }: { plan: string }) {
 
   const handleCopy = () => {
     if (!shortLink) return;
-    const url = `${window.location.origin}/v/${shortLink.short_code}`;
+    const url = buildShortLinkUrl(shortLink.short_code);
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
