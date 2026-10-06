@@ -79,6 +79,36 @@ describe("brand — fonte única", () => {
     assert.ok(!out.trim(), "sem refs antigas: " + out.slice(0, 120));
   });
 
+  it("nenhuma marca concorrente em texto público (Pinterest)", async () => {
+    const { readdirSync, readFileSync, statSync } = await import("node:fs");
+    const hits: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir)) {
+        const full = join(dir, e);
+        if (statSync(full).isDirectory()) { walk(full); continue; }
+        if (!full.endsWith(".tsx")) continue;
+        // remove comentários {/* */}, // e blocos * ... antes de procurar
+        const code = readFileSync(full, "utf8")
+          .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+          .replace(/^\s*\/\/.*$/gm, "")
+          .replace(/^\s*\*.*$/gm, "");
+        if (/pinterest/i.test(code)) hits.push(full);
+      }
+    };
+    walk(join(root, "app"));
+    walk(join(root, "components"));
+    assert.deepEqual(hits, [], "Pinterest em texto público");
+  });
+
+  it("rodapés públicos usam a frase institucional", () => {
+    for (const f of ["app/businesses/page.tsx", "app/explorar/page.tsx", "app/loja/[slug]/page.tsx"]) {
+      const src = read(f);
+      assert.ok(src.includes("Portugal, à sua volta."), f);
+      assert.ok(src.includes("© 2026 VitrinePro. Todos os direitos reservados."), f);
+      assert.ok(src.includes("/brand/logo-horizontal-transparent.png"), f + " logo nova");
+    }
+  });
+
   it("manifest referencia os icons PWA", () => {
     const m = JSON.parse(read("public/manifest.webmanifest"));
     assert.equal(m.icons.length, 2);

@@ -81,7 +81,7 @@ const ads = [
   {
     id: "ad-3",
     title: "Crie a Sua Vitrine Grátis",
-    tagline: "Destaque o seu negócio no maior Pinterest local de Portugal e receba pedidos no WhatsApp.",
+    tagline: "Destaque o seu negócio local em Portugal e receba pedidos no WhatsApp.",
     badge: "VitrinePro SaaS",
     cover: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=1200&h=500&fit=crop",
     link: "/login",
@@ -574,7 +574,7 @@ export default function BusinessesPage() {
           <Link href="/">
             <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-1" />
           </Link>
-          <p className="text-slate-400">O maior Pinterest de negócios locais em Portugal.</p>
+          <p className="text-slate-400">Portugal, à sua volta.</p>
           <p className="text-[10px] text-slate-600 mt-2">© 2026 VitrinePro. Todos os direitos reservados.</p>
         </div>
       </footer>

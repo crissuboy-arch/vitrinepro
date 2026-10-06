@@ -900,7 +900,7 @@ export default function ExplorarPage() {
           <Link href="/">
             <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-1" />
           </Link>
-          <p className="text-slate-400">O maior Pinterest de negócios locais em Portugal.</p>
+          <p className="text-slate-400">Portugal, à sua volta.</p>
           <p className="text-[10px] text-slate-600 mt-2">© 2026 VitrinePro. Todos os direitos reservados.</p>
         </div>
       </footer>
