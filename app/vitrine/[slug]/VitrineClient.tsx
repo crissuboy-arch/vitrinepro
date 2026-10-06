@@ -390,7 +390,10 @@ export default function VitrineClient({ slug }: { slug: string }) {
               supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
             ]);
 
-            const galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+            const _galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+            // Fallback geral: galeria vazia mostra as imagens dos produtos.
+            const _productUrls = ((productsRes.data || []) as any[]).map((pr) => pr.image_url).filter(Boolean);
+            const galleryUrls = _galleryUrls.length > 0 ? _galleryUrls : _productUrls;
 
             setBusiness({
               id: data.id,
@@ -463,7 +466,10 @@ export default function VitrineClient({ slug }: { slug: string }) {
               supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
             ]);
 
-            const galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+            const _galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+            // Fallback geral: galeria vazia mostra as imagens dos produtos.
+            const _productUrls = ((productsRes.data || []) as any[]).map((pr) => pr.image_url).filter(Boolean);
+            const galleryUrls = _galleryUrls.length > 0 ? _galleryUrls : _productUrls;
 
             setBusiness({
               id: data.id,
@@ -551,7 +557,10 @@ export default function VitrineClient({ slug }: { slug: string }) {
             supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
           ]);
 
-          const galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+          const _galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+          // Fallback geral: galeria vazia mostra as imagens dos produtos.
+          const _productUrls = ((productsRes.data || []) as any[]).map((pr) => pr.image_url).filter(Boolean);
+          const galleryUrls = _galleryUrls.length > 0 ? _galleryUrls : _productUrls;
 
           setBusiness({
             id: data.id,

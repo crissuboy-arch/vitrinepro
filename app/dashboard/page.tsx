@@ -1707,25 +1707,43 @@ function DashboardContent() {
                 />
               </div>
 
-              {gallery.length === 0 ? (
-                <div className="text-center py-6 text-xs text-gray-500">
-                  Nenhuma imagem carregada na galeria.
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {gallery.map((img) => (
-                    <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-gray-850 group bg-gray-950">
-                      <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => handleDeleteGalleryImage(img.id)}
-                        className="absolute inset-0 bg-red-950/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 text-xs font-bold transition-opacity"
-                      >
-                        Eliminar
-                      </button>
+              {(() => {
+                // Fallback geral: galeria vazia mostra as imagens dos produtos (só leitura).
+                const usingProductFallback = gallery.length === 0;
+                const fallbackItems = usingProductFallback
+                  ? products.filter((pr) => pr.image_url).map((pr) => ({ id: `product-${pr.id}`, image_url: pr.image_url as string }))
+                  : [];
+                const items = usingProductFallback ? fallbackItems : gallery;
+                if (items.length === 0) {
+                  return (
+                    <div className="text-center py-6 text-xs text-gray-500">
+                      Nenhuma imagem carregada na galeria.
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                }
+                return (
+                  <>
+                    {usingProductFallback && (
+                      <p className="text-[11px] text-gray-500">A mostrar imagens dos produtos. Para gerir fotos próprias, usa "+ Enviar".</p>
+                    )}
+                    <div className="grid grid-cols-3 gap-2">
+                      {items.map((img) => (
+                        <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-gray-850 group bg-gray-950">
+                          <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                          {!usingProductFallback && (
+                            <button
+                              onClick={() => handleDeleteGalleryImage(img.id)}
+                              className="absolute inset-0 bg-red-950/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 text-xs font-bold transition-opacity"
+                            >
+                              Eliminar
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
           </div>
