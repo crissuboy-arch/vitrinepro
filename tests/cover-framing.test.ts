@@ -56,9 +56,15 @@ describe("cover-framing — estilo CSS", () => {
   });
 });
 
-describe("CoverFramingEditor — UX", () => {
-  it("tem arrastar por Pointer Events (mouse + touch)", () => {
+describe("CoverFramingEditor — UX (componente partilhado)", () => {
+  it("usa o editor genérico com a mesma UX", () => {
     const src = read("components/dashboard/CoverFramingEditor.tsx");
+    assert.ok(src.includes("ImageFramingEditor"), "wrapper do genérico");
+    assert.ok(src.includes('previewAspect="16/9"'), "preview 16:9 da capa");
+  });
+
+  it("tem arrastar por Pointer Events (mouse + touch)", () => {
+    const src = read("components/dashboard/ImageFramingEditor.tsx");
     assert.ok(src.includes("onPointerDown"), "pointer down");
     assert.ok(src.includes("onPointerMove"), "pointer move");
     assert.ok(src.includes("onPointerUp"), "pointer up");
@@ -67,14 +73,14 @@ describe("CoverFramingEditor — UX", () => {
   });
 
   it("tem zoom +/− com limites", () => {
-    const src = read("components/dashboard/CoverFramingEditor.tsx");
+    const src = read("components/dashboard/ImageFramingEditor.tsx");
     assert.ok(src.includes("Aumentar zoom"), "botão +");
     assert.ok(src.includes("Diminuir zoom"), "botão −");
-    assert.ok(src.includes("MAX_COVER_ZOOM"), "limite máximo");
+    assert.ok(src.includes("maxZoom"), "limite máximo via prop");
   });
 
   it("tem Repor, Trocar imagem, Remover e Guardar", () => {
-    const src = read("components/dashboard/CoverFramingEditor.tsx");
+    const src = read("components/dashboard/ImageFramingEditor.tsx");
     assert.ok(src.includes("Repor"), "repor");
     assert.ok(src.includes("Trocar imagem"), "trocar");
     assert.ok(src.includes("Remover"), "remover");
@@ -82,7 +88,7 @@ describe("CoverFramingEditor — UX", () => {
   });
 
   it("não usa biblioteca pesada de edição", () => {
-    const src = read("components/dashboard/CoverFramingEditor.tsx");
+    const src = read("components/dashboard/ImageFramingEditor.tsx");
     assert.ok(!/react-easy-crop|cropperjs|react-cropper/i.test(src), "sem lib de crop");
   });
 });
