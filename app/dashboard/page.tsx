@@ -1169,8 +1169,8 @@ function DashboardContent() {
               </div>
             )}
             
-            {/* Upload Cover button */}
-            <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+            {/* Upload Cover button — topo direito para não colidir com a toolbar */}
+            <div className="absolute top-4 right-4 z-20 flex gap-2">
               {business?.cover_url && (
                 <button
                   onClick={() => setFramingOpen(true)}
