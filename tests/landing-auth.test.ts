@@ -69,3 +69,17 @@ describe("landing navbar — sem regressão de rotas", () => {
     }
   });
 });
+
+describe("login — sem OAuth público não configurado", () => {
+  it("página /login não exibe botão Google (provider não habilitado no Supabase)", () => {
+    const src = read("app/login/page.tsx");
+    assert.ok(!src.includes("Continuar com Google"), "botão Google removido");
+    assert.ok(!src.includes("handleGoogleLogin"), "handler removido");
+    assert.ok(!src.includes("signInWithGoogle"), "sem chamada OAuth na UI");
+  });
+
+  it("contexto mantém signInWithGoogle documentado como inativo", () => {
+    const src = read("app/context/SupabaseAuthContext.tsx");
+    assert.ok(src.includes("NÃO está habilitado no"), "aviso documentado");
+  });
+});
