@@ -1,16 +1,34 @@
 -- 20261006000013_business_posts_novidades.sql
 --
--- A6.5 "Novidades na Vitrine": estende a tabela existente public.business_posts
--- (criada em 003_community.sql, até agora órfã — nenhuma UI a usava).
+-- A6.5 — "Novidades na Vitrine".
 --
--- ADITIVA e idempotente: só adiciona colunas, alarga o CHECK de type e cria
--- um índice. NÃO altera RLS (policies canónicas vp_posts_select/vp_posts_write
--- permanecem), NÃO altera ownership, NÃO remove nada.
+-- A tabela public.business_posts foi definida em 003_community.sql mas
+-- APARENTEMENTE NUNCA FOI APLICADA em produção (erro 42P01 em 2026-10-06).
+-- Por isso esta migration é AUTOSSUFICIENTE: cria a tabela se não existir
+-- e adiciona as colunas novas se já existir uma versão antiga.
 --
--- APLICAR MANUALMENTE no Supabase SQL Editor (padrão do projeto).
--- O código da A6.5 deteta a ausência destas colunas e esconde a funcionalidade
--- em vez de falhar, por isso é seguro fazer deploy do código antes de aplicar.
+-- NÃO aplicar automaticamente. A Cristiane aplica manualmente no SQL Editor.
 
+-- 1. Cria a tabela completa se não existir.
+CREATE TABLE IF NOT EXISTS public.business_posts (
+  id          UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  business_id UUID        NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  type        TEXT        NOT NULL,
+  title       TEXT        NOT NULL,
+  content     TEXT,
+  image_url   TEXT,
+  price       NUMERIC(10,2),
+  starts_at   TIMESTAMPTZ,
+  expires_at  TIMESTAMPTZ,
+  is_active   BOOLEAN     NOT NULL DEFAULT true,
+  product_id  UUID        REFERENCES public.products(id) ON DELETE SET NULL,
+  cta_type    TEXT,
+  cta_target  TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 2. Colunas novas se a tabela já existia numa versão antiga.
 ALTER TABLE public.business_posts
   ADD COLUMN IF NOT EXISTS price      NUMERIC(10,2),
   ADD COLUMN IF NOT EXISTS starts_at  TIMESTAMPTZ,
@@ -21,17 +39,14 @@ ALTER TABLE public.business_posts
   ADD COLUMN IF NOT EXISTS cta_target TEXT,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
--- Alargar os tipos permitidos. Mantém os 4 valores antigos como aliases para
--- não invalidar dados que já possam existir.
--- Remove primeiro qualquer CHECK pré-existente sobre a coluna (só existe o do type).
+-- 3. Constraint de tipo: remove qualquer CHECK antigo e aplica o novo
+--    (4 tipos legados + 8 tipos A6.5).
 DO $$
 DECLARE r RECORD;
 BEGIN
   FOR r IN
-    SELECT conname
-    FROM pg_constraint
-    WHERE conrelid = 'public.business_posts'::regclass
-      AND contype = 'c'
+    SELECT conname FROM pg_constraint
+    WHERE conrelid = 'public.business_posts'::regclass AND contype = 'c'
   LOOP
     EXECUTE format('ALTER TABLE public.business_posts DROP CONSTRAINT %I', r.conname);
   END LOOP;
@@ -44,6 +59,29 @@ ALTER TABLE public.business_posts
     'servico_novo', 'evento', 'disponivel_hoje', 'destaque'
   ));
 
--- Índice para o feed público (filtro por validade).
+-- 4. RLS + policies canónicas (não existiam se a tabela não existia).
+ALTER TABLE public.business_posts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read posts" ON public.business_posts;
+DROP POLICY IF EXISTS "Owner write posts" ON public.business_posts;
+DROP POLICY IF EXISTS "vp_posts_select" ON public.business_posts;
+DROP POLICY IF EXISTS "vp_posts_write" ON public.business_posts;
+
+CREATE POLICY "vp_posts_select" ON public.business_posts
+  FOR SELECT USING (
+    business_id IN (SELECT id FROM public.businesses
+      WHERE published = true OR is_published = true OR user_id = auth.uid())
+  );
+
+CREATE POLICY "vp_posts_write" ON public.business_posts
+  FOR ALL USING (
+    business_id IN (SELECT id FROM public.businesses WHERE user_id = auth.uid())
+  ) WITH CHECK (
+    business_id IN (SELECT id FROM public.businesses WHERE user_id = auth.uid())
+  );
+
+-- 5. Índices.
+CREATE INDEX IF NOT EXISTS idx_business_posts_biz
+  ON public.business_posts (business_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_business_posts_feed
   ON public.business_posts (is_active, starts_at, expires_at);
