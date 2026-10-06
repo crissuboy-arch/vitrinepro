@@ -13,12 +13,20 @@ import Image from "next/image";
 import { supabase } from "../lib/supabase";
 import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/business-actions";
 import { isProTier, isBusinessTier, isPaidTier, normalizePlan } from "@/lib/plans";
-import { isPublishedBusiness, isOwnerOf, resolveBusinessCountTarget } from "@/lib/visibility";
+import { isPublishedBusiness, isOwnerOf } from "@/lib/visibility";
 import { getSiteUrl } from "@/lib/site";
 import { buildVitrineUrl, buildVitrineQrSrc, buildShortLinkUrl } from "@/lib/vitrine-share";
 import { MONTRA_TABS, DEFAULT_MONTRA_TAB, isValidMontraTab } from "@/lib/montra-tabs";
+import {
+  NOVIDADE_TYPES,
+  NOVIDADE_CTA_OPTIONS,
+  NOVIDADES_FULL_SELECT,
+  NOVIDADES_LEGACY_SELECT,
+  isMissingColumnError,
+  novidadeTypeLabel,
+} from "@/lib/novidades";
 import { buildBusinessUpdatePayload } from "@/lib/business-profile";
-import { uploadLogo, uploadCover, uploadGallery, uploadProductImage } from "@/lib/supabase-storage";
+import { uploadLogo, uploadCover, uploadGallery, uploadProductImage, uploadNovidadeImage } from "@/lib/supabase-storage";
 import { persistBusinessImageField } from "@/lib/business-images";
 import { assertFreshUploadOwnership } from "@/lib/storage-upload-guard";
 import { Sparkles, Lock, Copy, Check, ExternalLink } from "lucide-react";
@@ -203,6 +211,26 @@ function DashboardContent() {
   const [showCatalogModal, setShowCatalogModal] = useState(false);
   const [showCatalogUpgradeModal, setShowCatalogUpgradeModal] = useState(false);
 
+  // A6.5 — Novidades na Vitrine (business_posts).
+  // novidadesMode: "full" = migration aplicada; "legacy" = só colunas base
+  // (publicar/editar limitado, validade/preço/CTA escondidos); "unavailable"
+  // = tabela inacessível (secção escondida, sem crash).
+  const [novidades, setNovidades] = useState<any[]>([]);
+  const [novidadesMode, setNovidadesMode] = useState<"loading" | "full" | "legacy" | "unavailable">("loading");
+  const [showNovidadeModal, setShowNovidadeModal] = useState(false);
+  const [editingNovidade, setEditingNovidade] = useState<any | null>(null);
+  const [novType, setNovType] = useState("novidade");
+  const [novTitle, setNovTitle] = useState("");
+  const [novContent, setNovContent] = useState("");
+  const [novPrice, setNovPrice] = useState("");
+  const [novStartsAt, setNovStartsAt] = useState("");
+  const [novExpiresAt, setNovExpiresAt] = useState("");
+  const [novCtaType, setNovCtaType] = useState("none");
+  const [novProductId, setNovProductId] = useState("");
+  const [novFile, setNovFile] = useState<File | null>(null);
+  const [novPreview, setNovPreview] = useState("");
+  const [savingNovidade, setSavingNovidade] = useState(false);
+
   // Auto-dismiss toast after 4s
   useEffect(() => {
     if (!toast) return;
@@ -241,7 +269,8 @@ function DashboardContent() {
   }, [router]);
 
   // Fetch all business data and lists — A2.5 multi-business aware.
-  // 0 businesses → /onboarding · 1 → auto-select · 2+ → minimal selector
+  // A6.5: 0 businesses → vista de conta com estado vazio (NUNCA força /onboarding) ·
+  // 1 → auto-select · 2+ → minimal selector
   // (never bounce a multi-business owner to onboarding).
   const loadAllData = async () => {
     try {
@@ -255,11 +284,11 @@ function DashboardContent() {
       const all = await getMyBusinesses(session.user.id);
       setBusinesses(all);
 
-      if (resolveBusinessCountTarget(all.length) === "onboarding") {
-        // Preserve the URL params (e.g. ?plan=premium from the subscribe flow)
-        // so the chosen plan survives onboarding and Stripe auto-starts afterwards.
-        const search = typeof window !== "undefined" ? window.location.search : "";
-        router.push(`/onboarding${search}`);
+      if (all.length === 0) {
+        // A6.5 Parte A — consumidor autenticado com 0 businesses: NUNCA forçado
+        // a /onboarding. Fica na vista de conta com estado vazio + CTA "Criar Montra".
+        setBusinesses([]);
+        setBusiness(null);
         return;
       }
 
@@ -341,6 +370,8 @@ function DashboardContent() {
       if (gallRes.data) setGallery(gallRes.data);
       if (catsRes.data) setCategories(catsRes.data);
       if (citiesRes.data) setCities(citiesRes.data);
+      // A6.5 — novidades carregam à parte: nunca quebram o resto do dashboard.
+      void loadNovidades(biz.id);
     } catch (err) {
       console.error("[DASHBOARD] Business load exception:", err);
     }
@@ -507,6 +538,9 @@ function DashboardContent() {
   // CONTA → MINHAS MONTRAS → GERENCIAR MONTRA → MONTRA PÚBLICA.
   // Shown whenever no ?montra= is selected (0 → onboarding happens earlier).
   if (!business) {
+    // A6.5 Parte A — preserva os params do URL (ex.: ?plan=premium do fluxo
+    // de subscrição) para o plano escolhido sobreviver ao onboarding.
+    const dashSearch = typeof window !== "undefined" ? window.location.search : "";
     const publishedCount = businesses.filter((b: any) => isPublishedBusiness(b)).length;
     return (
       <div className="min-h-screen bg-[#0F172A] text-white flex flex-col">
@@ -533,6 +567,25 @@ function DashboardContent() {
           </p>
 
           <h2 className="font-display text-xl font-semibold text-[#C8A96B] mb-4">Minhas Montras</h2>
+
+          {/* A6.5 Parte A — consumidor sem Montra: estado vazio com CTA,
+              em vez do redirect forçado a /onboarding. */}
+          {businesses.length === 0 && (
+            <div className="bg-gray-900 border border-dashed border-[#C8A96B]/40 rounded-2xl p-8 text-center mb-4">
+              <div className="text-4xl mb-3">🏪</div>
+              <h3 className="font-display text-xl font-bold text-white">Ainda não tem uma Montra</h3>
+              <p className="text-sm text-gray-400 mt-2 max-w-md mx-auto">
+                Crie a sua Montra para mostrar o seu negócio a quem está por perto — é aqui que gere tudo.
+              </p>
+              <Link
+                href={`/onboarding${dashSearch}`}
+                className="inline-block mt-5 px-6 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl text-sm transition-colors"
+              >
+                Criar Montra →
+              </Link>
+            </div>
+          )}
+
           <div className="grid md:grid-cols-2 gap-4">
             {businesses.map((b: any) => (
               <div
@@ -581,7 +634,7 @@ function DashboardContent() {
           </div>
 
           <Link
-            href="/onboarding"
+            href={`/onboarding${dashSearch}`}
             className="inline-block mt-8 text-sm text-[#C8A96B] hover:text-[#D4BB82] border border-[#C8A96B]/30 hover:border-[#C8A96B]/60 px-5 py-3 rounded-xl transition-colors font-semibold"
           >
             + Nova Montra
@@ -1093,6 +1146,209 @@ function DashboardContent() {
       setGallery((prev) => prev.filter((img) => img.id !== imageId));
     } catch (err: any) {
       alert("Erro ao eliminar imagem: " + err.message);
+    }
+  };
+
+  // Converte ISO (UTC) para o formato do input datetime-local (hora local).
+  const toLocalInput = (iso: string): string => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  // ===== A6.5 — Novidades na Vitrine (business_posts) =====
+  // DEGRADAÇÃO GRACIOSA: a migration 20261006000013 pode ainda não estar
+  // aplicada. Tenta as colunas novas; em erro de coluna inexistente recua
+  // para as colunas base (modo "legacy"); só esconde se a tabela falhar.
+  const loadNovidades = async (businessId: string) => {
+    setNovidadesMode("loading");
+    try {
+      const res = await supabase
+        .from("business_posts")
+        .select(NOVIDADES_FULL_SELECT)
+        .eq("business_id", businessId)
+        .order("created_at", { ascending: false });
+      if (res.error) throw res.error;
+      setNovidades(res.data ?? []);
+      setNovidadesMode("full");
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      if (!isMissingColumnError(msg)) {
+        console.error("[DASHBOARD] loadNovidades falhou:", msg);
+        setNovidades([]);
+        setNovidadesMode("unavailable");
+        return;
+      }
+      try {
+        const legacy = await supabase
+          .from("business_posts")
+          .select(NOVIDADES_LEGACY_SELECT)
+          .eq("business_id", businessId)
+          .order("created_at", { ascending: false });
+        if (legacy.error) throw legacy.error;
+        setNovidades(legacy.data ?? []);
+        setNovidadesMode("legacy");
+      } catch (legacyErr: any) {
+        console.error("[DASHBOARD] loadNovidades (legado) falhou:", legacyErr?.message);
+        setNovidades([]);
+        setNovidadesMode("unavailable");
+      }
+    }
+  };
+
+  const resetNovidadeForm = () => {
+    setEditingNovidade(null);
+    setNovType("novidade");
+    setNovTitle("");
+    setNovContent("");
+    setNovPrice("");
+    setNovStartsAt("");
+    setNovExpiresAt("");
+    setNovCtaType("none");
+    setNovProductId("");
+    setNovFile(null);
+    setNovPreview("");
+  };
+
+  const openNovidadeModal = () => {
+    resetNovidadeForm();
+    setShowNovidadeModal(true);
+  };
+
+  const openEditNovidade = (n: any) => {
+    setEditingNovidade(n);
+    setNovType(n.type || "novidade");
+    setNovTitle(n.title || "");
+    setNovContent(n.content || "");
+    setNovPrice(n.price !== null && n.price !== undefined ? String(n.price) : "");
+    setNovStartsAt(n.starts_at ? toLocalInput(n.starts_at) : "");
+    setNovExpiresAt(n.expires_at ? toLocalInput(n.expires_at) : "");
+    setNovCtaType(n.cta_type || "none");
+    setNovProductId(n.product_id || "");
+    setNovFile(null);
+    setNovPreview(n.image_url || "");
+    setShowNovidadeModal(true);
+  };
+
+  const handleNovidadeImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNovFile(file);
+      setNovPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Atalho "Só hoje": válida de agora até às 23:59 locais.
+  const setNovidadeTodayOnly = () => {
+    const now = new Date();
+    const end = new Date(now);
+    end.setHours(23, 59, 0, 0);
+    setNovStartsAt(toLocalInput(now.toISOString()));
+    setNovExpiresAt(toLocalInput(end.toISOString()));
+  };
+
+  const handleSaveNovidade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novTitle.trim() || !business) return;
+    if (novStartsAt && novExpiresAt && new Date(novStartsAt) > new Date(novExpiresAt)) {
+      alert("A data de início não pode ser posterior à data de fim.");
+      return;
+    }
+    setSavingNovidade(true);
+    try {
+      await assertCanUploadNow();
+      let imageUrl = editingNovidade?.image_url || "";
+      if (novFile) {
+        imageUrl = await uploadNovidadeImage(novFile, business.id);
+      }
+      const full = novidadesMode === "full";
+      const payload: any = {
+        business_id: business.id,
+        type: novType,
+        title: novTitle.trim(),
+        content: novContent.trim() || null,
+        image_url: imageUrl || null,
+      };
+      if (full) {
+        payload.price = novPrice ? parseFloat(novPrice) : null;
+        payload.starts_at = novStartsAt ? new Date(novStartsAt).toISOString() : null;
+        payload.expires_at = novExpiresAt ? new Date(novExpiresAt).toISOString() : null;
+        payload.is_active = editingNovidade?.is_active ?? true;
+        payload.cta_type = novCtaType === "none" ? null : novCtaType;
+        payload.product_id = novCtaType === "ver_produto" ? novProductId || null : null;
+        payload.cta_target =
+          novCtaType === "ver_produto" ? novProductId || null
+          : novCtaType === "ver_montra" ? business.slug
+          : null;
+      }
+      if (editingNovidade) {
+        const { error } = await supabase.from("business_posts").update(payload).eq("id", editingNovidade.id);
+        if (error) throw error;
+        setNovidades((prev) => prev.map((n) => (n.id === editingNovidade.id ? { ...n, ...payload } : n)));
+        setToast("Novidade atualizada.");
+      } else {
+        const { data, error } = await supabase.from("business_posts").insert(payload).select().single();
+        if (error) throw error;
+        setNovidades((prev) => [data, ...prev]);
+        setToast("Novidade publicada!");
+      }
+      setShowNovidadeModal(false);
+      resetNovidadeForm();
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      if (isMissingColumnError(msg)) {
+        alert(
+          "Para publicar novidades com preço, validade e CTA, aplica primeiro a migration " +
+          "20261006000013_business_posts_novidades.sql no Supabase SQL Editor."
+        );
+      } else {
+        alert("Erro ao guardar novidade: " + msg);
+      }
+    } finally {
+      setSavingNovidade(false);
+    }
+  };
+
+  const handleToggleNovidade = async (n: any) => {
+    const next = !(n.is_active !== false);
+    try {
+      const { error } = await supabase.from("business_posts").update({ is_active: next }).eq("id", n.id);
+      if (error) throw error;
+      setNovidades((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_active: next } : x)));
+      setToast(next ? "Novidade ativada." : "Novidade desativada.");
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      if (isMissingColumnError(msg)) {
+        alert(
+          "Para ativar/desativar novidades, aplica primeiro a migration " +
+          "20261006000013_business_posts_novidades.sql no Supabase SQL Editor."
+        );
+      } else {
+        alert("Erro ao atualizar novidade: " + msg);
+      }
+    }
+  };
+
+  const handleDeleteNovidade = async (id: string) => {
+    if (!confirm("Eliminar esta novidade?")) return;
+    const { error } = await supabase.from("business_posts").delete().eq("id", id);
+    if (error) { alert("Erro ao eliminar: " + error.message); return; }
+    setNovidades((prev) => prev.filter((n) => n.id !== id));
+    setToast("Novidade eliminada.");
+  };
+
+  // Partilha: link direto /vitrine/[slug] (regra vitrine-share: domínio
+  // canónico). O endpoint /api/short-links exige plano Business, por isso
+  // NÃO é adequado para todos os comerciantes — usa-se o link direto.
+  const handleShareNovidade = async () => {
+    if (!business?.slug) return;
+    const url = buildVitrineUrl(business.slug);
+    try {
+      await navigator.clipboard.writeText(url);
+      setToast("Link da Montra copiado!");
+    } catch {
+      prompt("Copia o link da Montra:", url);
     }
   };
 
@@ -1748,6 +2004,123 @@ function DashboardContent() {
 
           </div>
         )}
+        {/* A6.5 — NOVIDADES */}
+        {activeTab === "novidades" && (
+          <div className="space-y-6">
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
+              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+                <div>
+                  <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Novidades na Vitrine</h3>
+                  <p className="text-xs text-gray-400">Publica promoções, eventos e avisos — aparecem no Explorar.</p>
+                </div>
+                {novidadesMode !== "unavailable" && novidadesMode !== "loading" && (
+                  <button
+                    onClick={openNovidadeModal}
+                    className="px-4 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-xs font-bold rounded-lg transition-colors"
+                  >
+                    + Publicar novidade
+                  </button>
+                )}
+              </div>
+
+              {novidadesMode === "loading" && (
+                <p className="text-xs text-gray-500">A carregar novidades…</p>
+              )}
+              {novidadesMode === "legacy" && (
+                <p className="text-[11px] text-amber-400/90 bg-amber-950/30 border border-amber-900 rounded-lg px-3 py-2">
+                  Modo básico: para preço, validade e botões de ação, aplica a migration
+                  20261006000013_business_posts_novidades.sql no Supabase SQL Editor.
+                </p>
+              )}
+              {novidadesMode === "unavailable" && (
+                <p className="text-xs text-gray-500">As novidades estão indisponíveis de momento.</p>
+              )}
+
+              {(novidadesMode === "full" || novidadesMode === "legacy") && (
+                novidades.length === 0 ? (
+                  <div className="text-center py-10 border border-dashed border-gray-800 rounded-xl bg-gray-950/20">
+                    <span className="text-4xl">📰</span>
+                    <p className="text-sm text-gray-500 mt-2">Ainda não publicaste nenhuma novidade.</p>
+                  </div>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {novidades.map((n) => {
+                      const isActive = n.is_active !== false;
+                      return (
+                        <div key={n.id} className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 flex gap-4 hover:border-gray-700 transition-colors">
+                          <div className="w-16 h-16 rounded-lg bg-gray-950 border border-gray-800 flex-shrink-0 overflow-hidden">
+                            {n.image_url ? (
+                              <img src={n.image_url} alt={n.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-2xl bg-gray-900">📰</div>
+                            )}
+                          </div>
+                          <div className="flex-grow min-w-0">
+                            <div className="flex justify-between items-start gap-2">
+                              <h4 className="font-semibold text-white truncate text-sm">{n.title}</h4>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border flex-shrink-0">
+                                {novidadeTypeLabel(n.type)}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                              {n.price !== null && n.price !== undefined && (
+                                <span className="text-[#C8A96B] font-bold text-xs">€{Number(n.price).toFixed(2)}</span>
+                              )}
+                              {novidadesMode === "full" && (
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
+                                  isActive
+                                    ? "bg-green-950 border border-green-800 text-green-400"
+                                    : "bg-gray-800 border border-gray-700 text-gray-400"
+                                }`}>
+                                  {isActive ? "Ativa" : "Desativada"}
+                                </span>
+                              )}
+                            </div>
+                            {novidadesMode === "full" && (n.starts_at || n.expires_at) && (
+                              <p className="text-[11px] text-gray-500 mt-1">
+                                {n.starts_at ? `De ${new Date(n.starts_at).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
+                                {n.starts_at && n.expires_at ? " " : ""}
+                                {n.expires_at ? `até ${new Date(n.expires_at).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <button
+                                onClick={() => openEditNovidade(n)}
+                                className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+                              >
+                                Editar
+                              </button>
+                              {novidadesMode === "full" && (
+                                <button
+                                  onClick={() => handleToggleNovidade(n)}
+                                  className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-amber-600 hover:text-amber-400 transition-colors"
+                                >
+                                  {isActive ? "Desativar" : "Ativar"}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteNovidade(n.id)}
+                                className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-red-700 hover:text-red-400 transition-colors"
+                              >
+                                Eliminar
+                              </button>
+                              <button
+                                onClick={handleShareNovidade}
+                                className="text-[10px] px-2 py-0.5 rounded border border-gray-700 text-gray-400 hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+                              >
+                                Compartilhar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )}
         {/* A3.10 — HORÁRIOS (reúso de editHours + handleEditHoursChange) */}
         {activeTab === "horarios" && (
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
@@ -2333,6 +2706,213 @@ function DashboardContent() {
                 className="px-4 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded text-xs transition-colors"
               >
                 {savingEditProduct ? "A Guardar..." : "Guardar Alterações"}
+              </button>
+            </div>
+          </form>
+          </div>
+        </div>
+      )}
+
+      {/* A6.5 — PUBLICAR/EDITAR NOVIDADE */}
+      {showNovidadeModal && (
+        <div className="fixed inset-0 bg-black/80 z-50 overflow-y-auto">
+          <div className="flex min-h-full p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <form
+            onSubmit={handleSaveNovidade}
+            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full m-auto p-6 shadow-2xl relative space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto"
+          >
+            <button
+              type="button"
+              onClick={() => { setShowNovidadeModal(false); resetNovidadeForm(); }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+            <h3 className="text-lg font-display font-semibold text-[#C8A96B]">
+              {editingNovidade ? "Editar Novidade" : "Publicar Novidade"}
+            </h3>
+
+            {/* Pré-visualização ao vivo (como aparece no Explorar) */}
+            <div className="bg-[#0F172A] border border-gray-800 rounded-xl p-3">
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Pré-visualização</p>
+              <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden max-w-[240px]">
+                {novPreview ? (
+                  <div className="relative aspect-[4/3] bg-gray-950">
+                    <img src={novPreview} alt="" className="w-full h-full object-cover" />
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-[#0F172A]/90 border border-[#C8A96B]/40 text-[#C8A96B] text-[10px] font-bold">
+                      {novidadeTypeLabel(novType)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="px-3 pt-3">
+                    <span className="inline-block px-2 py-0.5 rounded-full bg-[#0F172A] border border-[#C8A96B]/40 text-[#C8A96B] text-[10px] font-bold">
+                      {novidadeTypeLabel(novType)}
+                    </span>
+                  </div>
+                )}
+                <div className="p-3 space-y-1">
+                  <p className="text-sm font-semibold text-white line-clamp-2">{novTitle || "Título da novidade"}</p>
+                  <p className="text-[11px] text-gray-500 truncate">{business?.name}</p>
+                  {novPrice && (
+                    <p className="text-sm font-bold text-[#C8A96B]">€{Number(novPrice).toFixed(2)}</p>
+                  )}
+                  <div className="px-3 py-2 bg-[#C8A96B] text-[#0F172A] text-xs font-bold rounded-lg text-center mt-1">
+                    {novCtaType === "ver_produto" ? "Ver produto" : "Ver Montra"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Tipo *</label>
+                <select
+                  value={novType}
+                  onChange={(e) => setNovType(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                >
+                  {NOVIDADE_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg">
+                <label className="block text-xs font-medium text-gray-400 mb-2">Foto</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded bg-gray-950 border border-gray-800 flex items-center justify-center overflow-hidden">
+                    {novPreview ? (
+                      <img src={novPreview} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xl">📰</span>
+                    )}
+                  </div>
+                  <label className="cursor-pointer px-3 py-1.5 bg-gray-800 text-xs text-[#C8A96B] border border-gray-700 hover:border-[#C8A96B] rounded font-semibold transition-all">
+                    Selecionar Imagem
+                    <input type="file" accept="image/*" onChange={handleNovidadeImageSelect} className="hidden" />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Título *</label>
+                <input
+                  type="text"
+                  value={novTitle}
+                  onChange={(e) => setNovTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                  placeholder="Ex: Menu do dia: feijoada completa"
+                  required
+                  maxLength={120}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Descrição</label>
+                <textarea
+                  value={novContent}
+                  onChange={(e) => setNovContent(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white resize-none"
+                  placeholder="Detalhes da novidade…"
+                />
+              </div>
+
+              {novidadesMode === "full" && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Preço (€) — opcional</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={novPrice}
+                      onChange={(e) => setNovPrice(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                      placeholder="Ex: 12.90"
+                    />
+                  </div>
+
+                  <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-[#C8A96B]">📅 Validade</p>
+                      <button
+                        type="button"
+                        onClick={setNovidadeTodayOnly}
+                        className="text-[10px] px-2 py-1 rounded border border-[#C8A96B]/50 text-[#C8A96B] hover:bg-[#C8A96B]/10 font-bold transition-colors"
+                      >
+                        ⚡ Só hoje
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Início</label>
+                        <input
+                          type="datetime-local"
+                          value={novStartsAt}
+                          onChange={(e) => setNovStartsAt(e.target.value)}
+                          className="w-full px-2 py-2 bg-[#0F172A] border border-gray-800 rounded text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Fim</label>
+                        <input
+                          type="datetime-local"
+                          value={novExpiresAt}
+                          onChange={(e) => setNovExpiresAt(e.target.value)}
+                          className="w-full px-2 py-2 bg-[#0F172A] border border-gray-800 rounded text-xs text-white"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-gray-500">Vazio = sem limite. Fora da validade, a novidade sai do Explorar automaticamente.</p>
+                  </div>
+
+                  <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg space-y-3">
+                    <p className="text-xs font-semibold text-[#C8A96B]">🔗 Botão de ação (CTA)</p>
+                    <select
+                      value={novCtaType}
+                      onChange={(e) => setNovCtaType(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                    >
+                      {NOVIDADE_CTA_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    {novCtaType === "ver_produto" && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Produto de destino *</label>
+                        <select
+                          value={novProductId}
+                          onChange={(e) => setNovProductId(e.target.value)}
+                          className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                          required
+                        >
+                          <option value="">Escolher produto…</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => { setShowNovidadeModal(false); resetNovidadeForm(); }}
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded text-xs transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={savingNovidade}
+                className="px-4 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded text-xs transition-colors disabled:opacity-60"
+              >
+                {savingNovidade ? "A Publicar..." : editingNovidade ? "Guardar Alterações" : "Publicar"}
               </button>
             </div>
           </form>

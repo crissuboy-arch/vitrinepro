@@ -20,6 +20,9 @@ describe("analytics event allowlist", () => {
       "business_result_click",
       "product_result_click",
       "need_today_result_click",
+      "novidade_view",
+      "novidade_click",
+      "novidade_save",
     ]);
     assert.equal(isAllowedEvent("page_view"), true);
     assert.equal(isAllowedEvent("whatsapp_click"), true);
@@ -27,6 +30,9 @@ describe("analytics event allowlist", () => {
     assert.equal(isAllowedEvent("business_result_click"), true);
     assert.equal(isAllowedEvent("product_result_click"), true);
     assert.equal(isAllowedEvent("need_today_result_click"), true);
+    assert.equal(isAllowedEvent("novidade_view"), true);
+    assert.equal(isAllowedEvent("novidade_click"), true);
+    assert.equal(isAllowedEvent("novidade_save"), true);
     assert.equal(isAllowedEvent("need_today_toggle"), false); // intencional: sem business_id, não vai ao servidor
     assert.equal(isAllowedEvent("purchase"), false);
     assert.equal(isAllowedEvent(""), false);

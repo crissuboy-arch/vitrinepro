@@ -14,6 +14,8 @@ export const MONTRA_TABS: MontraTab[] = [
   { id: "informacoes", label: "Informações" },
   { id: "produtos", label: "Produtos/Menu" },
   { id: "galeria", label: "Galeria" },
+  // A6.5 — "Novidades na Vitrine": publicar/editar/desativar/excluir novidades.
+  { id: "novidades", label: "Novidades" },
   { id: "horarios", label: "Horários" },
   { id: "localizacao", label: "Localização" },
   { id: "avaliacoes", label: "Avaliações" },

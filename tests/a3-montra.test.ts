@@ -61,13 +61,14 @@ describe("A3 — montra selection & ownership", () => {
 });
 
 describe("A3 — Gerenciar Montra tab navigation", () => {
-  it("has exactly the 10 specified areas", () => {
+  it("has exactly the 11 specified areas (A6.5 adds novidades)", () => {
     const ids = MONTRA_TABS.map((t) => t.id);
     assert.deepEqual(ids, [
       "visao-geral",
       "informacoes",
       "produtos",
       "galeria",
+      "novidades",
       "horarios",
       "localizacao",
       "avaliacoes",

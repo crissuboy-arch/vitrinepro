@@ -21,6 +21,7 @@ import dynamic from "next/dynamic";
 
 const NearbyMap = dynamic(() => import("../components/NearbyMap"), { ssr: false });
 import SaveToCollection from "../components/SaveToCollection";
+import NovidadesFeed from "@/components/NovidadesFeed";
 import { splitExploreSlices } from "@/lib/explore-slices";
 // A5 — "Preciso Hoje": disponibilidade honesta (camada pura, sem React).
 import {
@@ -548,6 +549,9 @@ export default function ExplorarPage() {
             Pesquise por categoria, cidade ou pela comunidade dos fundadores locais em Portugal.
           </p>
         </div>
+
+        {/* A6.5 — "Novidades na Vitrine": dados reais de business_posts. */}
+        <NovidadesFeed />
 
         {/* Filter Controls Row */}
         <section className="bg-gray-900/60 border border-gray-800 rounded-3xl p-6 shadow-xl space-y-6">

@@ -9,7 +9,7 @@ import { supabase } from "../lib/supabase";
 import { Eye, EyeOff } from "lucide-react";
 import { trackSignUp } from "@/app/lib/analytics";
 import { pixelLead, pixelCompleteRegistration } from "@/app/lib/meta-pixel";
-import { resolveBusinessCountTarget } from "@/lib/visibility";
+import { resolvePostAuthTarget } from "@/lib/auth-redirect";
 
 function getReadableError(message: string): string {
   if (!message) return "Ocorreu um erro. Tenta novamente.";
@@ -99,7 +99,7 @@ function LoginForm() {
           const { data: bizRows } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).limit(1);
           const hasBusiness = (bizRows?.length ?? 0) > 0;
 
-          let target = nextPath || resolveBusinessCountTarget(hasBusiness ? 1 : 0);
+          let target = resolvePostAuthTarget({ nextPath, hasBusiness }); // A6.5 Parte A — intenção: next vence; merchant → dashboard; consumidor → /explorar
           const params = new URLSearchParams();
           if (plan) params.set("plan", plan);
 
@@ -119,7 +119,7 @@ function LoginForm() {
           const { data: bizRows } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).limit(1);
           const hasBusiness = (bizRows?.length ?? 0) > 0;
 
-          let target = nextPath || resolveBusinessCountTarget(hasBusiness ? 1 : 0);
+          let target = resolvePostAuthTarget({ nextPath, hasBusiness }); // A6.5 Parte A — intenção: next vence; merchant → dashboard; consumidor → /explorar
           const params = new URLSearchParams();
           if (plan) params.set("plan", plan);
 
@@ -137,9 +137,49 @@ function LoginForm() {
     }
   };
 
+  // A6.5 Parte A — intenção de entrada ("Tenho um negócio" chega com next=/onboarding)
+  const isBusinessIntent = nextPath === "/onboarding";
+
   return (
     <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* A6.5 Parte A — entrada por intenção, na própria página /login (navbar intocada).
+            Os dois cards usam o MESMO /login: só mudam mode/next. */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <Link
+            href="/login?mode=signup"
+            className="block bg-white rounded-2xl border-2 border-[#E5E7EB] hover:border-[#C8A96B] p-4 text-left transition-colors"
+          >
+            <div className="text-2xl mb-2">🔍</div>
+            <div className="font-bold text-[#0F172A] text-sm">Quero descobrir</div>
+            <p className="text-xs text-[#1F2937] mt-1 leading-snug">
+              Conta gratuita para encontrar e guardar coisas perto de você
+            </p>
+            <span className="inline-block mt-3 text-xs font-bold text-[#0F172A] bg-[#C8A96B] rounded-lg px-3 py-2">
+              CRIAR CONTA GRÁTIS
+            </span>
+          </Link>
+          <Link
+            href="/login?mode=signup&next=/onboarding"
+            className="block bg-white rounded-2xl border-2 border-[#E5E7EB] hover:border-[#C8A96B] p-4 text-left transition-colors"
+          >
+            <div className="text-2xl mb-2">🏪</div>
+            <div className="font-bold text-[#0F172A] text-sm">Tenho um negócio</div>
+            <p className="text-xs text-[#1F2937] mt-1 leading-snug">
+              Crie sua Montra
+            </p>
+            <span className="inline-block mt-3 text-xs font-bold text-[#C8A96B] border border-[#C8A96B] rounded-lg px-3 py-2">
+              CADASTRAR MEU NEGÓCIO
+            </span>
+          </Link>
+        </div>
+
+        {isBusinessIntent && (
+          <p className="text-center text-sm text-[#1F2937] mb-4 bg-[#C8A96B]/15 border border-[#C8A96B]/40 rounded-xl px-4 py-2.5">
+            🏪 Vai criar a sua Montra — entre ou crie conta para continuar.
+          </p>
+        )}
+
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-8 shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
           <Link href="/" className="block text-center mb-8">
             <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-16 mx-auto object-contain bg-transparent" />

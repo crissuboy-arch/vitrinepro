@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { trackSignUp } from "@/app/lib/analytics";
 import { pixelCompleteRegistration } from "@/app/lib/meta-pixel";
-import { resolveBusinessCountTarget } from "@/lib/visibility";
+import { resolvePostAuthTarget } from "@/lib/auth-redirect";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -35,7 +35,7 @@ export default function AuthCallbackPage() {
           trackSignUp("google");
           pixelCompleteRegistration();
         }
-        const target = nextPath || resolveBusinessCountTarget(hasBusiness ? 1 : 0);
+        const target = resolvePostAuthTarget({ nextPath, hasBusiness }); // A6.5 Parte A — intenção
         const redirectParams = new URLSearchParams();
         if (plan) redirectParams.set("plan", plan);
 

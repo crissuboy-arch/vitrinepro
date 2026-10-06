@@ -65,3 +65,13 @@ export async function uploadGallery(file: File, businessId: string): Promise<str
 export async function uploadProductImage(file: File, businessId: string): Promise<string> {
   return uploadFile("vitrine-products", file, businessId);
 }
+
+/**
+ * Uploads a "Novidade" cover image. A6.5 — reuses the 'vitrine-products'
+ * bucket and the exact same `{business_id}/...` ownership path, so the
+ * canonical storage RLS (vp_storage_owner_insert / vp_storage_public_read)
+ * applies unchanged — no RLS modification needed.
+ */
+export async function uploadNovidadeImage(file: File, businessId: string): Promise<string> {
+  return uploadFile("vitrine-products", file, businessId);
+}

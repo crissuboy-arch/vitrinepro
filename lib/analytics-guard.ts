@@ -19,6 +19,10 @@ export const ALLOWED_EVENTS = [
   // fabricated business_id would weaken the A2 per-business validation.
   // Mode usage is measured honestly via need_today_result_click volume.
   "need_today_result_click",
+  // A6.5 — "Novidades na Vitrine" feed events (per-business).
+  "novidade_view",
+  "novidade_click",
+  "novidade_save",
 ] as const;
 export type AllowedEvent = (typeof ALLOWED_EVENTS)[number];
 

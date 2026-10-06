@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { createSupabaseCollectionsStore } from "@/lib/collections-store";
+import SavePromptModal from "./SavePromptModal";
 import {
   ensureDefaultCollection,
   getCollections,
@@ -23,6 +24,16 @@ import {
 
 function errorMessage(e: unknown, fallback: string): string {
   return e instanceof Error ? e.message : fallback;
+}
+
+// A6.5 Parte B — intenção de Guardar pendente (visitante → login → concluir).
+// Só é consumida pelo SaveToCollection cujo itemRef coincide, e expira em 24h.
+const PENDING_SAVE_KEY = "vp_pending_save";
+const PENDING_SAVE_MS = 24 * 3600 * 1000;
+interface PendingSave {
+  itemRef: ItemRef;
+  next: string;
+  savedAt: number;
 }
 
 async function findItemAcross(
@@ -66,7 +77,39 @@ export default function SaveToCollection({
   const [error, setError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // A6.5 Parte B — modal amigável para visitante não autenticado
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [promptNext, setPromptNext] = useState("/explorar");
+
   const savedCount = savedIn.size;
+
+  // A6.5 Parte B — concluir o guardar após login (só se seguro):
+  // só completa quando (a) existe intenção pendente PARA ESTE item,
+  // (b) o utilizador está agora autenticado, e (c) a intenção é recente (<24h).
+  // Guarda na coleção padrão ("Favoritos") — o destino natural do Guardar rápido.
+  useEffect(() => {
+    const completePending = async () => {
+      try {
+        const raw = sessionStorage.getItem(PENDING_SAVE_KEY);
+        if (!raw) return;
+        const pending = JSON.parse(raw) as PendingSave | null;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        if (!pending || Date.now() - (pending.savedAt ?? 0) > PENDING_SAVE_MS) {
+          sessionStorage.removeItem(PENDING_SAVE_KEY);
+          return;
+        }
+        if (JSON.stringify(pending.itemRef) !== JSON.stringify(itemRef)) return;
+        const col = await ensureDefaultCollection(store, session.user.id);
+        const { item } = await saveItem(store, col.id, itemRef);
+        setSavedIn(new Map([[col.id, item]]));
+        sessionStorage.removeItem(PENDING_SAVE_KEY);
+      } catch {
+        /* intenção pendente inválida/expirada — ignora em silêncio */
+      }
+    };
+    completePending();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!open) return;
@@ -76,7 +119,19 @@ export default function SaveToCollection({
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
-          window.location.href = loginNext ? `/login?next=${encodeURIComponent(loginNext)}` : "/login";
+          // A6.5 Parte B — visitante: modal amigável em vez de redirect seco.
+          // Guarda a intenção para concluir o guardar após login (se seguro).
+          const backTo = loginNext
+            || (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/explorar");
+          setPromptNext(backTo);
+          try {
+            const pending: PendingSave = { itemRef, next: backTo, savedAt: Date.now() };
+            sessionStorage.setItem(PENDING_SAVE_KEY, JSON.stringify(pending));
+          } catch {
+            /* storage indisponível — o modal continua a funcionar */
+          }
+          setOpen(false);
+          setShowPrompt(true);
           return;
         }
         const uid = session.user.id;
@@ -158,6 +213,13 @@ export default function SaveToCollection({
         <span className="text-sm leading-none">{savedCount > 0 ? "📁" : "🗂️"}</span>
         <span>{label}{savedCount > 0 ? ` (${savedCount})` : ""}</span>
       </button>
+
+      {/* A6.5 Parte B — modal para visitante não autenticado */}
+      <SavePromptModal
+        open={showPrompt}
+        onClose={() => setShowPrompt(false)}
+        next={promptNext}
+      />
 
       {open && (
         <>
