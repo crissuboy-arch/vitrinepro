@@ -141,9 +141,9 @@ describe("tipos válidos (CHECK da migration)", () => {
     }
   });
 
-  it("os 4 tipos antigos continuam válidos", () => {
+  it("os 4 tipos antigos (promotion/event/news/offer) são rejeitados", () => {
     for (const t of ["promotion", "event", "news", "offer"]) {
-      assert.equal(isValidPostType(t), true, t);
+      assert.equal(isValidPostType(t), false, t);
     }
   });
 
@@ -154,15 +154,21 @@ describe("tipos válidos (CHECK da migration)", () => {
     assert.equal(isValidPostType(42), false);
   });
 
-  it("a migration aceita os 12 tipos no CHECK e cria as colunas novas", () => {
+  it("a migration aceita os 8 tipos no CHECK e cria as colunas novas", () => {
     for (const t of ALL_POST_TYPES) {
       assert.ok(MIGRATION.includes(`'${t}'`), `migration deve aceitar o tipo '${t}'`);
     }
     for (const col of ["price", "starts_at", "expires_at", "is_active", "product_id", "cta_type", "cta_target", "updated_at"]) {
       assert.ok(MIGRATION.includes(col), `migration deve criar a coluna '${col}'`);
     }
-    // Aditiva: não toca em RLS.
-    assert.ok(!/CREATE POLICY|DROP POLICY/i.test(MIGRATION), "migration não altera RLS");
+    // RLS canónica criada pela migration (a tabela não existia em produção):
+    // SELECT público só de businesses com published = true (sem is_published).
+    assert.ok(MIGRATION.includes("published = true"), "migration usa published canónico");
+    assert.ok(!/is_published\s*=\s*true/i.test(MIGRATION), "migration não ressuscita is_published");
+    assert.ok(MIGRATION.includes('CREATE POLICY "vp_posts_select"'), "migration cria vp_posts_select");
+    assert.ok(MIGRATION.includes('CREATE POLICY "vp_posts_write"'), "migration cria vp_posts_write");
+    // Não remove CHECK constraints às cegas (sem DO block sobre pg_constraint).
+    assert.ok(!/pg_constraint/i.test(MIGRATION), "migration não varre pg_constraint");
   });
 });
 

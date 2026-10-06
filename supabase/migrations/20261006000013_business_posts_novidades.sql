@@ -3,9 +3,15 @@
 -- A6.5 — "Novidades na Vitrine".
 --
 -- A tabela public.business_posts foi definida em 003_community.sql mas
--- APARENTEMENTE NUNCA FOI APLICADA em produção (erro 42P01 em 2026-10-06).
+-- NUNCA FOI APLICADA em produção (erro 42P01 em 2026-10-06).
 -- Por isso esta migration é AUTOSSUFICIENTE: cria a tabela se não existir
 -- e adiciona as colunas novas se já existir uma versão antiga.
+--
+-- Correções (revisão 2026-10-06):
+--  - visibilidade canónica: SOMENTE published = true (sem is_published);
+--  - remove APENAS a constraint business_posts_type_check (nada de DO block);
+--  - taxonomia única: 8 tipos (os 4 antigos nunca existiram em produção
+--    e nenhum código real os usa).
 --
 -- NÃO aplicar automaticamente. A Cristiane aplica manualmente no SQL Editor.
 
@@ -39,27 +45,18 @@ ALTER TABLE public.business_posts
   ADD COLUMN IF NOT EXISTS cta_target TEXT,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
--- 3. Constraint de tipo: remove qualquer CHECK antigo e aplica o novo
---    (4 tipos legados + 8 tipos A6.5).
-DO $$
-DECLARE r RECORD;
-BEGIN
-  FOR r IN
-    SELECT conname FROM pg_constraint
-    WHERE conrelid = 'public.business_posts'::regclass AND contype = 'c'
-  LOOP
-    EXECUTE format('ALTER TABLE public.business_posts DROP CONSTRAINT %I', r.conname);
-  END LOOP;
-END $$;
+-- 3. Constraint de tipo: remove SOMENTE a constraint conhecida e recria
+--    com a taxonomia única de 8 tipos.
+ALTER TABLE public.business_posts DROP CONSTRAINT IF EXISTS business_posts_type_check;
 
 ALTER TABLE public.business_posts
   ADD CONSTRAINT business_posts_type_check CHECK (type IN (
-    'promotion', 'event', 'news', 'offer',
     'menu_do_dia', 'promocao', 'novidade', 'produto_novo',
     'servico_novo', 'evento', 'disponivel_hoje', 'destaque'
   ));
 
--- 4. RLS + policies canónicas (não existiam se a tabela não existia).
+-- 4. RLS + policies canónicas.
+--    Visibilidade canónica A2.5: SOMENTE published = true (sem is_published).
 ALTER TABLE public.business_posts ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public read posts" ON public.business_posts;
@@ -70,7 +67,7 @@ DROP POLICY IF EXISTS "vp_posts_write" ON public.business_posts;
 CREATE POLICY "vp_posts_select" ON public.business_posts
   FOR SELECT USING (
     business_id IN (SELECT id FROM public.businesses
-      WHERE published = true OR is_published = true OR user_id = auth.uid())
+      WHERE published = true OR user_id = auth.uid())
   );
 
 CREATE POLICY "vp_posts_write" ON public.business_posts

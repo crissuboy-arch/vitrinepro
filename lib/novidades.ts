@@ -27,13 +27,8 @@ export const NOVIDADE_TYPES: NovidadeTypeOption[] = [
   { value: "destaque", label: "⭐ Destaque" },
 ];
 
-/** Os 4 tipos antigos, mantidos como aliases pelo CHECK da migration. */
-export const LEGACY_POST_TYPES = ["promotion", "event", "news", "offer"] as const;
-
-export const ALL_POST_TYPES: readonly string[] = [
-  ...LEGACY_POST_TYPES,
-  ...NOVIDADE_TYPES.map((t) => t.value),
-];
+/** Tipos válidos aceites pelo CHECK business_posts_type_check da migration. */
+export const ALL_POST_TYPES: readonly string[] = NOVIDADE_TYPES.map((t) => t.value);
 
 /** Tipos válidos aceites pelo CHECK business_posts_type_check da migration. */
 export function isValidPostType(type: unknown): type is string {
