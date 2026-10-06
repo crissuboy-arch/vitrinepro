@@ -31,7 +31,12 @@ function getReadableError(message: string): string {
 }
 
 function LoginForm() {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const searchParams = useSearchParams();
+  // A6.5 fix (iPhone smoke): modo inicial lido de forma SÍNCRONA do URL.
+  // Antes, isSignUp nascia false e só virava true no useEffect após o
+  // primeiro render — no iPhone o utilizador via o formulário de LOGIN
+  // ("Entrar"/"Bem-vindo de volta") antes de o efeito correr.
+  const [isSignUp, setIsSignUp] = useState(() => searchParams.get("mode") === "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -40,7 +45,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const { signInWithEmail } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

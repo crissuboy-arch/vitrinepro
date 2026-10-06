@@ -68,9 +68,13 @@ describe("mobile perf — assets", () => {
 describe("mobile perf — /explorar select usa apenas colunas reais (regressão 400)", () => {
   it("nenhuma coluna fantasma no select de businesses", () => {
     const src = read("app/explorar/page.tsx");
-    const m = src.match(/\.from\("businesses"\)\s*\n?\s*\.select\(\s*"([^"]+)"\s*\)/);
-    assert.ok(m, "select de businesses encontrado");
-    const cols = m[1].split(",").map((c) => c.trim());
+    // Pode haver mais de um select em businesses (ex.: checagem de merchant
+    // com select("id")); a guarda anti-400 mira a query de LISTAGEM pública.
+    const matches = [...src.matchAll(/\.from\("businesses"\)\s*\n?\s*\.select\(\s*"([^"]+)"\s*\)/g)];
+    assert.ok(matches.length > 0, "select de businesses encontrado");
+    const listing = matches.find((m) => m[1].split(",").map((c) => c.trim()).includes("name"));
+    assert.ok(listing, "select de listagem (com name) encontrado");
+    const cols = listing[1].split(",").map((c) => c.trim());
     // Colunas fantasma que nunca existiram em produção (causavam 400)
     for (const phantom of ["premium", "rating"]) {
       assert.ok(!cols.includes(phantom), `coluna fantasma no select: ${phantom}`);

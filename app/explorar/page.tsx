@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useAuth } from "../context/SupabaseAuthContext";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
@@ -94,6 +95,12 @@ const communitiesList = [
 
 export default function ExplorarPage() {
   const [mounted, setMounted] = useState(false);
+  const { user } = useAuth();
+  // A6.5 fix (iPhone smoke): "Painel do Dono" só para quem tem gestão real —
+  // merchant (≥1 business) ou admin (verificado no servidor). Visitante e
+  // consumidor com 0 businesses NÃO veem. Não é CSS: é renderização condicional
+  // baseada em estado real (sessão + query + verificação server-side).
+  const [canSeeOwnerPanel, setCanSeeOwnerPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [selectedCity, setSelectedCity] = useState("Todas as Cidades");
@@ -115,6 +122,32 @@ export default function ExplorarPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // A6.5 fix: resolve visibilidade do "Painel do Dono" com estado real.
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+    (async () => {
+      if (!user) {
+        if (!cancelled) setCanSeeOwnerPanel(false);
+        return;
+      }
+      try {
+        const [bizRes, adminRes] = await Promise.all([
+          supabase.from("businesses").select("id").eq("user_id", user.id).limit(1),
+          fetch("/api/auth/is-admin").then((r) => r.json()).catch(() => ({ isAdmin: false })),
+        ]);
+        const isMerchant = (bizRes.data?.length ?? 0) > 0;
+        const isAdmin = !!adminRes?.isAdmin;
+        if (!cancelled) setCanSeeOwnerPanel(isMerchant || isAdmin);
+      } catch {
+        if (!cancelled) setCanSeeOwnerPanel(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, user]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -524,12 +557,14 @@ export default function ExplorarPage() {
             >
               ← Voltar ao Início
             </Link>
-            <Link
-              href="/dashboard"
-              className="text-xs text-[#C8A96B] hover:text-[#D4BB82] transition-all border border-[#C8A96B]/15 hover:border-[#C8A96B]/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5"
-            >
-              ⚙️ Painel do Dono
-            </Link>
+            {canSeeOwnerPanel && (
+              <Link
+                href="/dashboard"
+                className="text-xs text-[#C8A96B] hover:text-[#D4BB82] transition-all border border-[#C8A96B]/15 hover:border-[#C8A96B]/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+              >
+                ⚙️ Painel do Dono
+              </Link>
+            )}
           </div>
           <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
             <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
