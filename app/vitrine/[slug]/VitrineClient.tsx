@@ -619,7 +619,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <img src="/logo-vitrinepro.png" alt="Loading..." className="w-16 h-16 animate-pulse bg-transparent object-contain" />
+          <img src="/brand/logo-horizontal-transparent.png" alt="Loading..." className="w-16 h-16 animate-pulse bg-transparent object-contain" />
           <div className="w-10 h-10 border-4 border-[#C8A96B] border-t-transparent rounded-full animate-spin"></div>
           <p className="text-[#C8A96B] text-sm font-semibold font-display tracking-widest uppercase animate-pulse mt-2">Carregando...</p>
         </div>
@@ -860,7 +860,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
             </Link>
           </div>
           <Link href="/" className="hover:opacity-90 transition-opacity">
-            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
+            <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
           </Link>
         </div>
       </nav>
@@ -880,11 +880,11 @@ export default function VitrineClient({ slug }: { slug: string }) {
         ) : (
           <div className="w-full h-full bg-gradient-to-tr from-[#0F172A] to-slate-900"></div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/75 to-transparent" />
       </div>
 
       {/* Profile Summary Overlay */}
-      <div className="relative max-w-5xl mx-auto w-full px-4 -mt-20 sm:-mt-24 md:-mt-28 pb-8 flex flex-col items-center sm:items-start text-center sm:text-left sm:flex-row sm:gap-6 border-b border-slate-800">
+      <div className="relative max-w-5xl mx-auto w-full px-4 -mt-10 sm:-mt-14 md:-mt-16 pb-8 flex flex-col items-center sm:items-start text-center sm:text-left sm:flex-row sm:gap-6 border-b border-slate-800">
         
         {/* Overlay Logo */}
         <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-2xl border-4 border-[#0F172A] bg-slate-900 shadow-2xl overflow-hidden flex-shrink-0 flex items-center justify-center">
@@ -905,14 +905,14 @@ export default function VitrineClient({ slug }: { slug: string }) {
         {/* Business details */}
         <div className="mt-4 sm:mt-24 flex-grow">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
-            <h1 className="text-3xl sm:text-4xl font-bold font-display text-white leading-tight">{business.name}</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold font-display text-white leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">{business.name}</h1>
             {business.premium && (
               <span className="px-2.5 py-1 text-[10px] md:text-xs font-bold text-[#0F172A] bg-[#C8A96B] rounded-full uppercase tracking-wider shadow-lg shadow-[#C8A96B]/10">
                 Premium
               </span>
             )}
           </div>
-          <p className="text-[#C8A96B] font-medium text-sm mt-1 sm:mt-0">{business.category} · 📍 {business.city}</p>
+          <p className="text-[#C8A96B] font-medium text-sm mt-1.5 drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]">{business.category} · 📍 {business.city}</p>
           
           <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 text-xs">
             {business.rating && (business.reviewCount ?? 0) > 0 ? (
@@ -1412,7 +1412,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
       <footer className="bg-[#050B14] border-t border-slate-900 py-10 mt-16 text-center text-slate-500 text-xs">
         <div className="max-w-5xl mx-auto px-4 flex flex-col items-center gap-3">
           <Link href="/" className="hover:opacity-90 transition-opacity">
-            <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 object-contain bg-transparent" />
+            <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 object-contain bg-transparent" />
           </Link>
           <p className="text-slate-400">
             <a href={`${CANONICAL_URL}?ref=${business.slug}`} 

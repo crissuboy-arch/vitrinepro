@@ -1071,32 +1071,19 @@ function DashboardContent() {
       {/* Header */}
       <header className="border-b border-gray-800 bg-[#0F172A]/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-4">
-            <Link
-              href="/"
-              className="text-[10px] md:text-xs text-gray-400 hover:text-white transition-colors border border-gray-800 hover:border-gray-600 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
-            >
-              ← Voltar ao início
-            </Link>
-            {/* A2.5: essential nav must not disappear on mobile (was hidden sm:flex) */}
-            <Link
-              href="/explorar"
-              className="text-[10px] md:text-xs text-gray-400 hover:text-white transition-colors border border-gray-800 hover:border-gray-600 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
-            >
-              🔍 Explorar
-            </Link>
-            <Link href="/" className="flex items-center gap-1.5 ml-1 md:ml-2">
-              <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
-            </Link>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* A3.17 — back to the account view (Minhas Montras) */}
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+            {/* Fluxo: Minhas Montras → Gerenciar → Ver Montra */}
             <button
               onClick={switchBusiness}
-              className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg text-xs md:text-sm hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+              className="px-3 py-2 border border-gray-700 text-gray-300 rounded-lg text-xs md:text-sm hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors whitespace-nowrap flex-shrink-0"
             >
               ← Minhas Montras
             </button>
+            <Link href="/" className="flex items-center gap-1.5 min-w-0">
+              <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-8 md:h-10 w-auto object-contain" />
+            </Link>
+          </div>
+          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
             <Link
               href={`/vitrine/${business?.slug || ''}`}
               target="_blank"
@@ -2051,10 +2038,11 @@ function DashboardContent() {
 
       {/* ADD PRODUCT MODAL */}
       {showProductModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/80 z-50 overflow-y-auto">
+          <div className="flex min-h-full p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
           <form
             onSubmit={handleAddProduct}
-            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full m-auto p-6 shadow-2xl relative space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto"
           >
             <button
               type="button"
@@ -2160,15 +2148,17 @@ function DashboardContent() {
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 
       {/* EDIT PRODUCT MODAL */}
       {editingProduct && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/80 z-50 overflow-y-auto">
+          <div className="flex min-h-full p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
           <form
             onSubmit={handleSaveEditProduct}
-            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full m-auto p-6 shadow-2xl relative space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto"
           >
             <button
               type="button"
@@ -2279,15 +2269,17 @@ function DashboardContent() {
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 
       {/* ADD TESTIMONIAL MODAL */}
       {showTestimonialModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/80 z-50 overflow-y-auto">
+          <div className="flex min-h-full p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
           <form
             onSubmit={handleAddTestimonial}
-            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full m-auto p-6 shadow-2xl relative space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto"
           >
             <button
               type="button"
@@ -2356,15 +2348,17 @@ function DashboardContent() {
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 
       {/* EDIT TESTIMONIAL MODAL */}
       {editingTestimonial && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/80 z-50 overflow-y-auto">
+          <div className="flex min-h-full p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
           <form
             onSubmit={handleSaveEditTestimonial}
-            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full m-auto p-6 shadow-2xl relative space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto"
           >
             <button
               type="button"
@@ -2431,13 +2425,15 @@ function DashboardContent() {
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 
       {/* CANCEL SUBSCRIPTION MODAL */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 border border-red-900/40 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
+        <div className="fixed inset-0 bg-black/80 z-50 overflow-y-auto">
+          <div className="flex min-h-full p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="bg-gray-900 border border-red-900/40 rounded-2xl max-w-md w-full m-auto p-6 shadow-2xl space-y-5 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-red-950/60 border border-red-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-lg">⚠️</span>
@@ -2483,6 +2479,7 @@ function DashboardContent() {
                 )}
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}

@@ -74,7 +74,7 @@ const organizationJsonLd = {
       "@id": `${siteUrl}/#organization`,
       name: "VitrinePro",
       url: siteUrl,
-      logo: `${siteUrl}/logo-vitrinepro.png`,
+      logo: `${siteUrl}/brand/logo-horizontal-transparent.png`,
       description: SITE_DESCRIPTION,
     },
     {
