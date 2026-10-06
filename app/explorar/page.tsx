@@ -7,6 +7,7 @@ import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import { getCommunityByCountry } from "@/lib/communities";
 import { isPaidTier } from "@/lib/plans";
+import { normalizeProductFraming, productImgStyle } from "@/lib/product-framing";
 import { scoreBusiness } from "@/lib/ranking";
 // A4 — descoberta local: distância, busca reutilizável, mapa.
 import {
@@ -316,7 +317,7 @@ export default function ExplorarPage() {
       const like = `%${safe}%`;
       const { data } = await supabase
         .from("products")
-        .select("id, name, description, price, image_url, business_id, available_today, pickup_today, delivery_today")
+        .select("id, name, description, price, image_url, image_position_x, image_position_y, image_zoom, business_id, available_today, pickup_today, delivery_today")
         .or(`name.ilike.${like},description.ilike.${like}`)
         .limit(30);
         // RLS já restringe a produtos de negócios publicados; reforço
@@ -933,11 +934,6 @@ function ExplorarCard({ biz, onResultClick }: { biz: any; onResultClick?: () => 
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-transparent to-transparent z-10" />
 
-        {biz.premium && (
-          <span className="absolute top-3 right-3 z-20 px-2 py-0.5 text-[8px] font-bold bg-[#C8A96B] text-[#0F172A] rounded-full uppercase tracking-wider shadow-md">
-            ✦ Destaque
-          </span>
-        )}
 
         {/* Community seal */}
         {(() => {
@@ -1051,7 +1047,7 @@ function ProductResultCard({
       >
       <div className="relative w-24 h-24 m-4 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 flex items-center justify-center text-3xl">
         {hit.image_url ? (
-          <Image src={hit.image_url} alt={hit.name} fill sizes="(max-width: 768px) 50vw, 300px" className="object-cover" />
+          <Image src={hit.image_url} alt={hit.name} fill sizes="(max-width: 768px) 50vw, 300px" className="object-cover" style={productImgStyle(normalizeProductFraming(hit))} />
         ) : (
           <span>🛍️</span>
         )}

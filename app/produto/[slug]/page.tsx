@@ -3,6 +3,7 @@ import { getSiteUrl } from "@/lib/site";
 import Link from "next/link";
 import Image from "next/image";
 import { getProductBySlug } from "@/lib/business-actions";
+import { normalizeProductFraming, productImgStyle } from "@/lib/product-framing";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -144,6 +145,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                   alt={product.name}
                   fill
                   className="object-contain p-4 group-hover:scale-[1.03] transition-transform duration-500"
+                  style={productImgStyle(normalizeProductFraming(product))}
                   priority
                 />
               ) : (

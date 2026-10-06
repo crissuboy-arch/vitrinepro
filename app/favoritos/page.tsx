@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { createSupabaseCollectionsStore } from "@/lib/collections-store";
+import { normalizeProductFraming, productImgStyle } from "@/lib/product-framing";
 import {
   ensureDefaultCollection,
   getCollections,
@@ -49,6 +50,7 @@ interface EnrichedItem {
   subtitle: string;
   price: string | null;
   imageUrl: string | null;
+  framing?: { image_position_x?: number | null; image_position_y?: number | null; image_zoom?: number | null } | null;
   href: string;
 }
 
@@ -205,7 +207,7 @@ export default function FavoritosPage() {
           ? supabase.from("businesses").select("id, name, slug, category, category_id, city, city_id, logo_url").in("id", bizIds)
           : Promise.resolve({ data: [] as any[] }),
         prodIds.length
-          ? supabase.from("products").select("id, name, price, image_url, business_id, businesses(id, name, slug)").in("id", prodIds)
+          ? supabase.from("products").select("id, name, price, image_url, image_position_x, image_position_y, image_zoom, business_id, businesses(id, name, slug)").in("id", prodIds)
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
@@ -240,6 +242,7 @@ export default function FavoritosPage() {
               ? `€ ${Number(p.price).toFixed(2).replace(".", ",")}`
               : null,
             imageUrl: p.image_url ?? null,
+            framing: { image_position_x: p.image_position_x ?? null, image_position_y: p.image_position_y ?? null, image_zoom: p.image_zoom ?? null },
             href: pb?.slug ? `/vitrine/${pb.slug}` : "#",
           });
         }
@@ -433,7 +436,7 @@ export default function FavoritosPage() {
                       ✕
                     </button>
                     <div className="w-14 h-14 rounded-xl bg-slate-800 flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
-                      {e.imageUrl ? <img src={e.imageUrl} alt="" className="w-full h-full object-cover" /> : (e.kind === "business" ? "🏪" : "🛍️")}
+                      {e.imageUrl ? <img src={e.imageUrl} alt="" className="w-full h-full object-cover" style={e.kind === "product" ? productImgStyle(normalizeProductFraming(e.framing)) : undefined} /> : (e.kind === "business" ? "🏪" : "🛍️")}
                     </div>
                     <div className="min-w-0 flex-1 pr-6">
                       <span className={`inline-block px-2 py-0.5 text-[9px] font-bold rounded-full mb-1 ${

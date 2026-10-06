@@ -11,6 +11,7 @@ const BusinessChatWidget = dynamic(() => import("../../components/BusinessChatWi
 import AutomationPopup from "../../components/AutomationPopup";
 import { getCommunityByCountry } from "@/lib/communities"
 import { normalizeCoverFraming, coverImgStyle, CoverFraming } from "@/lib/cover-framing";
+import { normalizeProductFraming, productImgStyle } from "@/lib/product-framing";
 import { isPublishedBusiness } from "@/lib/visibility";
 import { isPaidTier, planHasChatbot } from "@/lib/plans";
 import { CANONICAL_URL } from "@/lib/site";
@@ -77,6 +78,9 @@ interface Product {
   description?: string;
   price?: number;
   image_url?: string;
+  image_position_x?: number | null;
+  image_position_y?: number | null;
+  image_zoom?: number | null;
 }
 
 interface Testimonial {
@@ -906,11 +910,6 @@ export default function VitrineClient({ slug }: { slug: string }) {
         <div className="mt-4 sm:mt-24 flex-grow">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
             <h1 className="text-3xl sm:text-4xl font-bold font-display text-white leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">{business.name}</h1>
-            {business.premium && (
-              <span className="px-2.5 py-1 text-[10px] md:text-xs font-bold text-[#0F172A] bg-[#C8A96B] rounded-full uppercase tracking-wider shadow-lg shadow-[#C8A96B]/10">
-                Premium
-              </span>
-            )}
           </div>
           <p className="text-[#C8A96B] font-medium text-sm mt-1.5 drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]">{business.category} · 📍 {business.city}</p>
           
@@ -973,6 +972,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                             fill
                             sizes="(max-width: 768px) 50vw, 400px"
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            style={productImgStyle(normalizeProductFraming(product))}
                           />
                         ) : (
                           <div className="text-slate-700 flex flex-col items-center gap-1">

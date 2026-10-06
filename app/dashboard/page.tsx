@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AccountMenu from "@/components/auth/AccountMenu";
 import CoverFramingEditor from "@/components/dashboard/CoverFramingEditor";
+import ProductFramingEditor from "@/components/dashboard/ProductFramingEditor";
+import { normalizeProductFraming, productImgStyle, ProductFraming } from "@/lib/product-framing";
 import { normalizeCoverFraming, coverImgStyle, CoverFraming } from "@/lib/cover-framing";
 import Image from "next/image";
 import { supabase } from "../lib/supabase";
@@ -47,6 +49,10 @@ interface Product {
   description?: string;
   price?: number;
   image_url?: string;
+  // Enquadramento da imagem (migration 20261006000012; NULL = legado).
+  image_position_x?: number | null;
+  image_position_y?: number | null;
+  image_zoom?: number | null;
   // A5 — disponibilidade "hoje" (tri-state: true/false/null=não informado).
   available_today?: boolean | null;
   pickup_today?: boolean | null;
@@ -149,6 +155,7 @@ function DashboardContent() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [framingOpen, setFramingOpen] = useState(false);
+  const [prodFramingOpen, setProdFramingOpen] = useState(false);
 
   // Product Form State
   const [prodName, setProdName] = useState("");
@@ -806,6 +813,35 @@ function DashboardContent() {
 
   const handleReplaceCover = () => {
     document.getElementById("cover-upload-input")?.click();
+  };
+
+  // Editor de enquadramento da imagem do produto — só parâmetros de
+  // apresentação, a imagem original nunca é alterada. RLS/ownership inalterados.
+  const handleSaveProductFraming = async (f: ProductFraming) => {
+    if (!editingProduct) return;
+    const { error } = await supabase
+      .from("products")
+      .update({
+        image_position_x: f.x,
+        image_position_y: f.y,
+        image_zoom: f.zoom,
+      })
+      .eq("id", editingProduct.id);
+    if (error) {
+      if (error.message?.includes("image_position_x")) {
+        alert("Para usar o enquadramento, aplica primeiro a migration 20261006000012_product_image_framing.sql no Supabase SQL Editor.");
+      } else {
+        alert("Erro ao guardar enquadramento: " + error.message);
+      }
+      return;
+    }
+    setProducts((prev: any[]) => prev.map((pr) => pr.id === editingProduct.id ? {
+      ...pr, image_position_x: f.x, image_position_y: f.y, image_zoom: f.zoom,
+    } : pr));
+    setEditingProduct((prev: any) => prev ? {
+      ...prev, image_position_x: f.x, image_position_y: f.y, image_zoom: f.zoom,
+    } : prev);
+    setProdFramingOpen(false);
   };
 
   // 3. Add Product Action
@@ -1611,7 +1647,7 @@ function DashboardContent() {
                     <div key={p.id} className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 flex gap-4 hover:border-gray-700 transition-colors">
                       <div className="w-16 h-16 rounded-lg bg-gray-950 border border-gray-800 flex-shrink-0 overflow-hidden relative">
                         {p.image_url ? (
-                          <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                          <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" style={productImgStyle(normalizeProductFraming(p))} />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-2xl bg-gray-900">📦</div>
                         )}
@@ -2128,6 +2164,7 @@ function DashboardContent() {
                     <input type="file" accept="image/*" onChange={handleProductImageSelect} className="hidden" />
                   </label>
                 </div>
+<p className="text-[11px] text-slate-500 mt-2">Formato recomendado: 1080 × 1350 px (4:5). Evite colocar textos, preços ou logótipos muito próximos das bordas.</p>
               </div>
             </div>
 
@@ -2236,19 +2273,31 @@ function DashboardContent() {
                       <span className="text-xl">📦</span>
                     )}
                   </div>
-                  <label className="cursor-pointer px-3 py-1.5 bg-gray-800 text-xs text-[#C8A96B] border border-gray-700 hover:border-[#C8A96B] rounded font-semibold transition-all">
-                    Alterar Imagem
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) { setEditProdFile(f); setEditProdPreview(URL.createObjectURL(f)); }
-                      }}
-                      className="hidden"
-                    />
-                  </label>
+                  <div className="flex flex-col gap-2">
+                    <label className="cursor-pointer px-3 py-1.5 bg-gray-800 text-xs text-[#C8A96B] border border-gray-700 hover:border-[#C8A96B] rounded font-semibold transition-all text-center">
+                      Alterar Imagem
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) { setEditProdFile(f); setEditProdPreview(URL.createObjectURL(f)); }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    {editingProduct?.image_url && (
+                      <button
+                        type="button"
+                        onClick={() => setProdFramingOpen(true)}
+                        className="px-3 py-1.5 bg-gray-800 text-xs text-slate-300 border border-gray-700 hover:border-[#C8A96B] hover:text-[#C8A96B] rounded font-semibold transition-all"
+                      >
+                        Editar enquadramento
+                      </button>
+                    )}
+                  </div>
                 </div>
+<p className="text-[11px] text-slate-500 mt-2">Formato recomendado: 1080 × 1350 px (4:5). Evite colocar textos, preços ou logótipos muito próximos das bordas.</p>
               </div>
             </div>
 
@@ -2530,6 +2579,23 @@ function DashboardContent() {
       )}
 
       {/* Editor de enquadramento da capa */}
+      {prodFramingOpen && editingProduct?.image_url && (
+        <ProductFramingEditor
+          imageUrl={editingProduct.image_url}
+          initial={normalizeProductFraming(editingProduct)}
+          onSave={handleSaveProductFraming}
+          onReplace={() => setProdFramingOpen(false)}
+          onRemove={async () => {
+            const { error } = await supabase.from("products").update({ image_url: null, image_position_x: null, image_position_y: null, image_zoom: null }).eq("id", editingProduct.id);
+            if (error) { alert("Erro ao remover imagem: " + error.message); return; }
+            setProducts((prev: any[]) => prev.map((pr) => pr.id === editingProduct.id ? { ...pr, image_url: undefined } : pr));
+            setEditProdPreview("");
+            setProdFramingOpen(false);
+          }}
+          onClose={() => setProdFramingOpen(false)}
+        />
+      )}
+
       {framingOpen && business?.cover_url && (
         <CoverFramingEditor
           coverUrl={business.cover_url}
@@ -2878,7 +2944,7 @@ function buildCatalogHtml_DELETED_PLACEHOLDER_DO_NOT_USE(biz: any, products: any
     ${featured ? `
     <div class="featured-product">
       ${featured.image_url
-        ? `<img class="featured-img" src="${featured.image_url}" alt="${featured.name}"/>`
+        ? `<img class="featured-img" src="${featured.image_url}" alt="${featured.name}" style="object-position:${featured.image_position_x ?? 50}% ${featured.image_position_y ?? 50}%;transform:scale(${featured.image_zoom ?? 1})"/>`
         : `<div class="featured-img-placeholder">📦</div>`}
       <div>
         <span class="featured-badge">Destaque</span>
