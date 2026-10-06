@@ -14,6 +14,10 @@ import AccountMenu from "@/components/auth/AccountMenu";
  * Só usa campos que existem no modelo: profiles.display_name, user.email,
  * user.email_confirmed_at, profiles.plan. Sem telefone/país (não existem
  * na conta) e sem nenhum campo novo no banco.
+ *
+ * Troca de e-mail: usa supabase.auth.updateUser({ email }) nativo (grátis).
+ * Se "Confirm email change" estiver ativo no Supabase, o utilizador tem de
+ * clicar no link enviado para o NOVO e-mail; senão troca de imediato.
  */
 export default function ContaPage() {
   const { user, profile, loading, signOut, updateProfile } = useAuth();
@@ -27,6 +31,10 @@ export default function ContaPage() {
   const [pw2, setPw2] = useState("");
   const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [savingPw, setSavingPw] = useState(false);
+
+  const [newEmail, setNewEmail] = useState("");
+  const [emailMsg, setEmailMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [savingEmail, setSavingEmail] = useState(false);
 
   const [signingOut, setSigningOut] = useState(false);
 
@@ -65,6 +73,38 @@ export default function ContaPage() {
       setNameMsg("Não foi possível guardar. Tenta novamente.");
     } finally {
       setSavingName(false);
+    }
+  };
+
+  const changeEmail = async () => {
+    setEmailMsg(null);
+    const trimmed = newEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailMsg({ ok: false, text: "Escreve um e-mail válido." });
+      return;
+    }
+    if (trimmed === email.toLowerCase()) {
+      setEmailMsg({ ok: false, text: "Esse já é o teu e-mail atual." });
+      return;
+    }
+    setSavingEmail(true);
+    try {
+      const { data, error } = await supabase.auth.updateUser({ email: trimmed });
+      if (error) throw error;
+      setNewEmail("");
+      // Se a troca foi imediata, o e-mail da sessão já é o novo.
+      if (data.user?.email?.toLowerCase() === trimmed) {
+        setEmailMsg({ ok: true, text: "E-mail alterado com sucesso." });
+      } else {
+        setEmailMsg({
+          ok: true,
+          text: "Enviámos um link de confirmação para o novo e-mail. Clica nele para concluir a troca.",
+        });
+      }
+    } catch {
+      setEmailMsg({ ok: false, text: "Não foi possível alterar. Tenta novamente." });
+    } finally {
+      setSavingEmail(false);
     }
   };
 
@@ -164,6 +204,31 @@ export default function ContaPage() {
                 {emailConfirmed ? "Confirmado" : "Pendente"}
               </span>
             </div>
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-300 mb-2">Alterar e-mail</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Novo e-mail"
+                autoComplete="email"
+                maxLength={120}
+                className="flex-1 min-w-0 bg-[#0F172A] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:border-[#C8A96B]/60 focus:outline-none"
+              />
+              <button
+                onClick={changeEmail}
+                disabled={savingEmail}
+                className="px-4 py-2.5 border border-[#C8A96B]/40 text-[#C8A96B] hover:bg-[#C8A96B]/10 text-xs font-bold rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex-shrink-0"
+              >
+                {savingEmail ? "A alterar…" : "Alterar e-mail"}
+              </button>
+            </div>
+            {emailMsg && (
+              <p className={`text-xs mt-2 ${emailMsg.ok ? "text-emerald-400" : "text-red-400"}`}>{emailMsg.text}</p>
+            )}
           </div>
 
           <div>
