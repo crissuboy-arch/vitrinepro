@@ -108,3 +108,38 @@ describe("Audit log sem segredos", () => {
     assert.ok(src.includes("/token|secret|password|key|credential/i"), "filtro de segredos");
   });
 });
+
+describe("Painel da proprietária", () => {
+  it("AccountMenu mostra Painel Administrativo só para admin (via /api/auth/is-admin)", () => {
+    const src = read("components/auth/AccountMenu.tsx");
+    assert.ok(src.includes("/api/auth/is-admin"), "consulta is-admin");
+    assert.ok(src.includes("Painel Administrativo"), "link existe");
+    assert.ok(src.includes('href="/admin"'), "aponta para /admin");
+    assert.ok(src.includes("{isAdmin &&"), "condicional a isAdmin");
+  });
+  it("/api/admin/stats existe com métricas reais", () => {
+    const src = read("app/api/admin/stats/route.ts");
+    assert.ok(src.includes("requireAdmin()"), "protegida");
+    assert.ok(src.includes("listUsers"), "usa Auth real");
+    assert.ok(src.includes("last_sign_in_at"), "atividade real");
+    assert.ok(src.includes("getServiceClient()"), "service_role server-side");
+  });
+  it("/api/admin/users usa Auth real com paginação server-side", () => {
+    const src = read("app/api/admin/users/route.ts");
+    assert.ok(src.includes("requireAdmin()"), "protegida");
+    assert.ok(src.includes("listUsers"), "Auth real");
+    assert.ok(src.includes("PAGE_SIZE"), "paginação");
+    assert.ok(!src.includes('from("profiles")'), "não usa profiles");
+  });
+  it("/api/admin/users/[id] mostra detalhe sem senha", () => {
+    const src = read("app/api/admin/users/[id]/route.ts");
+    assert.ok(src.includes("requireAdmin()"), "protegida");
+    assert.ok(!src.toLowerCase().includes("password"), "sem senha");
+  });
+  it("/admin tem tab Visão Geral com dados reais", () => {
+    const src = read("app/admin/page.tsx");
+    assert.ok(src.includes('"overview"'), "tab overview");
+    assert.ok(src.includes("/api/admin/stats"), "consome stats");
+    assert.ok(src.includes("Ativas (últimos"), "definição de ativa explícita");
+  });
+});

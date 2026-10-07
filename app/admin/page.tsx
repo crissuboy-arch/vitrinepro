@@ -58,6 +58,25 @@ interface UserProfile {
   created_at: string;
 }
 
+// ADMIN (Visão Geral): dados reais de contas.
+interface AdminUser {
+  id: string;
+  email: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  businessCount: number;
+  tipo: "consumidor" | "comerciante" | "admin";
+  status: "ativo" | "inativo" | "nunca_entrou";
+  plan: string | null;
+}
+
+interface AdminStats {
+  activeWindowDays: number;
+  accounts: { total: number; newToday: number; new7d: number; new30d: number; active30d: number; neverLoggedIn: number; consumers: number; merchants: number; admins: number };
+  businesses: { total: number; published: number; unpublished: number; plans: { free: number; pro: number; business: number; other: number } };
+  content: { products: number; posts: number; gallery: number };
+}
+
 interface Lead {
   id: string;
   name: string;
@@ -98,7 +117,21 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<"businesses" | "categories" | "cities" | "users" | "leads">("businesses");
+  const [activeTab, setActiveTab] = useState<"overview" | "businesses" | "categories" | "cities" | "users" | "leads">("overview");
+
+  // Visão Geral (dados reais)
+  const [overview, setOverview] = useState<AdminStats | null>(null);
+  const [overviewLoading, setOverviewLoading] = useState(false);
+
+  // Utilizadores reais (Auth) — paginação server-side
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [userPage, setUserPage] = useState(1);
+  const [userTotalPages, setUserTotalPages] = useState(1);
+  const [userTotal, setUserTotal] = useState(0);
+  const [userFilter, setUserFilter] = useState("todos");
+  const [userLoading, setUserLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<{ user: AdminUser; businesses: any[] } | null>(null);
+  const [selectedUserLoading, setSelectedUserLoading] = useState(false);
 
   // City CRUD states
   const [cities, setCities] = useState<City[]>([]);
@@ -147,6 +180,8 @@ export default function AdminPage() {
   useEffect(() => {
     if (!mounted || !user || !ADMIN_EMAILS.includes(user.email || "")) return;
     loadData();
+    loadStats();
+    loadAdminUsers(1, "", "todos");
   }, [mounted, user]);
 
   // ADMIN-1: busca server-side com debounce (nome, slug, cidade, owner).
@@ -228,6 +263,43 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ── Visão Geral: estatísticas reais ──
+  const loadStats = async () => {
+    setOverviewLoading(true);
+    try {
+      const r = await fetch("/api/admin/stats");
+      if (r.ok) setOverview(await r.json());
+    } catch (e) { console.error(e); } finally { setOverviewLoading(false); }
+  };
+
+  // ── Utilizadores reais: paginação + busca + filtros server-side ──
+  const loadAdminUsers = async (page = 1, q = "", filter = "todos") => {
+    setUserLoading(true);
+    try {
+      const r = await fetch(
+        `/api/admin/users?page=${page}&q=${encodeURIComponent(q)}&filter=${filter}`
+      );
+      if (r.ok) {
+        const j = await r.json();
+        setAdminUsers(j.users || []);
+        setUserPage(j.page || 1);
+        setUserTotalPages(j.totalPages || 1);
+        setUserTotal(j.total || 0);
+      }
+    } catch (e) { console.error(e); } finally { setUserLoading(false); }
+  };
+
+  const openUser = async (u: AdminUser) => {
+    setSelectedUserLoading(true);
+    try {
+      const r = await fetch(`/api/admin/users/${u.id}`);
+      if (r.ok) {
+        const j = await r.json();
+        setSelectedUser({ user: j.user, businesses: j.businesses || [] });
+      }
+    } catch (e) { console.error(e); } finally { setSelectedUserLoading(false); }
   };
 
   const togglePublished = async (biz: Business) => {
@@ -533,7 +605,17 @@ export default function AdminPage() {
         <h1 className="font-display text-3xl text-[#0F172A] mb-6 font-bold">Painel de Administração</h1>
 
         {/* Tab Selector */}
-        <div className="flex border-b border-[#E5E7EB] mb-8 gap-1">
+        <div className="flex border-b border-[#E5E7EB] mb-8 gap-1 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${
+              activeTab === "overview"
+                ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
+                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+            }`}
+          >
+            📊 Visão Geral
+          </button>
           <button
             onClick={() => setActiveTab("businesses")}
             className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
@@ -585,6 +667,99 @@ export default function AdminPage() {
             📩 Leads ({leads.length})
           </button>
         </div>
+
+        {/* ══════════ VISÃO GERAL (dados reais) ══════════ */}
+        {activeTab === "overview" && (
+          <div className="space-y-8">
+            {overviewLoading && !overview && (
+              <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center text-slate-500">
+                A carregar métricas reais…
+              </div>
+            )}
+            {overview && (
+              <>
+                {/* CONTAS */}
+                <section>
+                  <h2 className="font-display text-lg font-bold text-[#0F172A] mb-4">👥 Contas</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { label: "Total de contas", value: overview.accounts.total },
+                      { label: `Ativas (últimos ${overview.activeWindowDays} dias)`, value: overview.accounts.active30d, hint: "last_sign_in_at real" },
+                      { label: "Novas hoje", value: overview.accounts.newToday },
+                      { label: "Novas (7 dias)", value: overview.accounts.new7d },
+                      { label: "Novas (30 dias)", value: overview.accounts.new30d },
+                      { label: "Nunca entraram", value: overview.accounts.neverLoggedIn },
+                      { label: "Consumidores (0 Montras)", value: overview.accounts.consumers },
+                      { label: "Comerciantes (≥1 Montra)", value: overview.accounts.merchants },
+                    ].map((s) => (
+                      <div key={s.label} className="bg-white rounded-xl border border-[#E5E7EB] p-5 shadow-sm">
+                        <div className="text-3xl font-bold font-display text-[#0F172A] mb-1">{s.value}</div>
+                        <div className="text-sm text-[#1F2937] font-medium">{s.label}</div>
+                        {s.hint && <div className="text-[11px] text-slate-400 mt-1">{s.hint}</div>}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-3">
+                    “Ativa” = fez login nos últimos {overview.activeWindowDays} dias (last_sign_in_at do Supabase Auth).
+                    Admin ({overview.accounts.admins}) não precisa de assinatura Stripe — autorização da plataforma, não produto comercial.
+                  </p>
+                </section>
+
+                {/* MONTRAS */}
+                <section>
+                  <h2 className="font-display text-lg font-bold text-[#0F172A] mb-4">🏢 Montras</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { label: "Total de Montras", value: overview.businesses.total },
+                      { label: "Publicadas", value: overview.businesses.published },
+                      { label: "Não publicadas", value: overview.businesses.unpublished },
+                    ].map((s) => (
+                      <div key={s.label} className="bg-white rounded-xl border border-[#E5E7EB] p-5 shadow-sm">
+                        <div className="text-3xl font-bold font-display text-[#0F172A] mb-1">{s.value}</div>
+                        <div className="text-sm text-[#1F2937] font-medium">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* PLANOS */}
+                <section>
+                  <h2 className="font-display text-lg font-bold text-[#0F172A] mb-4">💳 Planos (por Montra)</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { label: "Free", value: overview.businesses.plans.free },
+                      { label: "Pro", value: overview.businesses.plans.pro },
+                      { label: "Business", value: overview.businesses.plans.business },
+                      { label: "Outros", value: overview.businesses.plans.other },
+                    ].map((s) => (
+                      <div key={s.label} className="bg-white rounded-xl border border-[#E5E7EB] p-5 shadow-sm">
+                        <div className="text-3xl font-bold font-display text-[#C8A96B] mb-1">{s.value}</div>
+                        <div className="text-sm text-[#1F2937] font-medium">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* CONTEÚDO */}
+                <section>
+                  <h2 className="font-display text-lg font-bold text-[#0F172A] mb-4">📦 Conteúdo</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {[
+                      { label: "Produtos", value: overview.content.products },
+                      { label: "Novidades", value: overview.content.posts },
+                      { label: "Itens de galeria", value: overview.content.gallery },
+                    ].map((s) => (
+                      <div key={s.label} className="bg-white rounded-xl border border-[#E5E7EB] p-5 shadow-sm">
+                        <div className="text-3xl font-bold font-display text-[#0F172A] mb-1">{s.value}</div>
+                        <div className="text-sm text-[#1F2937] font-medium">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </>
+            )}
+          </div>
+        )}
 
         {activeTab === "businesses" && (
           <>
@@ -1133,60 +1308,153 @@ export default function AdminPage() {
         {/* Users Tab */}
         {activeTab === "users" && (
           <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
-              <h2 className="text-base font-bold text-[#0F172A] font-display">
-                Utilizadores ({users.length})
-              </h2>
-              <input
-                type="text"
-                placeholder="Pesquisar por email ou nome..."
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                className="px-4 py-2 border border-[#E5E7EB] rounded-lg text-sm bg-[#FAF7F2] w-64 max-w-full focus:outline-none focus:ring-1 focus:ring-[#C8A96B]"
-              />
+            {/* Busca + filtros */}
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 shadow-sm space-y-3">
+              <div className="flex flex-wrap gap-3 items-center justify-between">
+                <h2 className="text-base font-bold text-[#0F172A] font-display">
+                  Contas ({userTotal})
+                </h2>
+                <input
+                  type="text"
+                  placeholder="Pesquisar por email ou user_id…"
+                  value={userSearch}
+                  onChange={(e) => {
+                    setUserSearch(e.target.value);
+                    setUserPage(1);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") loadAdminUsers(1, userSearch, userFilter);
+                  }}
+                  onBlur={() => loadAdminUsers(1, userSearch, userFilter)}
+                  className="px-4 py-2 border border-[#E5E7EB] rounded-lg text-sm bg-[#FAF7F2] w-64 max-w-full focus:outline-none focus:ring-1 focus:ring-[#C8A96B]"
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {(["todos", "ativos", "inativos", "consumidores", "comerciantes", "admins"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => {
+                      setUserFilter(f);
+                      loadAdminUsers(1, userSearch, f);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${userFilter === f ? "bg-[#0F172A] text-white" : "bg-[#FAF7F2] text-[#1F2937] hover:bg-[#E5E7EB]"}`}
+                  >
+                    {f === "todos" ? "Todos" : f === "ativos" ? "Ativos" : f === "inativos" ? "Inativos" : f === "consumidores" ? "Consumidores" : f === "comerciantes" ? "Comerciantes" : "Admins"}
+                  </button>
+                ))}
+              </div>
             </div>
 
+            {/* Tabela */}
             <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-[#FAF7F2] border-b border-[#E5E7EB]">
                     <tr>
                       <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Email</th>
-                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Nome</th>
-                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Plano</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Tipo</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Status</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Montras</th>
+                      <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Último login</th>
                       <th className="text-left px-4 py-3 font-semibold text-[#0F172A]">Registo</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E5E7EB]">
-                    {filteredUsers.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
-                          {users.length === 0 ? "Sem dados de utilizadores (verifique RLS da tabela profiles)." : "Nenhum utilizador encontrado."}
-                        </td>
-                      </tr>
+                    {userLoading ? (
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">A carregar…</td></tr>
+                    ) : adminUsers.length === 0 ? (
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">Nenhuma conta encontrada.</td></tr>
                     ) : (
-                      filteredUsers.map((u) => (
-                        <tr key={u.id} className="hover:bg-[#FAF7F2] transition-colors">
-                          <td className="px-4 py-3 text-[#0F172A] font-medium">{u.email || "—"}</td>
-                          <td className="px-4 py-3 text-slate-600">{u.display_name || "—"}</td>
+                      adminUsers.map((u) => (
+                        <tr key={u.id} className="hover:bg-[#FAF7F2] transition-colors cursor-pointer" onClick={() => openUser(u)}>
+                          <td className="px-4 py-3 text-[#0F172A] font-medium break-all">{u.email || "—"}</td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${planColors[u.plan] || planColors.free}`}>
-                              {u.plan || "free"}
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.tipo === "admin" ? "bg-[#0F172A] text-white" : u.tipo === "comerciante" ? "bg-[#C8A96B]/20 text-[#8a6f3e]" : "bg-slate-100 text-slate-600"}`}>
+                              {u.tipo}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-[#9CA3AF] text-xs font-medium">
-                            {u.created_at ? new Date(u.created_at).toLocaleDateString("pt-PT") : "—"}
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.status === "ativo" ? "bg-green-100 text-green-700" : u.status === "nunca_entrou" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+                              {u.status === "ativo" ? "ativo" : u.status === "nunca_entrou" ? "nunca entrou" : "inativo"}
+                            </span>
                           </td>
+                          <td className="px-4 py-3 text-slate-600">{u.businessCount}</td>
+                          <td className="px-4 py-3 text-[#9CA3AF] text-xs">{u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString("pt-PT") : "—"}</td>
+                          <td className="px-4 py-3 text-[#9CA3AF] text-xs">{u.created_at ? new Date(u.created_at).toLocaleDateString("pt-PT") : "—"}</td>
                         </tr>
                       ))
                     )}
                   </tbody>
                 </table>
               </div>
-              <div className="px-4 py-3.5 border-t border-[#E5E7EB] bg-[#FAF7F2] text-xs text-[#9CA3AF] font-medium">
-                {filteredUsers.length} utilizador{filteredUsers.length !== 1 ? "es" : ""} encontrado{filteredUsers.length !== 1 ? "s" : ""}
+              <div className="px-4 py-3.5 border-t border-[#E5E7EB] bg-[#FAF7F2] flex items-center justify-between">
+                <span className="text-xs text-[#9CA3AF] font-medium">
+                  Página {userPage} de {userTotalPages} · {userTotal} contas
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    disabled={userPage <= 1}
+                    onClick={() => loadAdminUsers(userPage - 1, userSearch, userFilter)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-[#E5E7EB] disabled:opacity-40"
+                  >
+                    ← Anterior
+                  </button>
+                  <button
+                    disabled={userPage >= userTotalPages}
+                    onClick={() => loadAdminUsers(userPage + 1, userSearch, userFilter)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-[#E5E7EB] disabled:opacity-40"
+                  >
+                    Seguinte →
+                  </button>
+                </div>
               </div>
             </div>
+
+            {/* Detalhe do utilizador */}
+            {selectedUser && (
+              <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-6" onClick={() => setSelectedUser(null)}>
+                <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+                  {selectedUserLoading ? (
+                    <p className="text-slate-500">A carregar…</p>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="font-display text-xl font-bold text-[#0F172A] break-all">{selectedUser.user.email || "—"}</h3>
+                          <p className="text-xs text-slate-400 font-mono mt-1">{selectedUser.user.id}</p>
+                        </div>
+                        <button onClick={() => setSelectedUser(null)} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
+                        <div><span className="text-slate-400">Tipo:</span> <strong>{selectedUser.user.tipo}</strong></div>
+                        <div><span className="text-slate-400">Status:</span> <strong>{selectedUser.user.status}</strong></div>
+                        <div><span className="text-slate-400">Criada em:</span> {selectedUser.user.created_at ? new Date(selectedUser.user.created_at).toLocaleString("pt-PT") : "—"}</div>
+                        <div><span className="text-slate-400">Último login:</span> {selectedUser.user.last_sign_in_at ? new Date(selectedUser.user.last_sign_in_at).toLocaleString("pt-PT") : "—"}</div>
+                        <div><span className="text-slate-400">Montras:</span> <strong>{selectedUser.user.businessCount}</strong></div>
+                      </div>
+                      {selectedUser.businesses.length > 0 && (
+                        <>
+                          <h4 className="font-bold text-[#0F172A] mb-2">Montras</h4>
+                          <div className="space-y-2">
+                            {selectedUser.businesses.map((b: any) => (
+                              <div key={b.id} className="flex items-center justify-between border border-[#E5E7EB] rounded-lg px-3 py-2">
+                                <div>
+                                  <div className="font-medium text-[#0F172A]">{b.name}</div>
+                                  <div className="text-xs text-slate-400">/{b.slug} · {b.city || "—"} · {b.published ? "publicada" : "não publicada"} · {b.plan || "free"}</div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <a href={`/vitrine/${b.slug}`} target="_blank" rel="noopener" className="text-xs text-[#C8A96B] hover:underline">Pública ↗</a>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

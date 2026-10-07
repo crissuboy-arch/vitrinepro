@@ -23,6 +23,18 @@ export default function AccountMenu({ compact = false }: { compact?: boolean }) 
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [businessCount, setBusinessCount] = useState<number | null>(null);
+  // ADMIN: visibilidade do link "Painel Administrativo" (UX apenas;
+  // autorização real é sempre server-side em cada /api/admin/*).
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/is-admin")
+      .then((r) => (r.ok ? r.json() : { isAdmin: false }))
+      .then((j) => { if (!cancelled) setIsAdmin(!!j.isAdmin); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const email = user?.email ?? "";
@@ -144,6 +156,17 @@ export default function AccountMenu({ compact = false }: { compact?: boolean }) 
             >
               ❤️ Favoritos
             </Link>
+            {/* ADMIN: só visível quando /api/auth/is-admin confirma. */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2.5 text-sm font-semibold text-[#C8A96B] hover:bg-white/5 hover:text-[#D4BB82] transition-colors"
+              >
+                ⚙️ Painel Administrativo
+              </Link>
+            )}
             <Link
               href="/explorar"
               role="menuitem"
