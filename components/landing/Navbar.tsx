@@ -73,7 +73,17 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
             {loading ? (
               <span className="hidden sm:block w-44 h-9" aria-hidden="true" />
             ) : isLoggedIn ? (
-              <div className="hidden sm:block">
+              <div className="hidden sm:flex items-center gap-2">
+                {/* Caminho direto e visível para Favoritos/Coleções (consumidor) */}
+                <Link
+                  href="/favoritos"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                  title="Favoritos e Coleções"
+                  aria-label="Favoritos e Coleções"
+                >
+                  <span className="text-lg leading-none">❤️</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:inline">Guardados</span>
+                </Link>
                 <AccountMenu compact />
               </div>
             ) : (
@@ -168,7 +178,14 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
         {/* Auth actions at bottom */}
         <div className="px-6 pb-8 pt-4 border-t border-white/5 flex flex-col gap-3">
           {loading ? null : isLoggedIn ? (
-            <div onClick={closeMenu}>
+            <div onClick={closeMenu} className="flex flex-col gap-3">
+              <Link
+                href="/favoritos"
+                className="w-full py-3.5 px-4 flex items-center gap-3 text-sm font-semibold text-slate-200 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+              >
+                <span className="text-xl">❤️</span>
+                Favoritos e Coleções
+              </Link>
               <AccountMenu compact />
             </div>
           ) : (

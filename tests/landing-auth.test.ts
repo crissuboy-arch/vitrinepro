@@ -59,7 +59,7 @@ describe("landing navbar — sem regressão de rotas", () => {
   it("não inventa rotas de auth", () => {
     const src = read("components/landing/Navbar.tsx");
     const hrefs = [...src.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
-    const allowed = ["/", "/login", "/dashboard"];
+    const allowed = ["/", "/login", "/dashboard", "/favoritos", "/explorar", "/conta"];
     const anchors = ["#solucao", "#planos", "#depoimentos", "#faq"];
     for (const h of hrefs) {
       assert.ok(

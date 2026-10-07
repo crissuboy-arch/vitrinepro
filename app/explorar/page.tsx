@@ -988,7 +988,14 @@ export default function ExplorarPage() {
         {/* Feed visual de descoberta: masonry com ordem lógica preservada.
             Negócios + produtos + novidades intercaladas (lib/feed.ts).
             Distribuição em colunas via JS (round-robin) — sem biblioteca,
-            ordem esquerda→direita/top→base acompanha a ordem lógica. */}
+            ordem esquerda→direita/top→base acompanha a ordem lógica.
+            Em modo busca: se há produtos mas 0 negócios, OMITE a seção
+            de negócios (não mostra "Vitrinas Publicadas (0)"). */}
+        {(() => {
+          const hasProductHits = !isDiscoveryMode && productHits.length > 0;
+          const hideBusinessSection = !isDiscoveryMode && hasProductHits && filteredBusinesses.length === 0;
+          if (hideBusinessSection) return null;
+          return (
         <section className="space-y-6">
           <div className="flex justify-between items-center px-2">
             <h3 className="font-display font-semibold text-lg text-white">
@@ -1057,9 +1064,11 @@ export default function ExplorarPage() {
               )}
             </div>
           ) : (
-            <EmptyFeedState needToday={needToday} />
+            <EmptyFeedState needToday={needToday} isSearchMode />
           )}
         </section>
+          );
+        })()}
       </main>
 
       {/* Footer */}
@@ -1076,24 +1085,30 @@ export default function ExplorarPage() {
   );
 }
 
-function EmptyFeedState({ needToday }: { needToday: boolean }) {
+function EmptyFeedState({ needToday, isSearchMode }: { needToday: boolean; isSearchMode?: boolean }) {
+  // Em modo busca com 0 produtos + 0 negócios: estado vazio GLOBAL.
+  // Nunca "Nenhum negócio encontrado" quando a busca como um todo falhou.
+  const title = isSearchMode ? "Nenhum resultado encontrado" : "Nenhum negócio encontrado";
+  const hint = needToday
+    ? "Em modo ⚡ Preciso Hoje mostramos apenas negócios e produtos que podem atender hoje, com base em dados reais dos comerciantes. Nenhum resultado confirma disponibilidade para esta pesquisa — experimente desativar o modo ou tentar outra pesquisa."
+    : isSearchMode
+      ? "Tente outro termo, aumente a distância ou desative alguns filtros."
+      : "Não encontramos negócios locais que atendam aos filtros selecionados.";
   return (
     <div className="text-center py-20 bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl space-y-6">
       <span className="text-5xl block">🏪</span>
       <div className="space-y-2 max-w-md mx-auto">
-        <h4 className="text-lg font-bold text-white font-display">Nenhum negócio encontrado</h4>
+        <h4 className="text-lg font-bold text-white font-display">{title}</h4>
         <p className="text-xs text-slate-450 leading-relaxed">
-          {needToday
-            ? "Em modo ⚡ Preciso Hoje mostramos apenas negócios e produtos que podem atender hoje, com base em dados reais dos comerciantes. Nenhum resultado confirma disponibilidade para esta pesquisa — experimente desativar o modo ou tentar outra pesquisa."
-            : "Não encontramos negócios locais que atendam aos filtros selecionados."}
+          {hint}
         </p>
       </div>
       <div className="pt-2">
         <Link
           href="/login"
-          className="inline-block px-6 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-xs font-bold rounded-xl transition-all active:scale-95 cursor-pointer"
+          className="inline-block px-5 py-2 border border-slate-700 hover:border-[#C8A96B]/60 text-slate-400 hover:text-[#C8A96B] text-xs font-semibold rounded-xl transition-all active:scale-95 cursor-pointer"
         >
-          Cadastrar Minha Vitrina Grátis
+          Cadastrar Minha Vitrine Grátis
         </Link>
       </div>
     </div>
