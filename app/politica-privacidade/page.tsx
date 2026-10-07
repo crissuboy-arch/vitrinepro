@@ -43,7 +43,7 @@ export default function PoliticaPrivacidadePage() {
             <div className="bg-[#FAF7F2] rounded-xl p-4 space-y-1 text-sm text-[#1F2937]">
               <p><strong>Denominação:</strong> VitrinePro</p>
               <p><strong>Endereço:</strong> Portugal</p>
-              <p><strong>Email de contacto:</strong> <a href="mailto:privacidade@vitrinepro.pt" className="text-[#C8A96B] hover:underline">privacidade@vitrinepro.pt</a></p>
+              <p><strong>Email de contacto:</strong> <a href="mailto:suporte@vitrinepro.digital" className="text-[#C8A96B] hover:underline">suporte@vitrinepro.digital</a></p>
             </div>
             <p className="text-sm text-[#1F2937] leading-relaxed">
               Para questões relacionadas com o tratamento dos seus dados pessoais, pode contactar-nos através do endereço acima indicado.
@@ -224,8 +224,8 @@ export default function PoliticaPrivacidadePage() {
             <div className="bg-[#C8A96B]/10 border border-[#C8A96B]/30 rounded-xl p-4 text-sm text-[#0F172A]">
               <p>
                 Para exercer qualquer um destes direitos, envie um pedido por escrito para{" "}
-                <a href="mailto:privacidade@vitrinepro.pt" className="text-[#C8A96B] font-medium hover:underline">
-                  privacidade@vitrinepro.pt
+                <a href="mailto:suporte@vitrinepro.digital" className="text-[#C8A96B] font-medium hover:underline">
+                  suporte@vitrinepro.digital
                 </a>
                 . Responderemos no prazo máximo de <strong>30 dias</strong> (art. 12.º, n.º 3 RGPD).
               </p>

@@ -43,7 +43,7 @@ export default function TermosDeServicoPag() {
             <div className="bg-[#FAF7F2] rounded-xl p-4 space-y-1 text-sm text-[#1F2937]">
               <p><strong>Denominação:</strong> VitrinePro</p>
               <p><strong>País de estabelecimento:</strong> Portugal</p>
-              <p><strong>Email:</strong> <a href="mailto:suporte@vitrinepro.pt" className="text-[#C8A96B] hover:underline">suporte@vitrinepro.pt</a></p>
+              <p><strong>Email:</strong> <a href="mailto:suporte@vitrinepro.digital" className="text-[#C8A96B] hover:underline">suporte@vitrinepro.digital</a></p>
               <p><strong>Website:</strong> <a href="https://vitrinepro.digital" className="text-[#C8A96B] hover:underline">vitrinepro.digital</a></p>
             </div>
           </section>
@@ -122,7 +122,7 @@ export default function TermosDeServicoPag() {
               <p><strong>5.2 Sem reembolso por período parcial:</strong> Salvo nos casos previstos no ponto 5.3, não são emitidos reembolsos por períodos de subscrição não utilizados após o cancelamento voluntário.</p>
               <p><strong>5.3 Exceções:</strong> Reembolso integral nos primeiros 14 dias (direito de resolução) ou em caso de falha técnica grave imputável à VitrinePro que impeça a utilização do serviço por mais de 72 horas consecutivas.</p>
               <p><strong>5.4 Cancelamento pela VitrinePro:</strong> A VitrinePro pode suspender ou encerrar a conta, com aviso prévio de 30 dias, em caso de violação dos presentes termos. Em caso de violação grave, a suspensão pode ser imediata. Nesses casos, é emitido reembolso proporcional ao período não utilizado.</p>
-              <p><strong>5.5 Para exercer o direito de resolução</strong>, envie email para <a href="mailto:suporte@vitrinepro.pt" className="text-[#C8A96B] hover:underline">suporte@vitrinepro.pt</a> com o assunto &quot;Resolução de Contrato&quot; indicando o email da conta.</p>
+              <p><strong>5.5 Para exercer o direito de resolução</strong>, envie email para <a href="mailto:suporte@vitrinepro.digital" className="text-[#C8A96B] hover:underline">suporte@vitrinepro.digital</a> com o assunto &quot;Resolução de Contrato&quot; indicando o email da conta.</p>
             </div>
           </section>
 

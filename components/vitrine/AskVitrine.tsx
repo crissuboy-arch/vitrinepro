@@ -72,6 +72,9 @@ export default function AskVitrine({
       if (!r.ok) throw new Error(j.error || "Erro");
       setAnswer(j.answer);
       setResults(j.results || []);
+      // A9: analytics de intent preparado (eventos definidos em lib/analytics-guard.ts),
+      // mas NÃO ativado — o schema atual (business_analytics) exige business_id.
+      // Ativação real precisa de migration para tabela de intent events (pós-lançamento).
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível responder.");
     } finally {

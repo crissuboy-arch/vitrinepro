@@ -87,12 +87,8 @@ export class RuleBasedProvider implements AIProvider {
     const city = extractCity(message) || ctx.city || null;
     if (city) intent.city = city;
 
-    for (const ck of CATEGORY_KEYWORDS) {
-      if (ck.words.some((w) => low.includes(w))) {
-        intent.category = ck.category;
-        break;
-      }
-    }
+    // A9: category NUNCA extraída — nomes reais variam. Busca textual resolve.
+    // (CATEGORY_KEYWORDS mantido para futura evolução com lista real de categorias.)
 
     return intent;
   }

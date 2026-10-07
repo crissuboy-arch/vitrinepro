@@ -23,6 +23,9 @@ describe("analytics event allowlist", () => {
       "novidade_view",
       "novidade_click",
       "novidade_save",
+      "intent_search",
+      "intent_result_click",
+      "intent_zero_result",
     ]);
     assert.equal(isAllowedEvent("page_view"), true);
     assert.equal(isAllowedEvent("whatsapp_click"), true);

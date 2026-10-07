@@ -67,25 +67,36 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   const whatsappText = `Olá! Vi o produto "${product.name}" no VitrinePro e gostaria de mais informações. Está disponível?\n\nLink: ${productUrl}`;
   const whatsappLink = `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(whatsappText)}`;
 
-  // Product schema for SEO
-  const productSchema = {
+  // Product schema for SEO — A9: nunca inventar disponibilidade.
+  // Só declara InStock quando available_today=TRUE confirmado pelo comerciante.
+  // Sem preço real, omite offers (nunca price: 0 inventado).
+  const availability =
+    product.available_today === true
+      ? "https://schema.org/InStock"
+      : product.available_today === false
+        ? "https://schema.org/OutOfStock"
+        : undefined;
+  const productSchema: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
     "name": product.name,
     "image": product.image_url || "",
     "description": product.description || "",
-    "offers": {
-      "@type": "Offer",
-      "priceCurrency": "EUR",
-      "price": product.price !== null ? product.price : 0,
-      "availability": "https://schema.org/InStock",
-      "url": productUrl
-    },
     "brand": {
       "@type": "Brand",
       "name": business?.name || "VitrinePro"
     }
   };
+  if (product.price != null) {
+    const offer: Record<string, unknown> = {
+      "@type": "Offer",
+      "priceCurrency": "EUR",
+      "price": product.price,
+      "url": productUrl,
+    };
+    if (availability) offer.availability = availability;
+    productSchema.offers = offer;
+  }
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col font-sans select-none">

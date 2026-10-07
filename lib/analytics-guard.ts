@@ -23,6 +23,12 @@ export const ALLOWED_EVENTS = [
   "novidade_view",
   "novidade_click",
   "novidade_save",
+  // A9 — "Pergunte à Vitrine" / Local Intent (primeira camada do Local Intent Graph).
+  // intent_search: { query (truncada 100), city?, result_count, zero: boolean }
+  // NUNCA armazena prompt completo sensível — só o necessário para entender demanda.
+  "intent_search",
+  "intent_result_click",
+  "intent_zero_result",
 ] as const;
 export type AllowedEvent = (typeof ALLOWED_EVENTS)[number];
 

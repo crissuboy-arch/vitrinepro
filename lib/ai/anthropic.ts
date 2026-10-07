@@ -19,10 +19,10 @@ const TIMEOUT_MS = 15000;
 
 const INTENT_SYSTEM = `És um extrator de intenção para a VitrinePro, diretório de negócios locais em Portugal.
 Recebes uma mensagem do consumidor e devolves APENAS JSON válido, sem markdown:
-{"query": string, "category": string|null, "maxPrice": number|null, "minPrice": number|null, "neededToday": boolean, "city": string|null, "nearby": boolean}
+{"query": string, "maxPrice": number|null, "minPrice": number|null, "neededToday": boolean, "city": string|null, "nearby": boolean}
 Regras:
 - query: o que a pessoa procura, sem "quero", "preciso", "perto de mim", preços ou cidades.
-- category: só se evidente (Alimentação, Beleza, Presentes, Decoração, Moda, Automóvel, Serviços); senão null.
+- category: NUNCA extrair (deixa null) — a busca textual já encontra a categoria real.
 - maxPrice: número em euros se mencionar "até X euros/€X"; senão null.
 - neededToday: true se mencionar hoje/para hoje/ainda hoje.
 - city: cidade mencionada ("em Águeda"); senão null.
@@ -90,7 +90,8 @@ export class AnthropicProvider implements AIProvider {
     const intent: Partial<VitrineIntent> = {
       query: String(parsed.query || message).slice(0, 200),
     };
-    if (typeof parsed.category === "string" && parsed.category) intent.category = parsed.category;
+    // A9: category NUNCA extraída pela IA — nomes reais variam ("Restaurantes" vs
+    // "Alimentação"). A busca textual da A7 já encontra pela categoria real.
     if (typeof parsed.maxPrice === "number" && isFinite(parsed.maxPrice)) intent.maxPrice = parsed.maxPrice;
     if (typeof parsed.minPrice === "number" && isFinite(parsed.minPrice)) intent.minPrice = parsed.minPrice;
     if (parsed.neededToday === true) intent.neededToday = true;
