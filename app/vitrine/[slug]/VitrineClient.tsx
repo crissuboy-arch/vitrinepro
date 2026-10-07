@@ -12,7 +12,7 @@ import AutomationPopup from "../../components/AutomationPopup";
 import { getCommunityByCountry } from "@/lib/communities"
 import { normalizeCoverFraming, coverImgStyle, CoverFraming } from "@/lib/cover-framing";
 import { normalizeProductFraming, productImgStyle } from "@/lib/product-framing";
-import { isPublishedBusiness } from "@/lib/visibility";
+import { isPublishedBusiness, queryVisibleProducts, queryVisibleGallery } from "@/lib/visibility";
 import { isPaidTier, planHasChatbot } from "@/lib/plans";
 import { CANONICAL_URL } from "@/lib/site";
 import { shouldRenderChannel } from "@/lib/business-profile";
@@ -385,12 +385,12 @@ export default function VitrineClient({ slug }: { slug: string }) {
 
           if (data) {
             const [imagesRes, productsRes, testimonialsRes] = await Promise.all([
-              supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
-              supabase.from("products").select("*").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
+              queryVisibleGallery(supabase, data.id),
+              queryVisibleProducts(supabase, data.id),
               supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
             ]);
 
-            const _galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+            const _galleryUrls = imagesRes.data?.map((img: any) => img.image_url) || [];
             // Fallback geral: galeria vazia mostra as imagens dos produtos.
             const _productUrls = ((productsRes.data || []) as any[]).map((pr) => pr.image_url).filter(Boolean);
             const galleryUrls = _galleryUrls.length > 0 ? _galleryUrls : _productUrls;
@@ -461,12 +461,12 @@ export default function VitrineClient({ slug }: { slug: string }) {
 
           if (data) {
             const [imagesRes, productsRes, testimonialsRes] = await Promise.all([
-              supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
-              supabase.from("products").select("*").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
+              queryVisibleGallery(supabase, data.id),
+              queryVisibleProducts(supabase, data.id),
               supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
             ]);
 
-            const _galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+            const _galleryUrls = imagesRes.data?.map((img: any) => img.image_url) || [];
             // Fallback geral: galeria vazia mostra as imagens dos produtos.
             const _productUrls = ((productsRes.data || []) as any[]).map((pr) => pr.image_url).filter(Boolean);
             const galleryUrls = _galleryUrls.length > 0 ? _galleryUrls : _productUrls;
@@ -552,12 +552,12 @@ export default function VitrineClient({ slug }: { slug: string }) {
           }
 
           const [imagesRes, productsRes, testimonialsRes] = await Promise.all([
-            supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
-            supabase.from("products").select("*").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
+            queryVisibleGallery(supabase, data.id),
+            queryVisibleProducts(supabase, data.id),
             supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
           ]);
 
-          const _galleryUrls = imagesRes.data?.map((img) => img.image_url) || [];
+          const _galleryUrls = imagesRes.data?.map((img: any) => img.image_url) || [];
           // Fallback geral: galeria vazia mostra as imagens dos produtos.
           const _productUrls = ((productsRes.data || []) as any[]).map((pr) => pr.image_url).filter(Boolean);
           const galleryUrls = _galleryUrls.length > 0 ? _galleryUrls : _productUrls;

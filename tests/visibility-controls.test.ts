@@ -152,9 +152,14 @@ describe("Explorar — queries filtram visibilidade", () => {
 });
 
 describe("Montra — só produtos e galeria visíveis", () => {
-  it("3 pontos de produtos filtram is_visible", () => {
-    const matches = (VITRINE.match(/\.eq\("is_visible", true\)/g) || []).length;
-    assert.ok(matches >= 6, `esperado ≥6 filtros, achado ${matches}`);
+  it("3 pontos de produtos usam queryVisibleProducts (filtro is_visible)", () => {
+    const matches = (VITRINE.match(/queryVisibleProducts\(supabase/g) || []).length;
+    assert.ok(matches >= 3, `esperado ≥3 usos, achado ${matches}`);
+    assert.ok(/\.eq\("is_visible", true\)/.test(src("lib/visibility.ts")), "filtro is_visible no helper");
+  });
+  it("3 pontos de galeria usam queryVisibleGallery (filtro is_visible)", () => {
+    const matches = (VITRINE.match(/queryVisibleGallery\(supabase/g) || []).length;
+    assert.ok(matches >= 3, `esperado ≥3 usos, achado ${matches}`);
   });
   it("framing intacto", () => {
     assert.ok(VITRINE.includes("productImgStyle"), "framing preservado");

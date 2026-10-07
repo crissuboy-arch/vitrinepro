@@ -24,6 +24,7 @@ const NearbyMap = dynamic(() => import("../components/NearbyMap"), { ssr: false 
 import SaveToCollection from "../components/SaveToCollection";
 import { splitExploreSlices } from "@/lib/explore-slices";
 import { buildFeedItems, distributeColumns, columnsForWidth, type FeedItem } from "@/lib/feed";
+import { withVisibilityFallback } from "@/lib/visibility";
 import { FeedCard } from "../components/FeedCards";
 import { filterNovidadesFeed } from "@/lib/novidades";
 // A5 — "Preciso Hoje": disponibilidade honesta (camada pura, sem React).
@@ -425,13 +426,22 @@ export default function ExplorarPage() {
         const bizById = new Map(displayBusinesses.map((b: any) => [b.id, b]));
         // allSettled: falha numa query não zera a outra.
         const [prodRes, postRes] = await Promise.allSettled([
-          supabase
-            .from("products")
-            .select("id, name, price, image_url, business_id, order_index, is_visible, show_in_explore")
-            .eq("is_visible", true)
-            .eq("show_in_explore", true)
-            .order("order_index", { ascending: true })
-            .limit(60),
+          withVisibilityFallback(
+            () =>
+              supabase
+                .from("products")
+                .select("id, name, price, image_url, business_id, order_index, is_visible, show_in_explore")
+                .eq("is_visible", true)
+                .eq("show_in_explore", true)
+                .order("order_index", { ascending: true })
+                .limit(60),
+            () =>
+              supabase
+                .from("products")
+                .select("id, name, price, image_url, business_id, order_index")
+                .order("order_index", { ascending: true })
+                .limit(60)
+          ),
           supabase
             .from("business_posts")
             .select("id,business_id,type,title,content,image_url,price,starts_at,expires_at,is_active,product_id,cta_type,cta_target,created_at,businesses!inner(name,slug,published),products!left(is_visible,show_in_explore)")

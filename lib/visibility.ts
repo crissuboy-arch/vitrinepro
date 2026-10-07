@@ -55,3 +55,65 @@ export type BusinessCountTarget = "onboarding" | "dashboard";
 export function resolveBusinessCountTarget(count: number): BusinessCountTarget {
   return count === 0 ? "onboarding" : "dashboard";
 }
+
+// ─── Degradação graciosa pré-migration ────────────────────────────
+// As colunas de visibilidade (migration 000014) podem ainda não existir
+// no banco. As consultas tentam com filtro e recuam para o comportamento
+// legado (sem filtro) se a coluna não existir. Assim o deploy é seguro
+// antes e depois da aplicação da migration.
+
+function isMissingColumn(err: any): boolean {
+  if (!err) return false;
+  const m = JSON.stringify(err);
+  return /column .* does not exist/i.test(m) || /42703/.test(m);
+}
+
+type QueryFn<T = any> = () => PromiseLike<{ data: T | null; error: any }>;
+
+/** Tenta com filtro de visibilidade; recua para sem filtro se a coluna não existir. */
+export async function withVisibilityFallback<T = any>(
+  withFilter: QueryFn<T>,
+  withoutFilter: QueryFn<T>
+): Promise<{ data: T | null; error: any }> {
+  const res = await withFilter();
+  if (!res.error) return { data: res.data, error: res.error };
+  if (isMissingColumn(res.error)) {
+    const fb = await withoutFilter();
+    return { data: fb.data, error: fb.error };
+  }
+  return { data: res.data, error: res.error };
+}
+
+/** Produtos visíveis de uma Montra (com fallback pré-migration). */
+export function queryVisibleProducts(supabase: any, businessId: string) {
+  return withVisibilityFallback(
+    () =>
+      supabase
+        .from("products")
+        .select("*")
+        .eq("business_id", businessId)
+        .eq("is_visible", true)
+        .order("order_index"),
+    () =>
+      supabase.from("products").select("*").eq("business_id", businessId).order("order_index")
+  );
+}
+
+/** Imagens visíveis da galeria (com fallback pré-migration). */
+export function queryVisibleGallery(supabase: any, businessId: string) {
+  return withVisibilityFallback(
+    () =>
+      supabase
+        .from("gallery_images")
+        .select("image_url, order_index")
+        .eq("business_id", businessId)
+        .eq("is_visible", true)
+        .order("order_index"),
+    () =>
+      supabase
+        .from("gallery_images")
+        .select("image_url, order_index")
+        .eq("business_id", businessId)
+        .order("order_index")
+  );
+}
