@@ -27,6 +27,7 @@ import { buildFeedItems, distributeColumns, columnsForWidth, type FeedItem } fro
 import { withVisibilityFallback } from "@/lib/visibility";
 import { FeedCard } from "../components/FeedCards";
 import { filterNovidadesFeed } from "@/lib/novidades";
+import AskVitrine from "@/components/vitrine/AskVitrine";
 // A5 — "Preciso Hoje": disponibilidade honesta (camada pura, sem React).
 import {
   isOpenNow,
@@ -719,6 +720,11 @@ export default function ExplorarPage() {
           <p className="text-xs md:text-sm text-slate-400 font-light max-w-xl mx-auto leading-relaxed">
             Pesquise por categoria, cidade ou pela comunidade dos fundadores locais em Portugal.
           </p>
+        </div>
+
+        {/* A8 — Pergunte à Vitrine (IA de descoberta; busca tradicional preservada abaixo) */}
+        <div className="max-w-2xl mx-auto">
+          <AskVitrine userLat={userLoc?.lat ?? null} userLng={userLoc?.lng ?? null} />
         </div>
 
         {/* Feed visual unificado (negócios + produtos + novidades intercaladas).
