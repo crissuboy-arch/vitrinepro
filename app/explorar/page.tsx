@@ -421,11 +421,12 @@ export default function ExplorarPage() {
     (async () => {
       try {
         const bizById = new Map(displayBusinesses.map((b: any) => [b.id, b]));
-        const [prodRes, postRes] = await Promise.all([
+        // allSettled: falha numa query não zera a outra.
+        const [prodRes, postRes] = await Promise.allSettled([
           supabase
             .from("products")
-            .select("id, name, price, image_url, business_id, created_at")
-            .order("created_at", { ascending: false })
+            .select("id, name, price, image_url, business_id, order_index")
+            .order("order_index", { ascending: true })
             .limit(60),
           supabase
             .from("business_posts")
@@ -436,22 +437,23 @@ export default function ExplorarPage() {
             .limit(20),
         ]);
         if (cancelled) return;
-        const prods = (prodRes.data || [])
-          .map((p: any) => ({ ...p, business: bizById.get(p.business_id) || null }))
-          .filter((p: any) => p.business);
-        setFeedProducts(prods);
-        const posts = filterNovidadesFeed(
-          (postRes.data || []).map((r: any) => ({
-            ...r,
-            business: r.businesses ? { name: r.businesses.name, slug: r.businesses.slug } : null,
-          }))
-        );
-        setFeedPosts(posts);
-      } catch {
-        if (!cancelled) {
-          setFeedProducts([]);
-          setFeedPosts([]);
+        if (prodRes.status === "fulfilled") {
+          const prods = (prodRes.value.data || [])
+            .map((p: any) => ({ ...p, business: bizById.get(p.business_id) || null }))
+            .filter((p: any) => p.business);
+          setFeedProducts(prods);
         }
+        if (postRes.status === "fulfilled") {
+          const posts = filterNovidadesFeed(
+            (postRes.value.data || []).map((r: any) => ({
+              ...r,
+              business: r.businesses ? { name: r.businesses.name, slug: r.businesses.slug } : null,
+            }))
+          );
+          setFeedPosts(posts);
+        }
+      } catch {
+        // Degradação graciosa: feed segue só com negócios.
       }
     })();
     return () => {
