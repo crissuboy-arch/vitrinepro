@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useAuth } from "../context/SupabaseAuthContext";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,8 +22,10 @@ import dynamic from "next/dynamic";
 
 const NearbyMap = dynamic(() => import("../components/NearbyMap"), { ssr: false });
 import SaveToCollection from "../components/SaveToCollection";
-import NovidadesFeed from "@/components/NovidadesFeed";
 import { splitExploreSlices } from "@/lib/explore-slices";
+import { buildFeedItems, distributeColumns, columnsForWidth, type FeedItem } from "@/lib/feed";
+import { FeedCard } from "../components/FeedCards";
+import { filterNovidadesFeed } from "@/lib/novidades";
 // A5 — "Preciso Hoje": disponibilidade honesta (camada pura, sem React).
 import {
   isOpenNow,
@@ -118,6 +120,13 @@ export default function ExplorarPage() {
   const [needToday, setNeedToday] = useState(false);
   // A4.9 — resultados de produtos (buscados só quando há pesquisa).
   const [productHits, setProductHits] = useState<any[]>([]);
+  // Feed visual unificado: produtos e novidades para o modo descoberta.
+  const [feedProducts, setFeedProducts] = useState<any[]>([]);
+  const [feedPosts, setFeedPosts] = useState<any[]>([]);
+  // Paginação progressiva: 24 itens iniciais, +24 por lote.
+  const [visibleCount, setVisibleCount] = useState(24);
+  const [nCols, setNCols] = useState(2);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -404,6 +413,81 @@ export default function ExplorarPage() {
     void runProductSearch(searchQuery);
   };
 
+  // Feed visual: busca produtos (para o modo descoberta) e novidades.
+  // Não altera banco; só leitura. RLS já restringe a negócios publicados.
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const bizById = new Map(displayBusinesses.map((b: any) => [b.id, b]));
+        const [prodRes, postRes] = await Promise.all([
+          supabase
+            .from("products")
+            .select("id, name, price, image_url, business_id, created_at")
+            .order("created_at", { ascending: false })
+            .limit(60),
+          supabase
+            .from("business_posts")
+            .select("id,business_id,type,title,content,image_url,price,starts_at,expires_at,is_active,product_id,cta_type,cta_target,created_at,businesses!inner(name,slug,published)")
+            .eq("is_active", true)
+            .eq("businesses.published", true)
+            .order("created_at", { ascending: false })
+            .limit(20),
+        ]);
+        if (cancelled) return;
+        const prods = (prodRes.data || [])
+          .map((p: any) => ({ ...p, business: bizById.get(p.business_id) || null }))
+          .filter((p: any) => p.business);
+        setFeedProducts(prods);
+        const posts = filterNovidadesFeed(
+          (postRes.data || []).map((r: any) => ({
+            ...r,
+            business: r.businesses ? { name: r.businesses.name, slug: r.businesses.slug } : null,
+          }))
+        );
+        setFeedPosts(posts);
+      } catch {
+        if (!cancelled) {
+          setFeedProducts([]);
+          setFeedPosts([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, displayBusinesses]);
+
+  // Colunas responsivas: 2 mobile, 3 tablet, 4 desktop.
+  useEffect(() => {
+    const update = () => setNCols(columnsForWidth(window.innerWidth));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  // Carregamento progressivo: +24 itens quando o sentinela entra na viewport.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((c) => c + 24);
+        }
+      },
+      { rootMargin: "600px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // Reseta a paginação quando os filtros mudam.
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [searchQuery, selectedCategory, selectedCity, selectedCommunity, needToday]);
+
 
   const filteredBusinesses = useMemo(() => {
     let result = [...displayBusinesses];
@@ -531,6 +615,25 @@ export default function ExplorarPage() {
   const { featured: featuredSlice, regular: regularSlice } =
     splitExploreSlices(filteredBusinesses, 3);
 
+  // Feed visual unificado (modo descoberta, sem pesquisa): negócios +
+  // produtos + novidades intercaladas, com anti-duplicação. Só no modo
+  // descoberta — a pesquisa mantém o comportamento atual.
+  const isDiscoveryMode = searchQuery.trim().length < 2;
+  const feedItems: FeedItem[] = useMemo(() => {
+    if (!isDiscoveryMode) return [];
+    return buildFeedItems(filteredBusinesses, feedProducts, feedPosts, 5);
+  }, [isDiscoveryMode, filteredBusinesses, feedProducts, feedPosts]);
+
+  const visibleFeedItems = useMemo(
+    () => feedItems.slice(0, visibleCount),
+    [feedItems, visibleCount]
+  );
+
+  const feedColumns = useMemo(
+    () => distributeColumns(visibleFeedItems, nCols),
+    [visibleFeedItems, nCols]
+  );
+
   if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-[#050816] flex items-center justify-center">
@@ -585,8 +688,8 @@ export default function ExplorarPage() {
           </p>
         </div>
 
-        {/* A6.5 — "Novidades na Vitrine": dados reais de business_posts. */}
-        <NovidadesFeed />
+        {/* Feed visual unificado (negócios + produtos + novidades intercaladas).
+            O antigo carrossel NovidadesFeed foi incorporado ao feed. */}
 
         {/* Filter Controls Row */}
         <section className="bg-gray-900/60 border border-gray-800 rounded-3xl p-6 shadow-xl space-y-6">
@@ -863,17 +966,42 @@ export default function ExplorarPage() {
           </section>
         )}
 
-        {/* Directory Showcase Cards */}
+        {/* Feed visual de descoberta: masonry com ordem lógica preservada.
+            Negócios + produtos + novidades intercaladas (lib/feed.ts).
+            Distribuição em colunas via JS (round-robin) — sem biblioteca,
+            ordem esquerda→direita/top→base acompanha a ordem lógica. */}
         <section className="space-y-6">
           <div className="flex justify-between items-center px-2">
             <h3 className="font-display font-semibold text-lg text-white">
-              Vitrinas Publicadas ({filteredBusinesses.length})
+              {isDiscoveryMode
+                ? `Descobrir (${feedItems.length})`
+                : `Vitrinas Publicadas (${filteredBusinesses.length})`}
             </h3>
           </div>
 
-          {filteredBusinesses.length > 0 ? (
+          {isDiscoveryMode ? (
+            feedItems.length > 0 ? (
+              <>
+                <div className="flex gap-3 items-start">
+                  {feedColumns.map((col, ci) => (
+                    <div key={ci} className="flex-1 flex flex-col gap-3 min-w-0">
+                      {col.map((item, idx) => (
+                        <FeedCard key={item.key} item={item} eager={ci === 0 && idx < 2} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                {/* Sentinela do carregamento progressivo (+24 por lote) */}
+                <div ref={sentinelRef} className="h-2" aria-hidden="true" />
+                {visibleCount < feedItems.length && (
+                  <p className="text-center text-xs text-slate-500">A carregar mais…</p>
+                )}
+              </>
+            ) : (
+              <EmptyFeedState needToday={needToday} />
+            )
+          ) : filteredBusinesses.length > 0 ? (
             <div className="space-y-8">
-              {/* Featured section */}
               {featuredSlice.length > 0 && (
                 <div className="space-y-4">
                   <p className="text-xs font-bold text-[#C8A96B] uppercase tracking-widest flex items-center gap-1.5">
@@ -890,7 +1018,6 @@ export default function ExplorarPage() {
                   </div>
                 </div>
               )}
-              {/* Regular section */}
               {regularSlice.length > 0 && (
                 <div className="space-y-4">
                   {featuredSlice.length > 0 && (
@@ -911,25 +1038,7 @@ export default function ExplorarPage() {
               )}
             </div>
           ) : (
-            <div className="text-center py-20 bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl space-y-6">
-              <span className="text-5xl block">🏪</span>
-              <div className="space-y-2 max-w-md mx-auto">
-                <h4 className="text-lg font-bold text-white font-display">Nenhum negócio encontrado</h4>
-                <p className="text-xs text-slate-450 leading-relaxed">
-                  {needToday
-                    ? "Em modo ⚡ Preciso Hoje mostramos apenas negócios e produtos que podem atender hoje, com base em dados reais dos comerciantes. Nenhum resultado confirma disponibilidade para esta pesquisa — experimente desativar o modo ou tentar outra pesquisa."
-                    : "Não encontramos negócios locais que atendam aos filtros selecionados."}
-                </p>
-              </div>
-              <div className="pt-2">
-                <Link
-                  href="/login"
-                  className="inline-block px-6 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-xs font-bold rounded-xl transition-all active:scale-95 cursor-pointer"
-                >
-                  Cadastrar Minha Vitrina Grátis
-                </Link>
-              </div>
-            </div>
+            <EmptyFeedState needToday={needToday} />
           )}
         </section>
       </main>
@@ -944,6 +1053,30 @@ export default function ExplorarPage() {
           <p className="text-[10px] text-slate-600 mt-2">© 2026 VitrinePro. Todos os direitos reservados.</p>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function EmptyFeedState({ needToday }: { needToday: boolean }) {
+  return (
+    <div className="text-center py-20 bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl space-y-6">
+      <span className="text-5xl block">🏪</span>
+      <div className="space-y-2 max-w-md mx-auto">
+        <h4 className="text-lg font-bold text-white font-display">Nenhum negócio encontrado</h4>
+        <p className="text-xs text-slate-450 leading-relaxed">
+          {needToday
+            ? "Em modo ⚡ Preciso Hoje mostramos apenas negócios e produtos que podem atender hoje, com base em dados reais dos comerciantes. Nenhum resultado confirma disponibilidade para esta pesquisa — experimente desativar o modo ou tentar outra pesquisa."
+            : "Não encontramos negócios locais que atendam aos filtros selecionados."}
+        </p>
+      </div>
+      <div className="pt-2">
+        <Link
+          href="/login"
+          className="inline-block px-6 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-xs font-bold rounded-xl transition-all active:scale-95 cursor-pointer"
+        >
+          Cadastrar Minha Vitrina Grátis
+        </Link>
+      </div>
     </div>
   );
 }

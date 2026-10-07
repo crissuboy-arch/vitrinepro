@@ -2792,6 +2792,7 @@ function DashboardContent() {
                     <input type="file" accept="image/*" onChange={handleNovidadeImageSelect} className="hidden" />
                   </label>
                 </div>
+                <p className="text-[11px] text-slate-500 mt-2">Recomendado: 4:5 — 1080 × 1350 px. JPG ou WEBP. Máx. 5 MB. Retrato, quadrada e paisagem são aceites. Evite textos, preços e logótipos muito próximos das bordas.</p>
               </div>
 
               <div>

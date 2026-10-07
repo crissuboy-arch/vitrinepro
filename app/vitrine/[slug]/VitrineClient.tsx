@@ -799,14 +799,16 @@ export default function VitrineClient({ slug }: { slug: string }) {
         </div>
       )}
 
-      {/* ── Floating Help Badge ── */}
+      {/* ── Floating Help Badge ──
+          Mobile: oculto (só 1 flutuante no mobile — o WhatsApp).
+          Desktop: mantém comportamento. */}
       {!showPopup && (
         <button
           onClick={() => setShowPopup(true)}
           aria-label="Precisa de ajuda?"
-          className="fixed z-40 flex items-center gap-2 font-semibold text-xs transition-all active:scale-95 hover:scale-105"
+          className="fixed z-40 hidden md:flex items-center gap-2 font-semibold text-xs transition-all active:scale-95 hover:scale-105"
           style={{
-            bottom: "96px",
+            bottom: "calc(96px + env(safe-area-inset-bottom))",
             right: "16px",
             background: "#1E293B",
             border: "1.5px solid rgba(200,169,107,0.4)",
@@ -837,7 +839,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
               pixelContact();
             }
           }}
-          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-[0_8px_30px_rgb(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all group duration-300"
+          className="fixed right-6 z-40 flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-[0_8px_30px_rgb(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all group duration-300"
+          style={{ bottom: "calc(24px + env(safe-area-inset-bottom))" }}
           title="Fale no WhatsApp"
         >
           <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
