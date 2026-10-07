@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/*.test.ts",
+    "test": "node --test $(ls tests/*.test.ts | grep -v intelligence | tr '\\n' ' ') && tsx --test tests/intelligence.test.ts",
     "test:watch": "node --test --watch tests/*.test.ts"
   },
   "dependencies": {
@@ -40,6 +40,7 @@
     "eslint-config-next": "16.2.4",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
