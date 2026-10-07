@@ -76,7 +76,7 @@ export function FeedProductCard({ item, eager = false }: { item: any; eager?: bo
   const biz = item.business;
   const price = formatPriceEUR(p.price);
   return (
-    <div className="relative break-inside-avoid rounded-2xl overflow-hidden bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 transition-colors">
+    <div data-feed-kind="product" className="relative break-inside-avoid rounded-2xl overflow-hidden bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 transition-colors">
       <Link href={`/vitrine/${biz?.slug || ""}`} className="block">
         {p.image_url ? (
           <FeedImage src={p.image_url} alt={p.name} eager={eager} />
@@ -99,7 +99,7 @@ export function FeedBusinessCard({ item, eager = false }: { item: any; eager?: b
   const b = item.data;
   const meta = [b.category, b.city].filter(Boolean).join(" • ");
   return (
-    <div className="relative break-inside-avoid rounded-2xl overflow-hidden bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 transition-colors">
+    <div data-feed-kind="business" className="relative break-inside-avoid rounded-2xl overflow-hidden bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 transition-colors">
       <Link href={`/vitrine/${b.slug}`} className="block">
         {b.cover ? (
           <FeedImage src={b.cover} alt={`Capa de ${b.name}`} eager={eager} />
@@ -139,7 +139,7 @@ export function FeedPostCard({ item, eager = false }: { item: any; eager?: boole
         <div className="w-full aspect-[4/5] bg-slate-900 flex items-center justify-center text-4xl">✨</div>
       )}
       <div className="p-3">
-        <span className="inline-block px-2 py-0.5 text-[9px] font-bold rounded-full bg-[#C8A96B]/15 border border-[#C8A96B]/30 text-[#C8A96B] uppercase tracking-wider">
+        <span data-testid="post-badge" className="inline-block px-2 py-0.5 text-[9px] font-bold rounded-full bg-[#C8A96B]/15 border border-[#C8A96B]/30 text-[#C8A96B] uppercase tracking-wider">
           {postBadge(post.type)}
         </span>
         <h4 className="font-bold text-white text-sm leading-tight line-clamp-2 mt-2">{post.title}</h4>
@@ -150,7 +150,7 @@ export function FeedPostCard({ item, eager = false }: { item: any; eager?: boole
     </>
   );
   return (
-    <div className="relative break-inside-avoid rounded-2xl overflow-hidden bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 transition-colors">
+    <div data-feed-kind="post" className="relative break-inside-avoid rounded-2xl overflow-hidden bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 transition-colors">
       <Link href={href} className="block">
         {inner}
       </Link>
