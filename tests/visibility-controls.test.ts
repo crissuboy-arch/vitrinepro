@@ -208,3 +208,30 @@ describe("regressões", () => {
     assert.ok(MIGRATION.includes("user_id = auth.uid()"), "ownership");
   });
 });
+
+describe("hotfix 000015 — RLS canónica (published, sem legado)", () => {
+  const HOTFIX = src("supabase/migrations/20261007000015_fix_visibility_rls_canonical_published.sql");
+  // Só código SQL (sem comentários) para as verificações de escopo.
+  const SQL = HOTFIX.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+  it("ZERO ocorrência de is_published", () => {
+    assert.equal((HOTFIX.match(/is_published/g) || []).length, 0, "sem legado");
+  });
+  it("substitui SOMENTE vp_products_select e vp_gallery_select", () => {
+    assert.ok(SQL.includes('"vp_products_select"'), "products");
+    assert.ok(SQL.includes('"vp_gallery_select"'), "gallery");
+    assert.ok(!SQL.includes("vp_products_write"), "não toca escrita");
+    assert.ok(!SQL.includes("business_posts"), "não toca novidades");
+  });
+  it("público exige is_visible + published canónico", () => {
+    assert.ok(/is_visible = true[\s\S]*?WHERE published = true/.test(SQL), "porta dupla");
+  });
+  it("dono continua vendo ocultos", () => {
+    assert.ok(/user_id = auth\.uid\(\)/.test(SQL), "dono bypassa");
+  });
+  it("show_in_explore NÃO entra na RLS", () => {
+    assert.ok(!SQL.includes("show_in_explore"), "fora da RLS");
+  });
+  it("não remove colunas nem altera dados", () => {
+    assert.ok(!/DROP COLUMN|DELETE FROM|UPDATE public/i.test(SQL), "sem DML/DDL destrutivo");
+  });
+});
