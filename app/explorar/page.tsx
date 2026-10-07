@@ -691,6 +691,20 @@ export default function ExplorarPage() {
           <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
             <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
           </Link>
+          <div className="flex items-center gap-2">
+            {/* Consumidor autenticado: acesso rápido a Guardados (contexto descobrir/salvar) */}
+            {user && (
+              <Link
+                href="/favoritos"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white border border-white/5 hover:border-[#C8A96B]/30 transition-all"
+                title="Favoritos e Coleções"
+                aria-label="Favoritos e Coleções"
+              >
+                <span className="text-sm leading-none">❤️</span>
+                <span className="hidden sm:inline font-semibold">Guardados</span>
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 

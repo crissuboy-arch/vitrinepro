@@ -15,24 +15,29 @@ import { join } from "node:path";
 const read = (p: string) => readFileSync(join(import.meta.dirname, "..", p), "utf8");
 
 describe("Cenário A — consumidor encontra Favoritos/Coleções", () => {
-  it("navbar desktop tem link direto visível para /favoritos", () => {
+  it("landing NÃO tem Guardados no header institucional", () => {
     const src = read("components/landing/Navbar.tsx");
-    assert.ok(src.includes('href="/favoritos"'), "link direto para /favoritos");
-    assert.ok(src.includes("Favoritos e Coleções") || src.includes("Guardados"), "rótulo claro");
+    assert.ok(!src.includes('href="/favoritos"'), "landing sem link pessoal no header");
   });
-  it("menu mobile tem link para /favoritos", () => {
+  it("/explorar tem Guardados para consumidor autenticado", () => {
+    const src = read("app/explorar/page.tsx");
+    assert.ok(src.includes('href="/favoritos"'), "explorar tem acesso a Guardados");
+    assert.ok(src.includes("{user &&"), "só para autenticado");
+  });
+  it("menu mobile da landing usa AccountMenu (sem Guardados solto)", () => {
     const src = read("components/landing/Navbar.tsx");
-    // O menu mobile (hamburger) deve ter o link — conta as ocorrências
-    const matches = src.match(/href="\/favoritos"/g) || [];
-    assert.ok(matches.length >= 2, `link /favoritos no desktop E no mobile (encontrados: ${matches.length})`);
-  });
-  it("AccountMenu mantém Favoritos no dropdown", () => {
-    const src = read("components/auth/AccountMenu.tsx");
-    assert.ok(src.includes("/favoritos"), "dropdown mantém acesso");
+    // AccountMenu dropdown mantém Favoritos — sem duplicar no header
+    const menuSrc = read("components/auth/AccountMenu.tsx");
+    assert.ok(menuSrc.includes("/favoritos"), "dropdown mantém acesso");
   });
   it("/conta tem hub com link para Favoritos e Coleções", () => {
     const src = read("app/conta/page.tsx");
     assert.ok(src.includes("/favoritos"), "/conta liga para /favoritos");
+  });
+  it("/favoritos: consumidor 0 businesses vê Voltar ao Explorar", () => {
+    const src = read("app/favoritos/page.tsx");
+    assert.ok(src.includes("Voltar ao Explorar"), "navegação coerente para consumidor");
+    assert.ok(src.includes("businessCount === 0"), "condicional por contagem");
   });
 });
 

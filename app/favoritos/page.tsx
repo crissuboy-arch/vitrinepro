@@ -93,6 +93,8 @@ export default function FavoritosPage() {
 
   const [categoryMap, setCategoryMap] = useState<Map<string, any>>(new Map());
   const [cityMap, setCityMap] = useState<Map<string, any>>(new Map());
+  // Consumidor (0 businesses) vs comerciante: para navegação coerente.
+  const [businessCount, setBusinessCount] = useState<number | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -102,6 +104,13 @@ export default function FavoritosPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { router.push("/login?next=/favoritos"); return; }
       setUserId(session.user.id);
+
+      // Contagem leve de businesses (uma query, sem duplicar).
+      const { count } = await supabase
+        .from("businesses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", session.user.id);
+      setBusinessCount(count ?? 0);
 
       const [cats, cities] = await Promise.all([
         supabase.from("categories").select("id, name"),
@@ -277,9 +286,17 @@ export default function FavoritosPage() {
       {/* Header */}
       <header className="bg-[#0F172A]/80 backdrop-blur border-b border-white/5 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="text-xs text-slate-400 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-colors">
-            ← Dashboard
-          </Link>
+          {/* Navegação coerente: consumidor (0 businesses) volta ao Explorar,
+              comerciante mantém acesso ao Dashboard */}
+          {businessCount === 0 ? (
+            <Link href="/explorar" className="text-xs text-slate-400 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-colors">
+              ← Voltar ao Explorar
+            </Link>
+          ) : (
+            <Link href="/dashboard" className="text-xs text-slate-400 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-colors">
+              ← Dashboard
+            </Link>
+          )}
           <Link href="/" className="font-display font-bold text-[#C8A96B] text-xl">VitrinePro</Link>
           <Link href="/explorar" className="text-xs text-[#C8A96B] border border-[#C8A96B]/30 px-3 py-1.5 rounded-lg hover:bg-[#C8A96B]/10 transition-colors">
             Explorar
