@@ -170,6 +170,10 @@ describe("postBadge — badges das novidades", () => {
     assert.equal(postBadge("servico_novo"), "NOVIDADE");
     assert.equal(postBadge("novidade"), "NOVIDADE");
   });
+  it("FeedPostCard renderiza o badge no markup", () => {
+    assert.ok(FEED_CARDS.includes("postBadge(post.type)"), "badge usa postBadge(post.type)");
+    assert.ok(/<span[^>]*>\s*\{postBadge\(post\.type\)\}/.test(FEED_CARDS), "badge em span visível");
+  });
 });
 
 describe("FeedCards — imagens naturais, sem crop forçado", () => {
