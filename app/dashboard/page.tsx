@@ -541,7 +541,6 @@ function DashboardContent() {
     // A6.5 Parte A — preserva os params do URL (ex.: ?plan=premium do fluxo
     // de subscrição) para o plano escolhido sobreviver ao onboarding.
     const dashSearch = typeof window !== "undefined" ? window.location.search : "";
-    const publishedCount = businesses.filter((b: any) => isPublishedBusiness(b)).length;
     return (
       <div className="min-h-screen bg-[#0F172A] text-white flex flex-col">
         <header className="border-b border-gray-800 bg-[#0F172A]/90 backdrop-blur sticky top-0 z-30">
@@ -563,7 +562,11 @@ function DashboardContent() {
         <main className="flex-grow max-w-5xl w-full mx-auto px-4 py-10">
           <h1 className="font-display text-3xl font-bold text-white">A minha conta</h1>
           <p className="text-sm text-gray-400 mt-2 mb-8">
-            {businesses.length} {businesses.length === 1 ? "montra" : "montras"} · {publishedCount} {publishedCount === 1 ? "publicada" : "publicadas"}
+            Ainda não tens nenhuma Montra. A tua área pessoal está em{" "}
+            <Link href="/conta" className="text-[#C8A96B] hover:underline font-semibold">
+              Minha Conta
+            </Link>
+            .
           </p>
 
           <h2 className="font-display text-xl font-semibold text-[#C8A96B] mb-4">Minhas Montras</h2>

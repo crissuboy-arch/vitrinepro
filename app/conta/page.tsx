@@ -6,18 +6,17 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/SupabaseAuthContext";
 import { supabase } from "@/app/lib/supabase";
 import AccountMenu from "@/components/auth/AccountMenu";
+import { getBusinessCount, isMerchant } from "@/lib/account";
 
 /**
- * /conta — Gestão da conta (padrão conceitual Pinterest, visual próprio).
+ * /conta — Minha Conta (hub do consumidor).
  *
- * Separa CONTA (pessoa autenticada) de MONTRA (negócio).
- * Só usa campos que existem no modelo: profiles.display_name, user.email,
- * user.email_confirmed_at, profiles.plan. Sem telefone/país (não existem
- * na conta) e sem nenhum campo novo no banco.
+ * Regra de produto: a mesma conta serve para consumidor e comerciante.
+ * Consumidor (0 businesses): perfil, Favoritos, Coleções, Explorar,
+ * Criar minha Montra, Sair, Excluir conta.
+ * Comerciante (≥1): tudo isso + Gerir minhas Montras.
  *
- * Troca de e-mail: usa supabase.auth.updateUser({ email }) nativo (grátis).
- * Se "Confirm email change" estiver ativo no Supabase, o utilizador tem de
- * clicar no link enviado para o NOVO e-mail; senão troca de imediato.
+ * Só usa campos que existem no modelo. Sem "tipo de conta" rígido.
  */
 export default function ContaPage() {
   const { user, profile, loading, signOut, updateProfile } = useAuth();
@@ -38,9 +37,30 @@ export default function ContaPage() {
 
   const [signingOut, setSigningOut] = useState(false);
 
+  // Consumidor vs comerciante (contagem leve de businesses).
+  const [businessCount, setBusinessCount] = useState<number | null>(null);
+
+  // Exclusão de conta (só consumidor 0 businesses; confirmação forte).
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteMsg, setDeleteMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+
   useEffect(() => {
     if (!loading && !user) router.replace("/login?next=/conta");
   }, [loading, user, router]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const n = await getBusinessCount(supabase, user.id);
+      if (!cancelled) setBusinessCount(n);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Nome inicial derivado do perfil/sessão (sem setState em efeito).
   const fallbackName = profile?.display_name || (user?.email ? user.email.split("@")[0] : "");
@@ -143,12 +163,48 @@ export default function ContaPage() {
     }
   };
 
+  // Exclusão de conta — server-side, confirmação forte (e-mail exato).
+  // Só consumidor com 0 businesses; comerciante precisa resolver as
+  // Montras primeiro (sem destruição comercial automática).
+  const doDeleteAccount = async () => {
+    setDeleteMsg(null);
+    const typed = deleteConfirm.trim().toLowerCase();
+    if (typed !== email.toLowerCase()) {
+      setDeleteMsg({ ok: false, text: "Escreve o teu e-mail exatamente como está acima para confirmar." });
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmEmail: typed }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || "Não foi possível excluir a conta.");
+      }
+      // Conta excluída no servidor — sai e vai para a home.
+      try {
+        await signOut();
+      } finally {
+        window.location.href = "/";
+      }
+    } catch (e: any) {
+      setDeleteMsg({ ok: false, text: e?.message || "Não foi possível excluir a conta. Tenta novamente." });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const merchant = businessCount !== null && isMerchant(businessCount);
+
   return (
     <div className="min-h-screen bg-[#0F172A] text-white flex flex-col">
       <header className="border-b border-gray-800 bg-[#0F172A]/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="text-sm text-gray-400 hover:text-white transition-colors">
-            ← Minhas Montras
+          <Link href="/explorar" className="text-sm text-gray-400 hover:text-white transition-colors">
+            ← Explorar
           </Link>
           <AccountMenu />
         </div>
@@ -156,11 +212,51 @@ export default function ContaPage() {
 
       <main className="flex-grow max-w-3xl w-full mx-auto px-4 py-10 space-y-10">
         <div>
-          <h1 className="font-display text-3xl font-bold">Gestão da conta</h1>
+          <h1 className="font-display text-3xl font-bold">Minha Conta</h1>
           <p className="text-sm text-gray-400 mt-2">
-            A tua conta (pessoa) — separada das tuas Montras (negócios).
+            A tua área pessoal — Favoritos, Coleções e dados da conta.
           </p>
         </div>
+
+        {/* NAVEGAÇÃO DO CONSUMIDOR */}
+        <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-[#C8A96B]">A minha área</h2>
+
+          <Link
+            href="/favoritos"
+            className="flex items-center justify-between px-4 py-3.5 rounded-xl border border-white/10 hover:border-[#C8A96B]/40 hover:bg-white/[0.03] transition-colors"
+          >
+            <span className="text-sm font-semibold">❤️ Favoritos e Coleções</span>
+            <span className="text-gray-500">→</span>
+          </Link>
+
+          <Link
+            href="/explorar"
+            className="flex items-center justify-between px-4 py-3.5 rounded-xl border border-white/10 hover:border-[#C8A96B]/40 hover:bg-white/[0.03] transition-colors"
+          >
+            <span className="text-sm font-semibold">🔍 Explorar</span>
+            <span className="text-gray-500">→</span>
+          </Link>
+
+          {businessCount !== null &&
+            (merchant ? (
+              <Link
+                href="/dashboard"
+                className="flex items-center justify-between px-4 py-3.5 rounded-xl border border-[#C8A96B]/30 bg-[#C8A96B]/5 hover:bg-[#C8A96B]/10 transition-colors"
+              >
+                <span className="text-sm font-semibold text-[#C8A96B]">🏪 Gerir minhas Montras</span>
+                <span className="text-[#C8A96B]">→</span>
+              </Link>
+            ) : (
+              <Link
+                href="/onboarding"
+                className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] transition-colors"
+              >
+                <span className="text-sm font-bold">＋ Criar minha Montra — é grátis</span>
+                <span>→</span>
+              </Link>
+            ))}
+        </section>
 
         {/* A TUA CONTA */}
         <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-6">
@@ -268,14 +364,6 @@ export default function ContaPage() {
         <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
           <h2 className="text-xs font-bold uppercase tracking-widest text-[#C8A96B]">Gestão</h2>
 
-          <Link
-            href="/dashboard"
-            className="flex items-center justify-between px-4 py-3.5 rounded-xl border border-white/10 hover:border-[#C8A96B]/40 hover:bg-white/[0.03] transition-colors"
-          >
-            <span className="text-sm font-semibold">Minhas Montras</span>
-            <span className="text-gray-500">→</span>
-          </Link>
-
           <div className="flex items-center justify-between px-4 py-3.5 rounded-xl border border-white/10">
             <div>
               <p className="text-sm font-semibold">Plano atual: <span className="text-[#C8A96B] capitalize">{plan}</span></p>
@@ -288,6 +376,73 @@ export default function ContaPage() {
               Ver planos
             </Link>
           </div>
+        </section>
+
+        {/* ZONA DE PERIGO — exclusão de conta */}
+        <section className="rounded-2xl border border-red-900/50 bg-red-950/10 p-6 space-y-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-red-400">Zona de perigo</h2>
+          {!showDelete ? (
+            <button
+              onClick={() => setShowDelete(true)}
+              className="px-4 py-2.5 border border-red-900 text-red-400 hover:bg-red-950/40 text-xs font-bold rounded-lg uppercase tracking-wider transition-colors"
+            >
+              Excluir minha conta
+            </button>
+          ) : businessCount !== null && merchant ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-300">
+                A tua conta tem {businessCount} {businessCount === 1 ? "Montra ativa" : "Montras ativas"}.
+                Por segurança, não excluímos contas com negócios automaticamente.
+              </p>
+              <p className="text-xs text-gray-500">
+                Para encerrar a conta, primeiro remove ou transfere as tuas Montras em{" "}
+                <Link href="/dashboard" className="text-[#C8A96B] hover:underline">Gerir minhas Montras</Link>,
+                ou fala connosco.
+              </p>
+              <button
+                onClick={() => setShowDelete(false)}
+                className="text-xs text-gray-400 hover:text-white transition-colors"
+              >
+                ← Voltar
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-300">
+                Isto apaga permanentemente a tua conta, Favoritos e Coleções. Não há como desfazer.
+              </p>
+              <p className="text-xs text-gray-500">
+                Para confirmar, escreve o teu e-mail: <span className="text-gray-300">{email}</span>
+              </p>
+              <input
+                type="email"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder="Escreve o teu e-mail para confirmar"
+                autoComplete="off"
+                className="w-full bg-[#0F172A] border border-red-900/60 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:border-red-500 focus:outline-none"
+              />
+              {deleteMsg && (
+                <p className={`text-xs ${deleteMsg.ok ? "text-emerald-400" : "text-red-400"}`}>{deleteMsg.text}</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowDelete(false)}
+                  disabled={deleting}
+                  className="px-4 py-2.5 border border-white/15 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={doDeleteAccount}
+                  disabled={deleting}
+                  className="px-4 py-2.5 bg-red-900 hover:bg-red-800 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {deleting ? "A excluir…" : "Excluir permanentemente"}
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* SESSÃO */}

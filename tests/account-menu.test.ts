@@ -25,11 +25,13 @@ describe("AccountMenu — identificação da sessão", () => {
     assert.ok(src.includes("Sessão"), "rótulo de sessão");
   });
 
-  it("NUNCA expõe user_id/UUID", () => {
+  it("NUNCA expõe user_id/UUID na interface", () => {
     const src = read("components/auth/AccountMenu.tsx");
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\/\/.*$/gm, "");
-    assert.ok(!code.includes("user_id"), "sem user_id no código");
-    assert.ok(!code.includes("user.id"), "sem user.id no código");
+    // user.id pode ser usado internamente para consultas scoping (próprios
+    // dados), mas nunca renderizado na UI.
+    assert.ok(!/>\s*\{[^}]*user\.id[^}]*\}/.test(code), "user.id não renderizado");
+    assert.ok(!code.includes("title={user.id"), "user.id não em atributo visível");
   });
 
   it("não tem e-mail hardcoded", () => {
@@ -40,10 +42,19 @@ describe("AccountMenu — identificação da sessão", () => {
 });
 
 describe("AccountMenu — ações", () => {
-  it("tem Meu Painel → /dashboard", () => {
+  it("tem Minha Conta → /conta (sem 'Meu Painel' genérico)", () => {
     const src = read("components/auth/AccountMenu.tsx");
-    assert.ok(src.includes("Meu Painel"), "item Meu Painel");
-    assert.ok(src.includes('href="/dashboard"'), "aponta para /dashboard");
+    assert.ok(src.includes("Minha Conta"), "item Minha Conta");
+    assert.ok(src.includes('href="/conta"'), "aponta para /conta");
+    assert.ok(!src.includes("Meu Painel"), "sem Meu Painel");
+  });
+
+  it("navegação por contexto: consumidor cria Montra, comerciante gere", () => {
+    const src = read("components/auth/AccountMenu.tsx");
+    assert.ok(src.includes("Criar minha Montra"), "consumidor: criar");
+    assert.ok(src.includes('href="/onboarding"'), "criar → /onboarding");
+    assert.ok(src.includes("Gerir minhas Montras"), "comerciante: gerir");
+    assert.ok(src.includes("getBusinessCount"), "decide pelo nº de businesses");
   });
 
   it("Trocar de conta faz logout e vai para /login", () => {
@@ -101,9 +112,9 @@ describe("AccountMenu — logout robusto (sessão nunca presa)", () => {
     assert.ok(src.includes("!compact"), "texto só quando não-compacto");
   });
 
-  it("menu do avatar tem Meu Painel / Gestão da conta / Trocar de conta / Sair", () => {
+  it("menu do avatar tem Minha Conta / Favoritos / Explorar / Trocar de conta / Sair", () => {
     const src = read("components/auth/AccountMenu.tsx");
-    for (const item of ["Meu Painel", "Gestão da conta", "Trocar de conta", "Sair"]) {
+    for (const item of ["Minha Conta", "Favoritos", "Explorar", "Trocar de conta", "Sair"]) {
       assert.ok(src.includes(item), item);
     }
   });

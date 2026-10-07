@@ -3,13 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/context/SupabaseAuthContext";
+import { getBusinessCount, isMerchant } from "@/lib/account";
 
 /**
  * AccountMenu — identificação discreta da sessão autenticada (padrão SaaS).
  *
  * - `compact`: só avatar (sem nome/e-mail no header) — para a landing.
- * - Dropdown: Sessão (e-mail REAL), Meu Painel, Gestão da conta,
- *   Trocar de conta (logout REAL → /login), Sair (logout REAL → /).
+ * - Dropdown: Minha Conta, Favoritos, Explorar, Criar minha Montra
+ *   (consumidor) ou Gerir minhas Montras (comerciante), Trocar de conta,
+ *   Sair.
+ * - Regra de produto: ter business é capacidade adicional da mesma conta;
+ *   sem "tipo de conta" rígido.
  * - Logout usa reload real (window.location.href): mata qualquer estado
  *   SPA stale e força o middleware a revalidar a sessão.
  * - Nunca expõe user_id/UUID nem dados de outra conta.
@@ -18,11 +22,30 @@ export default function AccountMenu({ compact = false }: { compact?: boolean }) 
   const { user, profile, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [businessCount, setBusinessCount] = useState<number | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const email = user?.email ?? "";
   const displayName = profile?.display_name || user?.user_metadata?.full_name || "";
   const initial = (displayName || email).charAt(0).toUpperCase() || "?";
+
+  // Conta businesses para decidir consumidor vs comerciante (leve, só conta).
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { supabase } = await import("@/app/lib/supabase");
+        const n = await getBusinessCount(supabase, user.id);
+        if (!cancelled) setBusinessCount(n);
+      } catch {
+        if (!cancelled) setBusinessCount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Fecha ao clicar fora ou com Escape
   useEffect(() => {
@@ -111,16 +134,44 @@ export default function AccountMenu({ compact = false }: { compact?: boolean }) 
               onClick={() => setOpen(false)}
               className="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/5 hover:text-white transition-colors"
             >
-              Gestão da conta
+              Minha Conta
             </Link>
             <Link
-              href="/dashboard"
+              href="/favoritos"
               role="menuitem"
               onClick={() => setOpen(false)}
               className="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/5 hover:text-white transition-colors"
             >
-              Meu Painel
+              ❤️ Favoritos
             </Link>
+            <Link
+              href="/explorar"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/5 hover:text-white transition-colors"
+            >
+              🔍 Explorar
+            </Link>
+            {businessCount !== null &&
+              (isMerchant(businessCount) ? (
+                <Link
+                  href="/dashboard"
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  🏪 Gerir minhas Montras
+                </Link>
+              ) : (
+                <Link
+                  href="/onboarding"
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2.5 text-sm font-semibold text-[#C8A96B] hover:bg-white/5 hover:text-[#D4BB82] transition-colors"
+                >
+                  ＋ Criar minha Montra
+                </Link>
+              ))}
             <button
               role="menuitem"
               disabled={busy}

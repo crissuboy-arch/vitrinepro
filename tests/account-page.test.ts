@@ -21,13 +21,14 @@ describe("/conta — estrutura", () => {
     assert.ok(src.includes(">Sessão<"), "secção Sessão");
   });
 
-  it("não mistura dados da Montra (sem business/slug/loja)", () => {
+  it("usa contagem de businesses só para navegação (sem dados do negócio)", () => {
     const src = read("app/conta/page.tsx");
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\/\/.*$/gm, "")
       .replace(/plano-business/g, "");
-    assert.ok(!/businesses|business_id/i.test(code), "sem dados de negócio");
-    assert.ok(!code.includes("slug"), "sem slug");
-    assert.ok(!code.includes("vitrine/"), "sem rota de montra");
+    // Pode contar businesses para decidir consumidor/comerciante, mas não
+    // exibe nomes, slugs ou dados das Montras (isso vive no /dashboard).
+    assert.ok(!/b\.name|business\.name/i.test(code), "sem nomes de negócio");
+    assert.ok(!code.includes("/vitrine/"), "sem rota de montra");
   });
 });
 
@@ -85,9 +86,9 @@ describe("/conta — proteção e menu", () => {
     assert.ok(src.includes('"/conta/:path*"'), "matcher");
   });
 
-  it("AccountMenu tem Gestão da conta → /conta", () => {
+  it("AccountMenu tem Minha Conta → /conta", () => {
     const src = read("components/auth/AccountMenu.tsx");
-    assert.ok(src.includes("Gestão da conta"), "item no menu");
+    assert.ok(src.includes("Minha Conta"), "item no menu");
     assert.ok(src.includes('href="/conta"'), "aponta para /conta");
   });
 });
