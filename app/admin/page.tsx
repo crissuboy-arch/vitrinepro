@@ -149,6 +149,20 @@ export default function AdminPage() {
     loadData();
   }, [mounted, user]);
 
+  // ADMIN-1: busca server-side com debounce (nome, slug, cidade, owner).
+  useEffect(() => {
+    if (!mounted || !user || !ADMIN_EMAILS.includes(user.email || "")) return;
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/admin/businesses?q=${encodeURIComponent(search)}&page=1`);
+        if (!r.ok) return;
+        const j = await r.json();
+        setBusinesses(j.businesses || []);
+      } catch { /* mantém lista atual em caso de erro */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [search, mounted, user]);
+
   // Auto-slugify for category name
   useEffect(() => {
     if (!editingCategory) {
@@ -175,10 +189,11 @@ export default function AdminPage() {
         .then((r) => (r.ok ? r.json() : { leads: [] }))
         .catch(() => ({ leads: [] }));
       const [bizRes, reviewRes, catRes, citiesRes, usersRes, leadsRes] = await Promise.all([
-        supabase
-          .from("businesses")
-          .select("*, categories(name), cities(name)")
-          .order("created_at", { ascending: false }),
+        // ADMIN-1: businesses via API administrativa (service_role + ADMIN_EMAILS).
+        // O anon key direto NÃO consegue editar businesses de terceiros (RLS owner-scoped).
+        fetch("/api/admin/businesses?page=1")
+          .then((r) => (r.ok ? r.json() : { businesses: [] }))
+          .catch(() => ({ businesses: [] })),
         supabase.from("reviews").select("id, is_approved"),
         supabase
           .from("categories")
@@ -194,7 +209,7 @@ export default function AdminPage() {
         leadsPromise,
       ]);
 
-      const bizList: Business[] = bizRes.data || [];
+      const bizList: Business[] = (bizRes as { businesses?: Business[] }).businesses || [];
       setBusinesses(bizList);
       setCategories(catRes.data || []);
       setCities(citiesRes.data || []);
@@ -218,7 +233,13 @@ export default function AdminPage() {
   const togglePublished = async (biz: Business) => {
     setActionLoading(biz.id);
     try {
-      await supabase.from("businesses").update({ published: !biz.published }).eq("id", biz.id);
+      // ADMIN-1: via API administrativa (não anon key — RLS bloquearia terceiros).
+      const r = await fetch(`/api/admin/businesses/${biz.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ published: !biz.published }),
+      });
+      if (!r.ok) throw new Error("Falha ao atualizar");
       setBusinesses((prev) => prev.map((b) => b.id === biz.id ? { ...b, published: !biz.published } : b));
       setStats((s) => ({
         ...s,
@@ -234,7 +255,15 @@ export default function AdminPage() {
   const setPlan = async (biz: Business, plan: "free" | "pro" | "premium" | "business") => {
     setActionLoading(biz.id + plan);
     try {
-      await supabase.from("businesses").update({ plan }).eq("id", biz.id);
+      // ADMIN-1: via API administrativa. NOTA: isto altera o campo `plan`
+      // diretamente (uso interno/operacional). O Stripe continua sendo a fonte
+      // do estado financeiro quando há assinatura real.
+      const r = await fetch(`/api/admin/businesses/${biz.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      if (!r.ok) throw new Error("Falha ao atualizar plano");
       setBusinesses((prev) => prev.map((b) => b.id === biz.id ? { ...b, plan } : b));
     } catch (e) {
       console.error(e);
@@ -247,7 +276,12 @@ export default function AdminPage() {
     const next = !(biz as any).is_featured;
     setActionLoading(biz.id + "featured");
     try {
-      await supabase.from("businesses").update({ is_featured: next }).eq("id", biz.id);
+      const r = await fetch(`/api/admin/businesses/${biz.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_featured: next }),
+      });
+      if (!r.ok) throw new Error("Falha ao atualizar");
       setBusinesses((prev) => prev.map((b) => b.id === biz.id ? { ...b, is_featured: next } as any : b));
     } catch (e) { console.error(e); } finally { setActionLoading(null); }
   };
