@@ -469,25 +469,6 @@ export default function ExplorarPage() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // Carregamento progressivo: +24 itens quando o sentinela entra na viewport.
-  // O sentinela só existe após os dados carregarem, por isso o efeito
-  // re-executa quando a lista visível muda (se não, o observer nunca
-  // seria anexado e o scroll travaria no lote inicial).
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setVisibleCount((c) => c + 24);
-        }
-      },
-      { rootMargin: "600px" }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [visibleFeedItems.length]);
-
   // Reseta a paginação quando os filtros mudam.
   useEffect(() => {
     setVisibleCount(24);
@@ -638,6 +619,25 @@ export default function ExplorarPage() {
     () => distributeColumns(visibleFeedItems, nCols),
     [visibleFeedItems, nCols]
   );
+
+  // Carregamento progressivo: +24 itens quando o sentinela entra na viewport.
+  // O sentinela só existe após os dados carregarem, por isso o efeito
+  // re-executa quando a lista visível muda (se não, o observer nunca
+  // seria anexado e o scroll travaria no lote inicial).
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((c) => c + 24);
+        }
+      },
+      { rootMargin: "600px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [visibleFeedItems.length]);
 
   if (!mounted || loading) {
     return (
