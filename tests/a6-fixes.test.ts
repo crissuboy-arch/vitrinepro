@@ -74,11 +74,12 @@ describe("P2 — picker sempre dentro da viewport", () => {
     assert.ok(src.includes("aria-modal"), "deve ser modal acessível");
   });
 
-  it("mobile mantém bottom-sheet, desktop centra (compacto)", () => {
+  it("mobile mantém bottom-sheet, desktop centra (420-500px)", () => {
     const src = read("app/components/SaveToCollection.tsx");
     assert.ok(src.includes("items-end"), "mobile: bottom-sheet");
     assert.ok(src.includes("sm:items-center"), "desktop: centrado");
-    assert.ok(src.includes("sm:max-w-xs"), "compacto, não modal enorme");
+    assert.ok(src.includes("sm:max-w-md"), "largura confortável 420-500px");
+    assert.ok(src.includes("createPortal"), "via portal (fora do stacking context do card)");
   });
 });
 
