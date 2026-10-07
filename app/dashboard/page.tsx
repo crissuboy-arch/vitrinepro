@@ -65,6 +65,9 @@ interface Product {
   available_today?: boolean | null;
   pickup_today?: boolean | null;
   delivery_today?: boolean | null;
+  // Visibilidade (migration 20261007000014; default true).
+  is_visible?: boolean;
+  show_in_explore?: boolean;
 }
 
 interface Testimonial {
@@ -78,6 +81,8 @@ interface Testimonial {
 interface GalleryImage {
   id: string;
   image_url: string;
+  // Visibilidade pública (migration 20261007000014; default true).
+  is_visible?: boolean;
 }
 
 function isValidStorageUrl(url: string): boolean {
@@ -186,6 +191,9 @@ function DashboardContent() {
   const [editProdPreview, setEditProdPreview] = useState("");
   // A5 — disponibilidade "hoje" (tri-state: null = não informado).
   const [editProdAvailable, setEditProdAvailable] = useState<boolean | null>(null);
+  // Visibilidade: is_visible (Montra) + show_in_explore (Explorar).
+  const [editProdVisible, setEditProdVisible] = useState(true);
+  const [editProdExplore, setEditProdExplore] = useState(true);
   const [editProdPickup, setEditProdPickup] = useState<boolean | null>(null);
   const [editProdDelivery, setEditProdDelivery] = useState<boolean | null>(null);
   const [savingEditProduct, setSavingEditProduct] = useState(false);
@@ -986,6 +994,9 @@ function DashboardContent() {
     setEditProdAvailable(p.available_today === true ? true : p.available_today === false ? false : null);
     setEditProdPickup(p.pickup_today === true ? true : p.pickup_today === false ? false : null);
     setEditProdDelivery(p.delivery_today === true ? true : p.delivery_today === false ? false : null);
+    // Visibilidade: default true (dados legados sem as colunas).
+    setEditProdVisible(p.is_visible !== false);
+    setEditProdExplore(p.show_in_explore !== false && p.is_visible !== false);
   };
 
   // 6. Save Edit
@@ -1008,6 +1019,10 @@ function DashboardContent() {
         available_today: editProdAvailable,
         pickup_today: editProdPickup,
         delivery_today: editProdDelivery,
+        // Visibilidade: ocultar da Montra força show_in_explore=false.
+        // Mostrar novamente NÃO religa o Explorar automaticamente.
+        is_visible: editProdVisible,
+        show_in_explore: editProdVisible ? editProdExplore : false,
       };
       const { error } = await supabase.from("products").update(dbUpdates).eq("id", editingProduct.id);
       if (error) throw error;
@@ -1020,6 +1035,8 @@ function DashboardContent() {
         available_today: editProdAvailable,
         pickup_today: editProdPickup,
         delivery_today: editProdDelivery,
+        is_visible: editProdVisible,
+        show_in_explore: editProdVisible ? editProdExplore : false,
       };
       setProducts((prev) =>
         prev.map((p) => (p.id === editingProduct.id ? { ...p, ...localUpdates } : p))
@@ -1140,6 +1157,14 @@ function DashboardContent() {
     } finally {
       setUploadingGallery(false);
     }
+  };
+
+  const handleToggleGalleryVisibility = async (imageId: string, currentlyVisible: boolean) => {
+    const next = !currentlyVisible;
+    const { error } = await supabase.from("gallery_images").update({ is_visible: next }).eq("id", imageId);
+    if (error) { alert("Erro ao alterar visibilidade: " + error.message); return; }
+    setGallery((prev: any[]) => prev.map((g) => (g.id === imageId ? { ...g, is_visible: next } : g)));
+    setToast(next ? "Imagem visível publicamente." : "Imagem oculta (mantida na galeria).");
   };
 
   const handleDeleteGalleryImage = async (imageId: string) => {
@@ -1913,7 +1938,19 @@ function DashboardContent() {
                       </div>
                       <div className="flex-grow min-w-0">
                         <div className="flex justify-between items-start">
-                          <h4 className="font-semibold text-white truncate text-sm">{p.name}</h4>
+                          <h4 className="font-semibold text-white truncate text-sm">
+                            {p.name}
+                            {p.is_visible === false && (
+                              <span className="ml-2 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-400">
+                                Oculto
+                              </span>
+                            )}
+                            {p.is_visible !== false && p.show_in_explore === false && (
+                              <span className="ml-2 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-400">
+                                Só Montra
+                              </span>
+                            )}
+                          </h4>
                           {p.price !== null && p.price !== undefined && (
                             <span className="text-[#C8A96B] font-bold text-xs">€{p.price.toFixed(2)}</span>
                           )}
@@ -1970,7 +2007,7 @@ function DashboardContent() {
                 // Fallback geral: galeria vazia mostra as imagens dos produtos (só leitura).
                 const usingProductFallback = gallery.length === 0;
                 const fallbackItems = usingProductFallback
-                  ? products.filter((pr) => pr.image_url).map((pr) => ({ id: `product-${pr.id}`, image_url: pr.image_url as string }))
+                  ? products.filter((pr) => pr.image_url).map((pr) => ({ id: `product-${pr.id}`, image_url: pr.image_url as string, is_visible: true }))
                   : [];
                 const items = usingProductFallback ? fallbackItems : gallery;
                 if (items.length === 0) {
@@ -1987,15 +2024,25 @@ function DashboardContent() {
                     )}
                     <div className="grid grid-cols-3 gap-2">
                       {items.map((img) => (
-                        <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-gray-850 group bg-gray-950">
+                        <div key={img.id} className={`relative aspect-square rounded-lg overflow-hidden border group bg-gray-950 ${!usingProductFallback && img.is_visible === false ? "border-dashed border-gray-700 opacity-60" : "border-gray-850"}`}>
                           <img src={img.image_url} alt="" className="w-full h-full object-cover" />
                           {!usingProductFallback && (
-                            <button
-                              onClick={() => handleDeleteGalleryImage(img.id)}
-                              className="absolute inset-0 bg-red-950/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 text-xs font-bold transition-opacity"
-                            >
-                              Eliminar
-                            </button>
+                            <>
+                              {/* Visível publicamente ON/OFF (ocultar ≠ excluir) */}
+                              <button
+                                onClick={() => handleToggleGalleryVisibility(img.id, img.is_visible !== false)}
+                                title={img.is_visible !== false ? "Ocultar publicamente" : "Mostrar publicamente"}
+                                className="absolute top-1 left-1 w-7 h-7 rounded-lg bg-black/60 hover:bg-black/80 flex items-center justify-center text-sm transition-colors"
+                              >
+                                {img.is_visible !== false ? "👁️" : "🚫"}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteGalleryImage(img.id)}
+                                className="absolute inset-0 bg-red-950/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 text-xs font-bold transition-opacity"
+                              >
+                                Eliminar
+                              </button>
+                            </>
                           )}
                         </div>
                       ))}
@@ -2655,6 +2702,41 @@ function DashboardContent() {
                   onChange={setEditProdDelivery}
                   hint="Entrega no próprio dia (independente de 'Disponível hoje')."
                 />
+              </div>
+
+              {/* Visibilidade: Montra + Explorar (ocultar ≠ excluir) */}
+              <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg space-y-3">
+                <p className="text-xs font-semibold text-[#C8A96B]">👁️ Visibilidade</p>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editProdVisible}
+                    onChange={(e) => {
+                      const v = e.target.checked;
+                      setEditProdVisible(v);
+                      // Ocultar da Montra força show_in_explore=false (regra).
+                      if (!v) setEditProdExplore(false);
+                    }}
+                    className="mt-0.5 w-4 h-4 accent-[#C8A96B]"
+                  />
+                  <span>
+                    <span className="block text-xs font-medium text-gray-200">Visível na Montra</span>
+                    <span className="block text-[11px] text-gray-500">Aparece no catálogo público da tua Montra.</span>
+                  </span>
+                </label>
+                <label className={`flex items-start gap-3 ${!editProdVisible ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
+                  <input
+                    type="checkbox"
+                    checked={editProdExplore}
+                    disabled={!editProdVisible}
+                    onChange={(e) => setEditProdExplore(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-[#C8A96B]"
+                  />
+                  <span>
+                    <span className="block text-xs font-medium text-gray-200">Aparecer no Explorar</span>
+                    <span className="block text-[11px] text-gray-500">Distribuído no feed e na busca do Explorar. Só funciona se visível na Montra.</span>
+                  </span>
+                </label>
               </div>
 
               <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg">

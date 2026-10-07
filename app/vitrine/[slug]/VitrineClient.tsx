@@ -385,8 +385,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
 
           if (data) {
             const [imagesRes, productsRes, testimonialsRes] = await Promise.all([
-              supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).order("order_index"),
-              supabase.from("products").select("*").eq("business_id", data.id).order("order_index"),
+              supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
+              supabase.from("products").select("*").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
               supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
             ]);
 
@@ -461,8 +461,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
 
           if (data) {
             const [imagesRes, productsRes, testimonialsRes] = await Promise.all([
-              supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).order("order_index"),
-              supabase.from("products").select("*").eq("business_id", data.id).order("order_index"),
+              supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
+              supabase.from("products").select("*").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
               supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
             ]);
 
@@ -552,8 +552,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
           }
 
           const [imagesRes, productsRes, testimonialsRes] = await Promise.all([
-            supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).order("order_index"),
-            supabase.from("products").select("*").eq("business_id", data.id).order("order_index"),
+            supabase.from("gallery_images").select("image_url, order_index").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
+            supabase.from("products").select("*").eq("business_id", data.id).eq("is_visible", true).order("order_index"),
             supabase.from("testimonials").select("*").eq("business_id", data.id).order("created_at", { ascending: false }),
           ]);
 

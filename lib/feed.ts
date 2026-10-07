@@ -62,6 +62,15 @@ export function formatPriceEUR(v: number | string | null | undefined): string | 
 /**
  * Constrói a lista unificada do feed.
  *
+ * FILTROS DE VISIBILIDADE (defesa em profundidade — a RLS e as queries
+ * já filtram, mas o feed nunca exibe o que não deve):
+ *  - Produto entra no Explorar somente se is_visible=true E
+ *    show_in_explore=true. (show_in_explore NÃO é segredo: dentro da
+ *    Montra o produto continua legível; aqui controla distribuição.)
+ *  - Novidade com product_id cujo produto está oculto (is_visible=false)
+ *    NÃO aparece; se o produto está fora do Explorar (show_in_explore=false),
+ *    a novidade também não entra no feed (não contorna a decisão do dono).
+ *
  * Regra de intercalação (simples e determinística):
  *  1. Base: alterna negócio/produto (b, p, b, p…); sobras vão ao fim.
  *  2. Novidades entram a cada `postEvery` posições (padrão 5 → posições
@@ -79,9 +88,14 @@ export function buildFeedItems(
 ): FeedItem[] {
   const items: FeedItem[] = [];
 
+  // Só produtos visíveis E distribuídos no Explorar.
+  const visibleProducts = (products || []).filter(
+    (p: any) => p.is_visible !== false && p.show_in_explore !== false
+  );
+
   // Base alternada negócio/produto
   const bi = [...businesses];
-  const pi = [...products];
+  const pi = [...visibleProducts];
   while (bi.length > 0 || pi.length > 0) {
     const b = bi.shift();
     if (b) items.push({ kind: "business", key: `b:${b.id}`, data: b, business: b });
@@ -92,12 +106,23 @@ export function buildFeedItems(
     }
   }
 
-  const postItems: FeedItem[] = (posts || []).map((post: any) => ({
-    kind: "post" as const,
-    key: `n:${post.id}`,
-    data: post,
-    business: post.business || null,
-  }));
+  // Novidades: exclui as ligadas a produto oculto ou fora do Explorar.
+  // (post.products vem do join products!left(is_visible,show_in_explore)
+  //  quando disponível; sem join, a novidade passa — a query já filtra.)
+  const postItems: FeedItem[] = (posts || [])
+    .filter((post: any) => {
+      const pv = post.products;
+      if (!pv) return true;
+      if (pv.is_visible === false) return false;
+      if (pv.show_in_explore === false) return false;
+      return true;
+    })
+    .map((post: any) => ({
+      kind: "post" as const,
+      key: `n:${post.id}`,
+      data: post,
+      business: post.business || null,
+    }));
 
   // Anti-duplicação: produto com novidade sai do feed solto
   const postedProductIds = new Set(

@@ -360,7 +360,9 @@ export default function ExplorarPage() {
       const like = `%${safe}%`;
       const { data } = await supabase
         .from("products")
-        .select("id, name, description, price, image_url, image_position_x, image_position_y, image_zoom, business_id, available_today, pickup_today, delivery_today")
+        .select("id, name, description, price, image_url, image_position_x, image_position_y, image_zoom, business_id, available_today, pickup_today, delivery_today, is_visible, show_in_explore")
+        .eq("is_visible", true)
+        .eq("show_in_explore", true)
         .or(`name.ilike.${like},description.ilike.${like}`)
         .limit(30);
         // RLS já restringe a produtos de negócios publicados; reforço
@@ -425,12 +427,14 @@ export default function ExplorarPage() {
         const [prodRes, postRes] = await Promise.allSettled([
           supabase
             .from("products")
-            .select("id, name, price, image_url, business_id, order_index")
+            .select("id, name, price, image_url, business_id, order_index, is_visible, show_in_explore")
+            .eq("is_visible", true)
+            .eq("show_in_explore", true)
             .order("order_index", { ascending: true })
             .limit(60),
           supabase
             .from("business_posts")
-            .select("id,business_id,type,title,content,image_url,price,starts_at,expires_at,is_active,product_id,cta_type,cta_target,created_at,businesses!inner(name,slug,published)")
+            .select("id,business_id,type,title,content,image_url,price,starts_at,expires_at,is_active,product_id,cta_type,cta_target,created_at,businesses!inner(name,slug,published),products!left(is_visible,show_in_explore)")
             .eq("is_active", true)
             .eq("businesses.published", true)
             .order("created_at", { ascending: false })
