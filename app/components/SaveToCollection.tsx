@@ -8,6 +8,7 @@
  * Mobile: painel vira bottom-sheet (touch friendly).
  */
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/app/lib/supabase";
 import { createSupabaseCollectionsStore } from "@/lib/collections-store";
 import SavePromptModal from "./SavePromptModal";
@@ -80,6 +81,27 @@ export default function SaveToCollection({
   // A6.5 Parte B — modal amigável para visitante não autenticado
   const [showPrompt, setShowPrompt] = useState(false);
   const [promptNext, setPromptNext] = useState("/explorar");
+
+  // Acessibilidade: referência ao botão que abriu o modal (devolver foco ao fechar)
+  // e flag de montagem no cliente (portal só após hydrate).
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  // Bloquear scroll da página enquanto o modal está aberto.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open ]);
+
+  // Devolver foco ao botão Guardar ao fechar.
+  const closeModal = () => {
+    setOpen(false);
+    // Devolver foco de forma assíncrona para garantir que o botão existe no DOM.
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  };
 
   const savedCount = savedIn.size;
 
@@ -155,11 +177,11 @@ export default function SaveToCollection({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") closeModal();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleInCollection = async (col: CollectionRow) => {
     if (savingId) return;
@@ -202,12 +224,110 @@ export default function SaveToCollection({
     }
   };
 
+  // Modal via portal para document.body: escapa a qualquer stacking context
+  // do masonry/card. Sem portal, o `fixed` ficava aprisionado no pai
+  // `absolute z-10` e o modal aparecia encaixado sobre os cards.
+  const modal = open && mounted ? createPortal(
+    <>
+      {/* Backdrop: cobre TODA a viewport, fecha por clique */}
+      <div
+        className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-[2px]"
+        onClick={closeModal}
+        aria-hidden="true"
+      />
+      {/* Contentor: centralizado, fora do fluxo do masonry.
+          Mobile = bottom-sheet · desktop = centrado, 420–500px. */}
+      <div className="fixed inset-0 z-[91] flex items-end justify-center sm:items-center p-4 sm:p-6 pointer-events-none">
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Guardar em coleção"
+          tabIndex={-1}
+          className="pointer-events-auto w-full sm:max-w-md bg-[#0F172A] border border-slate-700 rounded-2xl sm:rounded-2xl rounded-b-none sm:rounded-b-2xl shadow-2xl overflow-hidden max-h-[85vh] sm:max-h-[80vh] flex flex-col"
+          style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
+            <span className="text-base font-bold text-white">Guardar em…</span>
+            <button
+              onClick={closeModal}
+              className="text-slate-400 hover:text-white text-xl leading-none px-2 py-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Fechar"
+              autoFocus
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="overflow-y-auto p-2 flex-1">
+            {loading && (
+              <p className="text-xs text-slate-400 px-3 py-4 text-center">A carregar coleções…</p>
+            )}
+            {!loading && collections.map((col) => {
+              const isSaved = savedIn.has(col.id);
+              return (
+                <button
+                  key={col.id}
+                  onClick={() => toggleInCollection(col)}
+                  disabled={savingId !== null}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-colors text-left active:scale-[0.98] ${
+                    isSaved ? "bg-[#C8A96B]/10 text-white" : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  <span className="text-lg">{col.is_default ? "❤️" : "📁"}</span>
+                  <span className="flex-1 truncate">{col.name}</span>
+                  <span className="text-base w-5 text-center">
+                    {savingId === col.id ? "⏳" : isSaved ? "✅" : ""}
+                  </span>
+                </button>
+              );
+            })}
+            {!loading && collections.length === 0 && (
+              <p className="text-xs text-slate-400 px-3 py-4 text-center">
+                Ainda não tens coleções.
+              </p>
+            )}
+          </div>
+
+          <div className="p-4 border-t border-slate-800 flex-shrink-0" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))" }}>
+            <div className="flex gap-2">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
+                placeholder="+ Nova coleção"
+                maxLength={60}
+                aria-label="Nome da nova coleção"
+                className="flex-1 min-w-0 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#C8A96B]/50"
+              />
+              <button
+                onClick={handleCreate}
+                disabled={creating || !newName.trim()}
+                className="px-4 py-2.5 bg-[#C8A96B] text-[#0F172A] text-sm font-bold rounded-lg disabled:opacity-40 active:scale-95 transition-all"
+              >
+                {creating ? "…" : "Criar"}
+              </button>
+            </div>
+            {error && (
+              <p className="text-xs text-red-400 mt-2" role="alert">{error}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body
+  ) : null;
+
   return (
     <div className={className}>
       <button
+        ref={triggerRef}
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all border-[#C8A96B]/30 text-[#C8A96B] hover:bg-[#C8A96B]/10 active:scale-95"
         aria-label="Guardar em coleção"
+        aria-haspopup="dialog"
+        aria-expanded={open}
         title="Guardar em coleção"
       >
         <span className="text-sm leading-none">{savedCount > 0 ? "📁" : "🗂️"}</span>
@@ -221,93 +341,7 @@ export default function SaveToCollection({
         next={promptNext}
       />
 
-      {open && (
-        <>
-          {/* Backdrop: fecha por ação explícita */}
-          <div
-            className="fixed inset-0 z-[60] bg-black/60"
-            onClick={() => setOpen(false)}
-            aria-hidden="true"
-          />
-          {/* Diálogo compacto, sempre dentro da viewport:
-              mobile = bottom-sheet · desktop = centrado.
-              Não depende da posição vertical do botão. */}
-          <div className="fixed inset-0 z-[61] flex items-end justify-center sm:items-center p-4 pointer-events-none">
-            <div
-              ref={panelRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Guardar em coleção"
-              tabIndex={-1}
-              className="pointer-events-auto w-full sm:max-w-xs bg-[#0F172A] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col"
-            >
-              <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
-                <span className="text-sm font-bold text-white">Guardar em…</span>
-                <button
-                  onClick={() => setOpen(false)}
-                  className="text-slate-400 hover:text-white text-lg leading-none px-2 py-1"
-                  aria-label="Fechar"
-                  autoFocus
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="overflow-y-auto p-2 flex-1">
-                {loading && (
-                  <p className="text-xs text-slate-400 px-3 py-4 text-center">A carregar coleções…</p>
-                )}
-                {!loading && collections.map((col) => {
-                  const isSaved = savedIn.has(col.id);
-                  return (
-                    <button
-                      key={col.id}
-                      onClick={() => toggleInCollection(col)}
-                      disabled={savingId !== null}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-left active:scale-[0.98] ${
-                        isSaved ? "bg-[#C8A96B]/10 text-white" : "text-slate-300 hover:bg-slate-800"
-                      }`}
-                    >
-                      <span className="text-base">{col.is_default ? "❤️" : "📁"}</span>
-                      <span className="flex-1 truncate">{col.name}</span>
-                      <span className="text-base w-5 text-center">
-                        {savingId === col.id ? "⏳" : isSaved ? "✅" : ""}
-                      </span>
-                    </button>
-                  );
-                })}
-                {!loading && collections.length === 0 && (
-                  <p className="text-xs text-slate-400 px-3 py-4 text-center">
-                    Ainda não tens coleções.
-                  </p>
-                )}
-              </div>
-
-              <div className="p-3 border-t border-slate-800 flex-shrink-0">
-                <div className="flex gap-2">
-                  <input
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
-                    placeholder="+ Nova coleção"
-                    maxLength={60}
-                    className="flex-1 min-w-0 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#C8A96B]/50"
-                  />
-                  <button
-                    onClick={handleCreate}
-                    disabled={creating || !newName.trim()}
-                    className="px-3 py-2 bg-[#C8A96B] text-[#0F172A] text-sm font-bold rounded-lg disabled:opacity-40 active:scale-95 transition-all"
-                  >
-                    {creating ? "…" : "Criar"}
-                  </button>
-                </div>
-                {error && (
-                  <p className="text-xs text-red-400 mt-2">{error}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}    </div>
+      {modal}
+    </div>
   );
 }

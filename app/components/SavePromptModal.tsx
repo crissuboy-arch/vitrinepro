@@ -8,6 +8,8 @@
  * /login, explica o valor e oferece as duas portas de entrada — ambas
  * voltam ao contexto de onde o utilizador veio (?next=).
  */
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 
 interface SavePromptModalProps {
@@ -18,20 +20,31 @@ interface SavePromptModalProps {
 }
 
 export default function SavePromptModal({ open, onClose, next }: SavePromptModalProps) {
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  // ESC fecha
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open || !mounted) return null;
 
   const encoded = encodeURIComponent(next);
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[70] bg-black/60"
+        className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-[2px]"
         onClick={onClose}
         aria-hidden="true"
       />
       {/* Diálogo: mobile = bottom-sheet · desktop = centrado */}
-      <div className="fixed inset-0 z-[71] flex items-end justify-center sm:items-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[91] flex items-end justify-center sm:items-center p-4 pointer-events-none">
         <div
           role="dialog"
           aria-modal="true"
@@ -67,6 +80,7 @@ export default function SavePromptModal({ open, onClose, next }: SavePromptModal
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
