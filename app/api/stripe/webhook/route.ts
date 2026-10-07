@@ -52,24 +52,49 @@ export async function POST(request: Request) {
 
   const supabase = getSupabaseAdmin();
 
+  // A10.1C: proteção contra eventos fora de ordem.
+  // Retorna true se o evento deve ser aplicado (é mais novo que o último).
+  // Usa event.created (timestamp Stripe, segundos) como relógio.
+  async function shouldApplyEvent(businessId: string, eventCreated: number): Promise<boolean> {
+    const eventAt = new Date(eventCreated * 1000).toISOString();
+    const { data } = await supabase
+      .from("businesses")
+      .select("stripe_last_event_at")
+      .eq("id", businessId)
+      .maybeSingle();
+    const lastAt = data?.stripe_last_event_at;
+    if (lastAt && new Date(lastAt) >= new Date(eventAt)) {
+      log(`[STRIPE WEBHOOK] Evento antigo ignorado (last: ${lastAt}, event: ${eventAt})`);
+      return false;
+    }
+    return true;
+  }
+
+  async function markEventApplied(businessId: string, eventCreated: number): Promise<void> {
+    await supabase
+      .from("businesses")
+      .update({ stripe_last_event_at: new Date(eventCreated * 1000).toISOString() })
+      .eq("id", businessId);
+  }
+
   try {
     log(`[STRIPE WEBHOOK] Event: ${event.type} (${event.id})`);
 
-    // A2.6 — Idempotency: Stripe may redeliver events. Skip already-seen ids.
-    // (If the stripe_events table doesn't exist yet, log and continue —
-    //  the migration 20261004000004 creates it.)
-    try {
-      const { error: idemError } = await supabase
-        .from("stripe_events")
-        .insert({ event_id: event.id, type: event.type });
-      if (idemError && idemError.code === "23505") {
-        log(`[STRIPE WEBHOOK] Duplicate event ${event.id} — skipping`);
-        return NextResponse.json({ received: true, duplicate: true });
-      }
-      if (idemError) throw idemError;
-    } catch (e) {
-      if (e instanceof Error && e.message.includes("duplicate")) throw e;
-      console.warn("[STRIPE WEBHOOK] Idempotency check unavailable:", e instanceof Error ? e.message : e);
+    // A10.1 CRITICAL 3 — Idempotência SEGURA:
+    // NÃO registra o evento antes de processar. Em vez disso:
+    // 1. Verifica se já foi processado (SELECT).
+    // 2. Processa o efeito.
+    // 3. SÓ então registra como processado.
+    // Se o passo 2 falhar, o retry do Stripe reprocessa com segurança.
+    const { data: alreadyProcessed } = await supabase
+      .from("stripe_events")
+      .select("event_id")
+      .eq("event_id", event.id)
+      .maybeSingle();
+
+    if (alreadyProcessed) {
+      log(`[STRIPE WEBHOOK] Duplicate event ${event.id} — skipping`);
+      return NextResponse.json({ received: true, duplicate: true });
     }
 
     if (event.type === "checkout.session.completed") {
@@ -81,6 +106,11 @@ export async function POST(request: Request) {
       if (!businessId) {
         console.warn("[STRIPE WEBHOOK] checkout.session.completed missing client_reference_id");
         return NextResponse.json({ received: true });
+      }
+
+      // A10.1C: ignora checkout antigo (ex.: sessão abandonada concluída depois).
+      if (!(await shouldApplyEvent(businessId, event.created))) {
+        return NextResponse.json({ received: true, stale: true });
       }
 
       const subscriptionId = typeof session.subscription === "string"
@@ -105,6 +135,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      await markEventApplied(businessId, event.created);
       log(`[STRIPE WEBHOOK] Plan updated successfully`);
     } else if (event.type === "invoice.payment_succeeded") {
       // Renewals: subscription metadata contains businessId + planId
@@ -167,6 +198,10 @@ export async function POST(request: Request) {
       const businessId = subscription.metadata?.businessId;
 
       if (businessId) {
+        // A10.1C: ignora evento antigo (não regredir entitlement).
+        if (!(await shouldApplyEvent(businessId, event.created))) {
+          return NextResponse.json({ received: true, stale: true });
+        }
         // Mirror Stripe's subscription status (A2.6)
         await supabase
           .from("businesses")
@@ -187,6 +222,7 @@ export async function POST(request: Request) {
             .update({ subscription_cancel_at: null })
             .eq("id", businessId);
         }
+        await markEventApplied(businessId, event.created);
       }
     } else if (event.type === "customer.subscription.deleted") {
       // Period ended after cancel_at_period_end — downgrade to free and clear subscription data
@@ -194,12 +230,29 @@ export async function POST(request: Request) {
       const businessId = subscription.metadata?.businessId;
 
       if (businessId) {
+        // A10.1C: ignora evento antigo (ex.: deleted antigo após reativação nova).
+        if (!(await shouldApplyEvent(businessId, event.created))) {
+          return NextResponse.json({ received: true, stale: true });
+        }
         log(`[STRIPE WEBHOOK] Subscription deleted for business ${businessId} — downgrading to free`);
         await supabase
           .from("businesses")
           .update({ plan: "free", stripe_subscription_id: null, subscription_cancel_at: null, stripe_subscription_status: "canceled" })
           .eq("id", businessId);
+        await markEventApplied(businessId, event.created);
       }
+    }
+
+    // A10.1 CRITICAL 3: marca como processado SÓ após sucesso.
+    // Se qualquer passo acima falhar, o evento NÃO é marcado e o retry
+    // do Stripe reprocessa com segurança.
+    const { error: markError } = await supabase
+      .from("stripe_events")
+      .insert({ event_id: event.id, type: event.type });
+    if (markError && markError.code !== "23505") {
+      console.error("[STRIPE WEBHOOK] Failed to mark event as processed:", markError.message);
+      // Não falha a resposta — o efeito já foi aplicado; o próximo retry
+      // verá o efeito idempotente (updates são idempotentes por natureza).
     }
 
     return NextResponse.json({ received: true });

@@ -85,6 +85,16 @@ export function isNovidadeVisibleNow(post: NovidadeRow, now: Date = new Date()):
   }
   if (post.businesses && post.businesses.published === false) return false;
 
+  // A10.1 CRITICAL 7: post ligado a produto oculto não aparece publicamente.
+  // Se product_id existe mas o join veio null OU o produto não é visível,
+  // o post não deve ser exibido (não aceitar associação quebrada).
+  if (post.product_id) {
+    const prod = (post as any).products;
+    if (!prod) return false; // join null = produto inexistente/inacessível
+    if (prod.is_visible === false) return false;
+    if (prod.show_in_explore === false) return false;
+  }
+
   return true;
 }
 

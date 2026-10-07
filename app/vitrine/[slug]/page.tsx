@@ -1,3 +1,4 @@
+import { safeJsonLd } from "@/lib/jsonld";
 import VitrineClient from "./VitrineClient";
 import { supabase } from "../../lib/supabase";
 import {

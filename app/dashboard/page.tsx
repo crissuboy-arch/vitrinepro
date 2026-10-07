@@ -455,7 +455,7 @@ function DashboardContent() {
 
       const isSuccessStatus = params.get("success");
       const isCancelStatus = params.get("cancel");
-      const isReturningFromStripe = isSuccessStatus === "stripe" || isSuccessStatus === "stripe_mock" || isCancelStatus === "stripe";
+      const isReturningFromStripe = isSuccessStatus === "stripe" || isCancelStatus === "stripe";
 
       if (planParam && planParam !== "free" && !alreadyHasPlan && !isReturningFromStripe) {
         if (params.get("success") === "onboarding") {
@@ -466,23 +466,6 @@ function DashboardContent() {
         handleUpgrade(planParam);
       } else if (params.get("success") === "onboarding") {
         setShowSuccessBanner(true);
-        const newUrl = window.location.pathname;
-        window.history.replaceState({ path: newUrl }, "", newUrl);
-      } else if (params.get("success") === "stripe_mock") {
-        const plan = params.get("plan") || "pro";
-        const businessId = params.get("businessId");
-        if (businessId) {
-          supabase
-            .from("businesses")
-            .update({ plan: plan })
-            .eq("id", businessId)
-            .then(({ error }) => {
-              if (!error) {
-                alert(`[TESTE LOCAL] Plano atualizado para '${plan}' com sucesso!`);
-                loadAllData();
-              }
-            });
-        }
         const newUrl = window.location.pathname;
         window.history.replaceState({ path: newUrl }, "", newUrl);
       } else if (params.get("success") === "stripe") {

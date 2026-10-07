@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test $(ls tests/*.test.ts | grep -v -e intelligence -e ask-vitrine | tr '\\n' ' ') && tsx --test tests/intelligence.test.ts tests/ask-vitrine.test.ts",
+    "test": "node --test $(ls tests/*.test.ts | grep -v -e intelligence -e ask-vitrine -e critical-a10 | tr '\\n' ' ') && tsx --test tests/intelligence.test.ts tests/ask-vitrine.test.ts tests/critical-a10.test.ts",
     "test:watch": "node --test --watch tests/*.test.ts"
   },
   "dependencies": {

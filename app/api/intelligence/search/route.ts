@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     const [bizRes, prodRes, postRes] = await Promise.all([
       supabase
         .from("businesses")
-        .select("id, name, slug, description, category, city, latitude, longitude, logo_url, cover_url, is_featured, opening_hours, service_today")
+        .select("id, name, slug, description, category, city, latitude, longitude, logo_url, cover_url, opening_hours, service_today")
         .eq("published", true)
         .limit(500),
       supabase
@@ -102,20 +102,31 @@ export async function POST(request: Request) {
         .limit(1000),
       supabase
         .from("business_posts")
-        .select("id, business_id, type, title, content, image_url, price, starts_at, expires_at, is_active, businesses!inner(id, name, slug, city, latitude, longitude, published)")
+        .select("id, business_id, type, title, content, image_url, price, starts_at, expires_at, is_active, product_id, businesses!inner(id, name, slug, city, latitude, longitude, published), products!left(id, is_visible, show_in_explore)")
         .eq("is_active", true)
         .limit(500),
     ]);
+
+    // A10.1 CRITICAL 5: diferenciar SEARCH_ERROR de ZERO_RESULTS.
+    // Erro de banco NUNCA vira "zero resultados" silencioso.
+    const dbError = bizRes.error || prodRes.error || postRes.error;
+    if (dbError) {
+      console.error("[INTELLIGENCE] Database error:", dbError.message);
+      return NextResponse.json(
+        { error: "search_error", message: "Erro ao buscar. Tente novamente." },
+        { status: 500 }
+      );
+    }
 
     const data: IntelligenceData = {
       businesses: (bizRes.data || []).map((b: any) => ({
         id: b.id, name: b.name, slug: b.slug, description: b.description,
         category: b.category, city: b.city, latitude: b.latitude, longitude: b.longitude,
-        logo_url: b.logo_url, cover_url: b.cover_url, is_featured: b.is_featured,
+        logo_url: b.logo_url, cover_url: b.cover_url,
         opening_hours: b.opening_hours, service_today: b.service_today,
       })),
       products: (prodRes.data || [])
-        .filter((p: any) => p.businesses?.published)
+        .filter((p: any) => p.businesses?.published && (!p.product_id || (p.products?.is_visible && p.products?.show_in_explore)))
         .map((p: any) => ({
           id: p.id, business_id: p.business_id, name: p.name, description: p.description,
           price: p.price, image_url: p.image_url,
@@ -125,7 +136,7 @@ export async function POST(request: Request) {
           business_lat: p.businesses.latitude, business_lng: p.businesses.longitude,
         })),
       posts: (postRes.data || [])
-        .filter((p: any) => p.businesses?.published)
+        .filter((p: any) => p.businesses?.published && (!p.product_id || (p.products?.is_visible && p.products?.show_in_explore)))
         .map((p: any) => ({
           id: p.id, business_id: p.business_id, type: p.type, title: p.title,
           content: p.content, image_url: p.image_url, price: p.price,

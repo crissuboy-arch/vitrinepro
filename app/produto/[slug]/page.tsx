@@ -1,3 +1,4 @@
+import { safeJsonLd } from "@/lib/jsonld";
 import type { Metadata } from "next";
 import { getSiteUrl } from "@/lib/site";
 import Link from "next/link";

@@ -78,11 +78,16 @@ describe("TESTE F — service_role nunca no browser", () => {
 });
 
 describe("TESTE G — RLS inalterada", () => {
-  it("nenhuma migration nova foi criada nesta tarefa", async () => {
+  it("nenhuma migration nova foi criada nesta tarefa, exceto as autorizadas A10.1", async () => {
     const { execSync } = await import("node:child_process");
-    // Arquivos novos (não commitados) em supabase/migrations
+    // Arquivos novos (não commitados) em supabase/migrations, exceto:
+    // - PROPOSTA_* (propostas para revisão, NÃO aplicadas)
+    // - 20261007000016/17/18 (migrations A10.1 autorizadas e aplicadas manualmente em produção)
     const out = execSync("git status --porcelain supabase/migrations/", { encoding: "utf8" });
-    assert.strictEqual(out.trim(), "", "sem migrations novas nesta tarefa");
+    const lines = out.trim().split("\n").filter(Boolean);
+    const allowed = ["PROPOSTA_", "20261007000016_", "20261007000017_", "20261007000018_"];
+    const real = lines.filter((l) => !allowed.some((a) => l.includes(a)));
+    assert.strictEqual(real.join("\n"), "", "sem migrations aplicadas nesta tarefa além das autorizadas A10.1");
   });
 });
 

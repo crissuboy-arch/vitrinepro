@@ -10,7 +10,9 @@
  *   nearby          +8, com bónus de proximidade: max(0, 5 - km/5)
  *   available_today +7
  *   within_budget   +5
- *   is_featured     +3   (destaque existente da plataforma)
+ *
+ * NOTA A10.1: is_featured removido — coluna não existe no schema.
+ * Se destaque for reintroduzido no futuro, readicionar aqui.
  *
  * Desempate: score desc → nome asc (locale) → id asc. Totalmente determinístico.
  * SEM IA generativa. SEM sinais inventados.
@@ -27,13 +29,12 @@ const WEIGHTS: Record<MatchReason, number> = {
   within_budget: 5,
 };
 
-function baseScore(match: MatchReason[], distanceKm: number | null, isFeatured: boolean): number {
+function baseScore(match: MatchReason[], distanceKm: number | null): number {
   let s = 0;
   for (const m of match) s += WEIGHTS[m] || 0;
   if (match.includes("nearby") && distanceKm != null) {
     s += Math.max(0, 5 - distanceKm / 5); // mais perto = mais pontos
   }
-  if (isFeatured) s += 3;
   return Math.round(s * 100) / 100;
 }
 
@@ -57,7 +58,7 @@ export function rankBusinesses(items: ScoredBusiness[]): VitrineResult[] {
     category: b.category,
     distanceKm: b.distanceKm,
     match: b.match,
-    score: baseScore(b.match, b.distanceKm, !!b.is_featured),
+    score: baseScore(b.match, b.distanceKm),
   }));
   return results.sort(tieBreak);
 }
@@ -75,7 +76,7 @@ export function rankProducts(items: ScoredProduct[]): VitrineResult[] {
     category: p.business_category,
     distanceKm: p.distanceKm,
     match: p.match,
-    score: baseScore(p.match, p.distanceKm, false),
+    score: baseScore(p.match, p.distanceKm),
   }));
   return results.sort(tieBreak);
 }
@@ -91,7 +92,7 @@ export function rankPosts(items: ScoredPost[]): VitrineResult[] {
     price: p.price ?? null,
     city: p.business_city,
     match: p.match,
-    score: baseScore(p.match, null, false),
+    score: baseScore(p.match, null),
   }));
   return results.sort(tieBreak);
 }

@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   }
   const { data: business } = await admin
     .from("businesses")
-    .select("id, user_id, plan")
+    .select("id, user_id, plan, stripe_customer_id, stripe_subscription_id")
     .eq("id", businessId)
     .eq("user_id", callerId)
     .maybeSingle();
@@ -111,11 +111,36 @@ export async function POST(request: Request) {
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
+    // A10.1 CRITICAL 4: reutilizar customer/subscription existente.
+    // Nunca criar assinatura paralela acidental.
+    let customerId: string | undefined = business.stripe_customer_id || undefined;
+
+    // Se já existe subscription ativa, redireciona para o portal
+    // (upgrade/downgrade via Stripe Customer Portal, sem duplicar).
+    if (business.stripe_subscription_id) {
+      try {
+        const existing = await stripe.subscriptions.retrieve(business.stripe_subscription_id);
+        if (existing.status === "active" || existing.status === "trialing") {
+          // Tem assinatura válida — usa o portal para gerir (upgrade/downgrade/cancelar).
+          const portal = await stripe.billingPortal.sessions.create({
+            customer: existing.customer as string,
+            return_url: `${baseUrl}/dashboard`,
+          });
+          return NextResponse.json({ url: portal.url, portal: true });
+        }
+        // Se cancelada/incompleta, permite novo checkout (reativação).
+        customerId = existing.customer as string;
+      } catch {
+        // Subscription não encontrada no Stripe — segue para novo checkout.
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: business.id,
+      ...(customerId ? { customer: customerId } : {}),
       metadata: { planId: plan, businessId: business.id },
       subscription_data: {
         metadata: { planId: plan, businessId: business.id },
