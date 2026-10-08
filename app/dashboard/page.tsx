@@ -221,11 +221,12 @@ function DashboardContent() {
   const [showCatalogUpgradeModal, setShowCatalogUpgradeModal] = useState(false);
 
   // A6.5 — Novidades na Vitrine (business_posts).
-  // novidadesMode: "full" = migration aplicada; "legacy" = só colunas base
-  // (publicar/editar limitado, validade/preço/CTA escondidos); "unavailable"
-  // = tabela inacessível (secção escondida, sem crash).
+  // novidadesMode: "idle" = ainda não carregado (auto-dispara ao abrir a aba);
+  // "loading" = a carregar (sempre termina via timeout); "full" = migration
+  // aplicada; "legacy" = só colunas base (publicar/editar limitado,
+  // validade/preço/CTA escondidos); "unavailable" = tabela inacessível.
   const [novidades, setNovidades] = useState<any[]>([]);
-  const [novidadesMode, setNovidadesMode] = useState<"loading" | "full" | "legacy" | "unavailable">("loading");
+  const [novidadesMode, setNovidadesMode] = useState<"idle" | "loading" | "full" | "legacy" | "unavailable">("idle");
   // A10.5: erro legível quando o carregamento falha (nunca silêncio).
   const [novidadesError, setNovidadesError] = useState<string | null>(null);
   const [showNovidadeModal, setShowNovidadeModal] = useState(false);
@@ -1223,6 +1224,16 @@ function DashboardContent() {
     }
   };
 
+  // A10.5b — auto-recuperação: se a aba Novidades for aberta e o carregamento
+  // inicial nunca aconteceu (modo "idle"), dispara-o aqui. Isto torna o
+  // "loading" infinito estruturalmente impossível: o texto "A carregar…"
+  // só aparece dentro de loadNovidades(), que garante modo terminal.
+  useEffect(() => {
+    if (activeTab === "novidades" && business?.id && novidadesMode === "idle") {
+      void loadNovidades(business.id);
+    }
+  }, [activeTab, business?.id, novidadesMode]);
+
   const resetNovidadeForm = () => {
     setEditingNovidade(null);
     setNovType("novidade");
@@ -2090,6 +2101,9 @@ function DashboardContent() {
                 )}
               </div>
 
+              {novidadesMode === "idle" && (
+                <p className="text-xs text-gray-500">A preparar novidades…</p>
+              )}
               {novidadesMode === "loading" && (
                 <p className="text-xs text-gray-500">A carregar novidades…</p>
               )}
