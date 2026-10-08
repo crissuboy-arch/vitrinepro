@@ -314,11 +314,11 @@ export default function FavoritosPage() {
           </p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 border-b border-white/10">
+        {/* Tabs — scroll horizontal em vez de estourar a página no mobile */}
+        <div className="flex gap-1 sm:gap-2 border-b border-white/10 overflow-x-auto">
           <button
             onClick={() => setTab("favorites")}
-            className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors ${
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 -mb-px transition-colors whitespace-nowrap ${
               tab === "favorites"
                 ? "border-[#C8A96B] text-[#C8A96B]"
                 : "border-transparent text-slate-400 hover:text-white"
@@ -328,7 +328,7 @@ export default function FavoritosPage() {
           </button>
           <button
             onClick={() => setTab("collections")}
-            className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors ${
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 -mb-px transition-colors whitespace-nowrap ${
               tab === "collections"
                 ? "border-[#C8A96B] text-[#C8A96B]"
                 : "border-transparent text-slate-400 hover:text-white"
@@ -478,19 +478,20 @@ export default function FavoritosPage() {
         ) : (
           /* ── TAB: Lista de coleções ── */
           <div className="space-y-6">
-            <div className="flex gap-2">
+            {/* Mobile: empilha vertical (botão sempre visível); desktop: lado a lado */}
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 value={newCollectionName}
                 onChange={(e) => setNewCollectionName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateCollection(); }}
                 placeholder="Nome da nova coleção (ex.: Onde comer)"
                 maxLength={60}
-                className="flex-1 min-w-0 bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#C8A96B]/50"
+                className="w-full sm:flex-1 sm:min-w-0 bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#C8A96B]/50"
               />
               <button
                 onClick={handleCreateCollection}
                 disabled={!newCollectionName.trim()}
-                className="px-5 py-2.5 bg-[#C8A96B] text-[#0F172A] text-sm font-bold rounded-xl disabled:opacity-40 active:scale-95 transition-all"
+                className="w-full sm:w-auto flex-shrink-0 px-5 py-2.5 bg-[#C8A96B] text-[#0F172A] text-sm font-bold rounded-xl disabled:opacity-40 active:scale-95 transition-all"
               >
                 + Criar
               </button>
@@ -556,7 +557,7 @@ export default function FavoritosPage() {
                 ))}
               </div>
             )}
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-slate-500 break-words">
               As coleções são privadas — só tu as vês. O favorito ❤️ tradicional continua separado.
             </p>
           </div>

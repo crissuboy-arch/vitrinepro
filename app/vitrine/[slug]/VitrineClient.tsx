@@ -822,7 +822,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
         </button>
       )}
 
-      {/* Floating green WhatsApp Button */}
+      {/* Floating green WhatsApp Button — compacto no mobile (não cobre o texto) */}
       {shouldRenderChannel(business.whatsApp) && (
         <a
           href={`https://wa.me/${business.whatsApp.replace(/\D/g, "")}`}
@@ -839,11 +839,11 @@ export default function VitrineClient({ slug }: { slug: string }) {
               pixelContact();
             }
           }}
-          className="fixed right-6 z-40 flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-[0_8px_30px_rgb(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all group duration-300"
+          className="fixed z-40 flex items-center justify-center right-4 w-12 h-12 md:right-6 md:w-14 md:h-14 bg-[#25D366] text-white rounded-full shadow-[0_8px_30px_rgb(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all group duration-300"
           style={{ bottom: "calc(24px + env(safe-area-inset-bottom))" }}
           title="Fale no WhatsApp"
         >
-          <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+          <svg className="w-7 h-7 md:w-8 md:h-8 fill-current" viewBox="0 0 24 24">
             <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.437.002 9.861-4.416 9.863-9.848.001-2.63-1.019-5.101-2.872-6.958C16.39 1.982 13.921.962 11.29.959c-5.44.004-9.866 4.423-9.868 9.856-.001 2.03.529 4.017 1.535 5.768L1.903 21.8l5.59-1.465zM17.47 14.86c-.3-.15-1.77-.874-2.04-.972-.27-.1-.47-.15-.67.15-.2.3-.77.972-.94 1.172-.17.2-.34.225-.64.075-.3-.15-1.265-.467-2.41-1.488-.89-.795-1.49-1.777-1.665-2.077-.175-.3-.02-.46.13-.61.135-.13.3-.35.45-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.67-1.62-.92-2.2-.24-.58-.48-.5-.67-.512-.175-.008-.375-.01-.575-.01-.2 0-.525.075-.8.375-.275.3-1.05 1.025-1.05 2.5s1.075 2.9 1.225 3.1c.15.2 2.11 3.22 5.11 4.52.714.31 1.27.495 1.702.63.714.227 1.363.195 1.875.118.571-.085 1.77-.724 2.02-1.388.25-.664.25-1.233.175-1.388-.075-.15-.275-.25-.575-.4z" />
           </svg>
           <span className="absolute right-full mr-3 bg-slate-900 border border-slate-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
