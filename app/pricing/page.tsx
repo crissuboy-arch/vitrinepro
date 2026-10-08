@@ -31,7 +31,7 @@ const plans: Plan[] = [
       { text: "WhatsApp e telefone", included: true },
       { text: "Galeria de fotos (até 3)", included: true },
       { text: "Destaque no topo", included: false },
-      { text: "Badge Premium", included: false },
+      { text: "Badge Pro", included: false },
       { text: "Instagram e LinkedIn", included: false },
       { text: "Galeria completa (10 fotos)", included: false },
       { text: "Estatísticas detalhadas", included: false },
@@ -90,7 +90,7 @@ const faqs = [
   },
   {
     q: "O que acontece ao meu negócio se cancelar?",
-    a: "O seu negócio permanece no diretório no plano Free. Perde as funcionalidades Pro/Premium mas não perde o perfil.",
+    a: "O seu negócio permanece no diretório no plano Free. Perde as funcionalidades Pro/Business mas não perde o perfil.",
   },
   {
     q: "Posso mudar de plano?",
@@ -215,7 +215,7 @@ export default function PricingPage() {
                   <th className="text-left py-3 px-4 text-[#0F172A] font-medium w-1/2">Funcionalidade</th>
                   <th className="text-center py-3 px-4 text-[#0F172A] font-medium">Free</th>
                   <th className="text-center py-3 px-4 text-[#C8A96B] font-display text-base">Pro</th>
-                  <th className="text-center py-3 px-4 text-[#0F172A] font-display text-base">Premium</th>
+                  <th className="text-center py-3 px-4 text-[#0F172A] font-display text-base">Business</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E7EB]">
@@ -227,7 +227,7 @@ export default function PricingPage() {
                   ["Website próprio", "✗", "✓", "✓"],
                   ["Galeria de fotos", "3 fotos", "10 fotos", "10 fotos"],
                   ["Destaque no topo", "✗", "✓", "✓ (1.º lugar)"],
-                  ["Badge Premium", "✗", "✓", "✓"],
+                  ["Badge Pro", "✗", "✓", "✓"],
                   ["Avaliações de clientes", "✓", "✓", "✓"],
                   ["Mapa de localização", "✓", "✓", "✓"],
                   ["Estatísticas", "✗", "Básicas", "Avançadas"],
