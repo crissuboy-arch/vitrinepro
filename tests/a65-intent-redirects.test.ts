@@ -51,8 +51,8 @@ describe("A6.5 Parte A — resolvePostAuthTarget (pura)", () => {
     );
   });
 
-  it("fluxos 6-7: merchant (1 ou 2+ businesses) sem next vai para dashboard", () => {
-    assert.equal(resolvePostAuthTarget({ nextPath: null, hasBusiness: true }), "dashboard");
+  it("fluxos 6-7: merchant (1 ou 2+ businesses) sem next vai para /dashboard (absoluto)", () => {
+    assert.equal(resolvePostAuthTarget({ nextPath: null, hasBusiness: true }), "/dashboard");
   });
 
   it("não destrói a semântica de resolveBusinessCountTarget (ramo merchant reutilizado)", () => {
@@ -66,10 +66,12 @@ describe("A6.5 Parte A — resolvePostAuthTarget (pura)", () => {
 // ------------------------------------------------- Parte A: página /login
 
 describe("A6.5 Parte A — /login usa destino por intenção", () => {
-  it("signup e login resolvem o destino via resolvePostAuthTarget", () => {
+  it("signup e login resolvem o destino via resolvePostAuthTarget (com veredito admin)", () => {
     const src = read("app/login/page.tsx");
-    const uses = src.match(/resolvePostAuthTarget\(\{ nextPath, hasBusiness \}\)/g) ?? [];
+    const uses = src.match(/resolvePostAuthTarget\(\{ nextPath, hasBusiness, isAdmin \}\)/g) ?? [];
     assert.ok(uses.length >= 2, `esperado nos 2 ramos (signup+login), achado ${uses.length}`);
+    assert.ok(src.includes("/api/auth/is-admin"),
+      "veredito admin server-side (nunca só email do frontend)");
     assert.ok(!src.includes("resolveBusinessCountTarget(hasBusiness ? 1 : 0)"),
       "lógica antiga (0 businesses → onboarding) removida");
   });
@@ -98,12 +100,25 @@ describe("A6.5 Parte A — /login usa destino por intenção", () => {
 });
 
 describe("A6.5 Parte A — /auth/callback usa a mesma intenção", () => {
-  it("callback pós-auth resolve via resolvePostAuthTarget", () => {
+  it("callback pós-auth resolve via resolvePostAuthTarget (com veredito admin)", () => {
     const src = read("app/auth/callback/page.tsx");
-    assert.ok(src.includes("resolvePostAuthTarget({ nextPath, hasBusiness })"),
-      "callback usa a função de intenção");
+    assert.ok(src.includes("resolvePostAuthTarget({ nextPath, hasBusiness, isAdmin })"),
+      "callback usa a função de intenção com admin server-side");
     assert.ok(!src.includes("resolveBusinessCountTarget(hasBusiness ? 1 : 0)"),
       "lógica antiga removida do callback");
+  });
+
+  it("callback não decide destino com sessão antiga quando há ?code=", () => {
+    const src = read("app/auth/callback/page.tsx");
+    assert.ok(src.includes("exchangeCodeForSession"),
+      "aguarda a conclusão real do code exchange (PKCE)");
+    assert.ok(src.includes("isFreshSignIn"),
+      "sessão antiga nunca decide o destino no retorno OAuth");
+  });
+
+  it("callback trata erro do provider sem usar sessão antiga", () => {
+    const src = read("app/auth/callback/page.tsx");
+    assert.ok(src.includes('urlParams.get("error")'), "erro do OAuth tratado");
   });
 });
 

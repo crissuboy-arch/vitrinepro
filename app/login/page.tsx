@@ -62,6 +62,18 @@ function LoginForm() {
   const plan = searchParams.get("plan");
   const nextPath = searchParams.get("next");
 
+  // Veredito admin server-side (nunca só o email do frontend).
+  const fetchIsAdmin = async (): Promise<boolean> => {
+    try {
+      const r = await fetch("/api/auth/is-admin");
+      if (!r.ok) return false;
+      const j = await r.json();
+      return j?.isAdmin === true;
+    } catch {
+      return false;
+    }
+  };
+
   // Google OAuth: redireciona para o Google via Supabase Auth.
   // O redirectTo preserva next/plan para o /auth/callback resolver o destino
   // (next vence; merchant → dashboard; consumidor → /explorar, nunca onboarding forçado).
@@ -123,8 +135,9 @@ function LoginForm() {
           pixelCompleteRegistration();
           const { data: bizRows } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).limit(1);
           const hasBusiness = (bizRows?.length ?? 0) > 0;
+          const isAdmin = await fetchIsAdmin();
 
-          let target = resolvePostAuthTarget({ nextPath, hasBusiness }); // A6.5 Parte A — intenção: next vence; merchant → dashboard; consumidor → /explorar
+          let target = resolvePostAuthTarget({ nextPath, hasBusiness, isAdmin }); // intenção validada: next seguro vence; admin → /admin; merchant → /dashboard; consumidor → /explorar
           const params = new URLSearchParams();
           if (plan) params.set("plan", plan);
 
@@ -143,8 +156,9 @@ function LoginForm() {
         if (session?.user) {
           const { data: bizRows } = await supabase.from("businesses").select("id").eq("user_id", session.user.id).limit(1);
           const hasBusiness = (bizRows?.length ?? 0) > 0;
+          const isAdmin = await fetchIsAdmin();
 
-          let target = resolvePostAuthTarget({ nextPath, hasBusiness }); // A6.5 Parte A — intenção: next vence; merchant → dashboard; consumidor → /explorar
+          let target = resolvePostAuthTarget({ nextPath, hasBusiness, isAdmin }); // intenção validada: next seguro vence; admin → /admin; merchant → /dashboard; consumidor → /explorar
           const params = new URLSearchParams();
           if (plan) params.set("plan", plan);
 
