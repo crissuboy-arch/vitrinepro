@@ -109,11 +109,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   };
 
-  // Google OAuth: implementação pronta, mas o provider NÃO está habilitado no
-  // Supabase Auth — por isso nenhuma UI pública pode chamar esta função
-  // (signInWithOAuth redireciona para /auth/v1/authorize e o servidor devolve
-  // 400 JSON bruto "provider is not enabled"). Só reativar UI após habilitar
-  // o provider no dashboard do Supabase (Auth > Providers > Google).
+  // Google OAuth: provider habilitado no Supabase Auth (Auth > Providers > Google).
+  // signInWithOAuth redireciona para /auth/v1/authorize; o callback
+  // /auth/callback troca o código pela sessão e resolve o destino
+  // (next vence; merchant → dashboard; consumidor → /explorar).
+  // Nota: a vinculação de email já existente (conta email/senha) é
+  // resolvida pelo próprio Supabase Auth no servidor — o nosso código
+  // não cria contas nem identidades manualmente neste fluxo.
   const signInWithGoogle = async (redirectTo?: string) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",

@@ -70,16 +70,21 @@ describe("landing navbar — sem regressão de rotas", () => {
   });
 });
 
-describe("login — sem OAuth público não configurado", () => {
-  it("página /login não exibe botão Google (provider não habilitado no Supabase)", () => {
+describe("login — Google OAuth habilitado", () => {
+  it("página /login exibe botão Google", () => {
     const src = read("app/login/page.tsx");
-    assert.ok(!src.includes("Continuar com Google"), "botão Google removido");
-    assert.ok(!src.includes("handleGoogleLogin"), "handler removido");
-    assert.ok(!src.includes("signInWithGoogle"), "sem chamada OAuth na UI");
+    assert.ok(src.includes("Continuar com Google"), "botão Google presente");
+    assert.ok(src.includes("handleGoogleSignIn"), "handler presente");
+    assert.ok(src.includes("signInWithGoogle"), "chamada OAuth na UI");
   });
 
-  it("contexto mantém signInWithGoogle documentado como inativo", () => {
+  it("contexto documenta signInWithGoogle como ativo", () => {
     const src = read("app/context/SupabaseAuthContext.tsx");
-    assert.ok(src.includes("NÃO está habilitado no"), "aviso documentado");
+    assert.ok(!src.includes("NÃO está habilitado no"), "aviso de inativo removido");
+  });
+
+  it("callback OAuth preserva next/plan no redirectTo", () => {
+    const src = read("app/login/page.tsx");
+    assert.ok(src.includes("/auth/callback"), "redirect para /auth/callback");
   });
 });
