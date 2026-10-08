@@ -535,7 +535,7 @@ function DashboardContent() {
           ? new Date(data.cancel_at).toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" })
           : "fim do período";
         setBusiness((prev: any) => ({ ...prev, subscription_cancel_at: data.cancel_at }));
-        setToast(`Cancelamento agendado. Acesso premium até ${formatted}.`);
+        setToast(`Cancelamento agendado. O teu acesso mantém-se até ${formatted}.`);
       }
     } catch (err: any) {
       setToast("Erro: " + (err.message || "Não foi possível cancelar."));
@@ -3228,7 +3228,7 @@ function DashboardContent() {
             <div className="bg-[#0F172A] border border-gray-800 rounded-xl p-4 space-y-2 text-sm text-gray-300">
               <p className="font-medium text-white text-sm">O que acontece ao cancelar:</p>
               <ul className="space-y-1.5 text-xs text-gray-400">
-                <li className="flex items-start gap-2"><span className="text-green-400 mt-0.5">✓</span> Manténs o acesso premium até ao fim do período já pago.</li>
+                <li className="flex items-start gap-2"><span className="text-green-400 mt-0.5">✓</span> Manténs o acesso ao teu plano até ao fim do período já pago.</li>
                 <li className="flex items-start gap-2"><span className="text-green-400 mt-0.5">✓</span> A tua vitrine permanece visível no marketplace.</li>
                 <li className="flex items-start gap-2"><span className="text-red-400 mt-0.5">✗</span> No fim do período perdes o destaque e as estatísticas.</li>
                 <li className="flex items-start gap-2"><span className="text-red-400 mt-0.5">✗</span> O plano será revertido para Grátis automaticamente.</li>
@@ -3873,16 +3873,16 @@ function CatalogPdfModal({
         {!isPremium ? (
           <div className="px-6 py-10 text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-[#C8A96B]/10 border border-[#C8A96B]/20 flex items-center justify-center mx-auto text-3xl">🔒</div>
-            <h3 className="text-lg font-bold text-white font-display">Funcionalidade Premium</h3>
+            <h3 className="text-lg font-bold text-white font-display">Funcionalidade Pro e Business</h3>
             <p className="text-sm text-gray-400 leading-relaxed max-w-sm mx-auto">
-              A geração de catálogos PDF está disponível nos planos <span className="text-[#C8A96B] font-semibold">Premium</span> e <span className="text-purple-400 font-semibold">Business</span>.
+              A geração de catálogos PDF está disponível nos planos <span className="text-[#C8A96B] font-semibold">Pro</span> e <span className="text-purple-400 font-semibold">Business</span>.
             </p>
             <div className="pt-2 flex gap-3 justify-center">
               <button
                 onClick={onClose}
                 className="px-5 py-2.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl text-sm transition-colors"
               >
-                Ver Planos Premium →
+                Ver planos →
               </button>
             </div>
           </div>
@@ -4055,7 +4055,7 @@ function PlanSection({
       })
     : null;
 
-  const planLabel = isBusiness ? "Business" : isPremium ? "Premium ✦" : "Grátis";
+  const planLabel = isBusiness ? "Business" : isPremium ? "Pro ✦" : "Grátis";
 
   return (
     <div
@@ -4075,8 +4075,8 @@ function PlanSection({
               {isBusiness
                 ? "Plano Business ★ — Todas as Funcionalidades"
                 : isPremium
-                ? "Plano Premium ✦ — Activo e a funcionar"
-                : "Plano Grátis — Desbloqueie todo o potencial por €12/mês"}
+                ? "Plano Pro ✦ — Ativo e a funcionar"
+                : "Plano Grátis — Pro €12/mês ou Business €29,90/mês"}
             </h4>
             <span
               className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
@@ -4095,26 +4095,25 @@ function PlanSection({
             <div className="text-xs text-gray-400 space-y-0.5">
               <p>✅ Perfil público da vitrine</p>
               <p>✅ Contacto direto via WhatsApp</p>
-              <p className="text-gray-600">🔒 Chatbot IA na página pública — desbloqueado no Premium</p>
-              <p className="text-gray-600">🔒 Analytics de visitas e cliques — desbloqueado no Premium</p>
-              <p className="text-gray-600">🔒 Destaque no marketplace — desbloqueado no Premium</p>
-              <p className="text-gray-600">🔒 Galeria ilimitada — desbloqueado no Premium</p>
+              <p className="text-gray-600">🔒 Chatbot IA na página pública — incluído no Pro e no Business</p>
+              <p className="text-gray-600">🔒 Analytics de visitas e cliques — incluído no Pro e no Business</p>
+              <p className="text-gray-600">🔒 Destaque no marketplace — incluído no Pro e no Business</p>
+              <p className="text-gray-600">🔒 Catálogo PDF — incluído no Pro e no Business</p>
+              <p className="text-gray-600">🔒 Link curto personalizado — só no Business</p>
             </div>
           )}
           {isPremium && (
             <div className="text-xs text-[#C8A96B]/80 space-y-0.5">
               <p>✅ Chatbot IA 24h na sua página pública</p>
               <p>✅ Analytics de visitas, cliques WhatsApp e produtos</p>
-              <p>✅ Destaque ✦ no marketplace (aparece primeiro)</p>
-              <p>✅ Galeria de fotos ilimitada</p>
-              <p>✅ SEO optimizado para Google</p>
+              <p>✅ Destaque ✦ no marketplace</p>
+              <p>✅ Catálogo PDF da sua Montra</p>
             </div>
           )}
           {isBusiness && (
             <div className="text-xs text-purple-300/80 space-y-0.5">
-              <p>✅ Todas as funcionalidades Premium</p>
-              <p>✅ Destaque prioritário no marketplace</p>
-              <p>✅ Relatório mensal avançado</p>
+              <p>✅ Todas as funcionalidades do Pro</p>
+              <p>✅ Link curto personalizado da sua Montra</p>
             </div>
           )}
 
@@ -4123,7 +4122,7 @@ function PlanSection({
             <div className="flex items-center gap-2 bg-red-950/30 border border-red-900/40 rounded-lg px-3 py-2 w-fit mt-1">
               <span className="text-red-400 text-xs">⚠️</span>
               <span className="text-red-300 text-xs font-medium">
-                Cancelamento agendado — acesso premium até <strong>{cancelDate}</strong>
+                Cancelamento agendado — o teu acesso mantém-se até <strong>{cancelDate}</strong>
               </span>
             </div>
           )}
@@ -4132,7 +4131,7 @@ function PlanSection({
         {isFree && (
           <div className="flex flex-col gap-2 w-full md:w-auto min-w-[220px]">
             <button
-              onClick={() => onUpgrade("premium")}
+              onClick={() => onUpgrade("pro")}
               disabled={checkoutLoading}
               className="px-6 py-3.5 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-lg shadow-[#C8A96B]/15"
             >
@@ -4140,23 +4139,46 @@ function PlanSection({
                 <div className="w-4 h-4 border-2 border-[#0F172A] border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" /> Activar Premium — €12/mês
+                  <Sparkles className="w-4 h-4" /> Ativar Pro — €12/mês
                 </>
               )}
             </button>
             <p className="text-[10px] text-gray-500 text-center leading-relaxed">
-              Chatbot IA · Analytics · Destaque · Galeria ilimitada
+              Chatbot IA · Analytics · Destaque · Catálogo PDF
+            </p>
+            <button
+              onClick={() => onUpgrade("business")}
+              disabled={checkoutLoading}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {checkoutLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" /> Ativar Business — €29,90/mês
+                </>
+              )}
+            </button>
+            <p className="text-[10px] text-gray-500 text-center leading-relaxed">
+              Tudo do Pro · Link curto personalizado
             </p>
           </div>
         )}
         {isPremium && !isCanceling && (
-          <div className="flex flex-col gap-2 items-end">
+          <div className="flex flex-col gap-2 items-stretch md:items-end w-full md:w-auto">
             <button
               onClick={() => onUpgrade("business")}
               disabled={checkoutLoading}
-              className="px-6 py-2.5 border border-[#C8A96B]/40 text-[#C8A96B] hover:bg-[#C8A96B] hover:text-[#0F172A] font-bold rounded-xl transition-all text-xs cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 border border-purple-500/50 text-purple-300 hover:bg-purple-600 hover:text-white font-bold rounded-xl transition-all text-xs cursor-pointer disabled:opacity-50"
             >
-              Ver Plano Business →
+              Ativar Business — €29,90/mês
+            </button>
+            <button
+              onClick={() => onUpgrade("pro")}
+              disabled={checkoutLoading}
+              className="text-[11px] text-gray-400 hover:text-white transition-colors underline underline-offset-2 disabled:opacity-50"
+            >
+              Gerir assinatura
             </button>
             <button
               onClick={onCancelRequest}
@@ -4167,12 +4189,21 @@ function PlanSection({
           </div>
         )}
         {isBusiness && !isCanceling && (
-          <button
-            onClick={onCancelRequest}
-            className="text-[11px] text-gray-600 hover:text-red-400 transition-colors underline underline-offset-2 self-end"
-          >
-            Cancelar assinatura
-          </button>
+          <div className="flex flex-col gap-2 items-stretch md:items-end w-full md:w-auto">
+            <button
+              onClick={() => onUpgrade("business")}
+              disabled={checkoutLoading}
+              className="text-[11px] text-gray-400 hover:text-white transition-colors underline underline-offset-2 disabled:opacity-50"
+            >
+              Gerir assinatura
+            </button>
+            <button
+              onClick={onCancelRequest}
+              className="text-[11px] text-gray-600 hover:text-red-400 transition-colors underline underline-offset-2"
+            >
+              Cancelar assinatura
+            </button>
+          </div>
         )}
       </div>
     </div>
