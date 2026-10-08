@@ -34,6 +34,12 @@ export interface BusinessEditInput {
   website: string;
   hours: unknown;
   /**
+   * A10.4 — link de avaliação do Google Business Profile.
+   * Opcional: ausente = coluna intocada (formulário não gere o campo).
+   * "" (blank) = limpar → NULL via nullIfBlank.
+   */
+  googleReviewUrl?: string;
+  /**
    * A5 — "Atendo hoje" (serviços). Tri-state intencional:
    *   true  = comerciante confirmou SIM
    *   false = comerciante confirmou NÃO
@@ -79,6 +85,9 @@ export function buildBusinessUpdatePayload(
     website: nullIfBlank(f.website),
     opening_hours: f.hours,
   };
+  // A10.4: link de avaliação Google — só entra no payload quando o
+  // formulário o gere. undefined = coluna intocada; "" = limpar (NULL).
+  if (f.googleReviewUrl !== undefined) payload.google_review_url = nullIfBlank(f.googleReviewUrl);
   // A5: tri-state passa exatamente como está (null = não informado, nunca
   // convertido). undefined = formulário não gere o campo → coluna intocada.
   if (f.serviceToday !== undefined) payload.service_today = f.serviceToday;
@@ -102,6 +111,46 @@ export function buildBusinessUpdatePayload(
 function nullIfBlank(value: string | null | undefined): string | null {
   if (typeof value !== "string") return null;
   return value.trim() === "" ? null : value;
+}
+
+/**
+ * A10.4 item 3 — valida o link de avaliação do Google.
+ *
+ * Aceita: URL HTTPS cujo host seja um domínio Google legítimo
+ * (google.com, maps.google.com, g.page, goo.gl, search.google.com…),
+ * incluindo os formatos oficiais de link de avaliação
+ * (g.page/.../review, google.com/maps/..., search.google.com/local/writereview...).
+ *
+ * Rejeita: javascript:, data:, http:, hosts não-Google, URLs malformadas.
+ * String vazia → false (para limpar, o dashboard grava NULL via nullIfBlank).
+ */
+const GOOGLE_REVIEW_HOSTS = [
+  "google.com",
+  "maps.google.com",
+  "www.google.com",
+  "google.pt",
+  "www.google.pt",
+  "google.com.br",
+  "www.google.com.br",
+  "search.google.com",
+  "g.page",
+  "goo.gl",
+  "maps.app.goo.gl",
+];
+
+export function isValidGoogleReviewUrl(raw: string | null | undefined): boolean {
+  if (typeof raw !== "string") return false;
+  const t = raw.trim();
+  if (!t) return false;
+  let u: URL;
+  try {
+    u = new URL(t);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase();
+  return GOOGLE_REVIEW_HOSTS.some((h) => host === h || host.endsWith("." + h));
 }
 
 /**

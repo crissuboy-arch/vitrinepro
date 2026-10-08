@@ -25,7 +25,7 @@ import {
   isMissingColumnError,
   novidadeTypeLabel,
 } from "@/lib/novidades";
-import { buildBusinessUpdatePayload } from "@/lib/business-profile";
+import { buildBusinessUpdatePayload, isValidGoogleReviewUrl } from "@/lib/business-profile";
 import { uploadLogo, uploadCover, uploadGallery, uploadProductImage, uploadNovidadeImage } from "@/lib/supabase-storage";
 import { persistBusinessImageField } from "@/lib/business-images";
 import { assertFreshUploadOwnership } from "@/lib/storage-upload-guard";
@@ -151,6 +151,8 @@ function DashboardContent() {
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoMessage, setGeoMessage] = useState<string | null>(null);
   const [editWhatsapp, setEditWhatsapp] = useState("");
+  // A10.4: link de avaliação do Google Business Profile.
+  const [editGoogleReviewUrl, setEditGoogleReviewUrl] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editInstagram, setEditInstagram] = useState("");
@@ -349,6 +351,8 @@ function DashboardContent() {
       setEditLongitude(typeof biz.longitude === "number" ? biz.longitude : null);
       setGeoMessage(null);
       setEditWhatsapp(biz.whatsapp || "");
+      // A10.4: coluna ainda pode não existir (migration pendente) — acesso defensivo.
+      setEditGoogleReviewUrl((biz as any).google_review_url || "");
       setEditPhone(biz.phone || "");
       setEditEmail(biz.email || "");
       setEditInstagram(biz.instagram || "");
@@ -668,6 +672,14 @@ function DashboardContent() {
 
   // 2. Edit Profile Save Action
   const handleSaveBusiness = async () => {
+    // A10.4: valida o link Google antes de guardar (vazio = limpar, permitido).
+    if (editGoogleReviewUrl.trim() !== "" && !isValidGoogleReviewUrl(editGoogleReviewUrl)) {
+      alert(
+        "O link de avaliação do Google não é válido. Use um link HTTPS do Google " +
+        "(ex.: https://g.page/.../review ou um link do Google Maps)."
+      );
+      return;
+    }
     setSavingBusiness(true);
     try {
       // A3.6: payload built by lib/business-profile — `country` is the business
@@ -690,6 +702,8 @@ function DashboardContent() {
         linkedin: editLinkedin,
         website: editWebsite,
         hours: editHours,
+        // A10.4: link de avaliação Google (migration 000020; coluna intocada se ausente do formulário).
+        googleReviewUrl: editGoogleReviewUrl,
         // A4: código postal + coordenadas (vêm da geocodificação, nunca inventadas).
         postalCode: editPostalCode,
         latitude: editLatitude,
@@ -718,6 +732,12 @@ function DashboardContent() {
         alert(
           "Para guardar a disponibilidade de hoje, aplique primeiro a migration " +
           "20261005000007_a5_availability.sql no Supabase SQL Editor. " +
+          "Os restantes dados foram mantidos no formulário."
+        );
+      } else if (/google_review_url/i.test(msg)) {
+        alert(
+          "Para guardar o link de avaliação do Google, aplique primeiro a migration " +
+          "20261008000020_google_review_url.sql no Supabase SQL Editor. " +
           "Os restantes dados foram mantidos no formulário."
         );
       } else {
@@ -1870,6 +1890,23 @@ function DashboardContent() {
                     className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
                   />
                 </div>
+              </div>
+
+              {/* A10.4: link direto de avaliação do Google Business Profile */}
+              <div className="mt-4">
+                <label className="block text-xs font-medium text-gray-400 mb-1">
+                  ⭐ Link para avaliações do Google
+                </label>
+                <input
+                  type="url"
+                  value={editGoogleReviewUrl}
+                  onChange={(e) => setEditGoogleReviewUrl(e.target.value)}
+                  placeholder="https://g.page/.../review"
+                  className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white placeholder:text-gray-600"
+                />
+                <p className="text-[11px] text-gray-500 mt-1">
+                  Cole aqui o link para os clientes avaliarem seu negócio diretamente no Google.
+                </p>
               </div>
             </div>
 

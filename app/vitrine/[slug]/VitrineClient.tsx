@@ -15,7 +15,7 @@ import { normalizeProductFraming, productImgStyle } from "@/lib/product-framing"
 import { isPublishedBusiness, queryVisibleProducts, queryVisibleGallery } from "@/lib/visibility";
 import { isPaidTier, planHasChatbot } from "@/lib/plans";
 import { CANONICAL_URL } from "@/lib/site";
-import { shouldRenderChannel } from "@/lib/business-profile";
+import { shouldRenderChannel, isValidGoogleReviewUrl } from "@/lib/business-profile";
 import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib/analytics";
 import { pixelContact } from "@/app/lib/meta-pixel";
 import SocialBar from "../../components/SocialBar";
@@ -51,6 +51,8 @@ interface Business {
   linkedin?: string;
   website?: string;
   address?: string;
+  // A10.4: link de avaliação do Google Business Profile (opcional).
+  googleReviewUrl?: string;
   rating?: number;
   reviewCount?: number;
   email?: string;
@@ -416,6 +418,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
               youtube: data.youtube || "",
               linkedin: data.linkedin || "",
               website: data.website || "",
+              // A10.4: link de avaliação Google (coluna nova; ausente = "").
+              googleReviewUrl: (data as Record<string, unknown>).google_review_url as string || "",
               address: data.address || "",
               rating: data.rating_average || 4.8,
               reviewCount: testimonialsRes.data?.length || 2,
@@ -492,6 +496,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
               youtube: data.youtube || "",
               linkedin: data.linkedin || "",
               website: data.website || "",
+              // A10.4: link de avaliação Google (coluna nova; ausente = "").
+              googleReviewUrl: (data as Record<string, unknown>).google_review_url as string || "",
               address: data.address || "",
               rating: data.rating_average || 4.9,
               reviewCount: testimonialsRes.data?.length || 3,
@@ -583,6 +589,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
             youtube: data.youtube || "",
             linkedin: data.linkedin || "",
             website: data.website || "",
+            // A10.4: link de avaliação Google (coluna nova; ausente = "").
+            googleReviewUrl: (data as Record<string, unknown>).google_review_url as string || "",
             address: data.address || "",
             rating: data.rating_average || 5.0,
             reviewCount: testimonialsRes.data?.length || 0,
@@ -1118,6 +1126,19 @@ export default function VitrineClient({ slug }: { slug: string }) {
                     className="flex items-center justify-center gap-2 w-full py-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-xl font-bold transition-all text-xs tracking-wider uppercase"
                   >
                     Ligar para Telefone
+                  </a>
+                )}
+
+                {/* A10.4: Avaliar no Google — só com link válido cadastrado.
+                    Avaliações da VitrinePro permanecem independentes. */}
+                {isValidGoogleReviewUrl(business.googleReviewUrl) && (
+                  <a
+                    href={business.googleReviewUrl as string}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-white hover:bg-slate-100 active:scale-95 text-slate-900 rounded-xl font-bold transition-all text-xs tracking-wider uppercase"
+                  >
+                    ⭐ Avaliar no Google
                   </a>
                 )}
               </div>
