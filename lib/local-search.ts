@@ -44,6 +44,29 @@ export function queryTokens(raw: string): string[] {
   return normalizeQuery(raw).split(" ").filter(Boolean);
 }
 
+/**
+ * A8.1: stopwords conversacionais — palavras de intenção que NUNCA
+ * servem como critério de relevância no fallback ANY-token.
+ * (Mesma lista usada na limpeza do rule-based; mantida aqui como Set
+ * para o matching não depender do provider.)
+ */
+export const QUERY_STOPWORDS = new Set([
+  "onde", "aonde", "posso", "quero", "preciso", "tem", "ha", "procuro",
+  "procurando", "gostaria", "gostava", "mostre", "mostra", "me",
+  "encontrar", "encontro", "encontra", "comer", "comprar", "para", "pra",
+  "de", "da", "do", "das", "dos", "dum", "duma", "num", "numa",
+  "uma", "um", "umas", "uns", "o", "a", "os", "as", "e",
+  "que", "qual", "quais", "algum", "alguma", "bom", "boa", "melhor", "ainda",
+]);
+
+/**
+ * A8.1: tokens comercialmente significativos — normalizados, sem
+ * stopwords, com pelo menos 2 caracteres. Usados no fallback ANY-token.
+ */
+export function significantTokens(raw: string): string[] {
+  return queryTokens(raw).filter((t) => t.length >= 2 && !QUERY_STOPWORDS.has(t));
+}
+
 function haystack(...parts: Array<string | null | undefined>): string {
   return normalizeQuery(parts.filter(Boolean).join(" "));
 }
@@ -74,6 +97,41 @@ export function productMatchesQuery(
   if (tokens.length === 0) return true;
   const hay = haystack(p.name, p.description);
   return tokens.every((t) => hay.includes(t));
+}
+
+/**
+ * A8.1: fallback de relevância — true quando tokens significativos
+ * suficientes aparecem no nome/descrição. Só usado quando o matching
+ * estrito (EVERY) retorna zero. Tokens significativos excluem stopwords
+ * conversacionais, então "onde posso comer" sozinho nunca gera match.
+ * Se não houver token significativo, retorna false (nunca vira match-all).
+ * Proteção de precisão: com 1 token significativo basta 1 match; com 2+
+ * exige pelo menos 2 matches (evita que um token genérico como
+ * "restaurante" devolva qualquer restaurante).
+ */
+export function productMatchesQueryAny(
+  p: SearchableProduct,
+  rawQuery: string
+): boolean {
+  const toks = significantTokens(rawQuery);
+  if (toks.length === 0) return false;
+  const hay = haystack(p.name, p.description);
+  const hits = toks.filter((t) => hay.includes(t)).length;
+  return hits >= Math.min(2, toks.length);
+}
+
+/**
+ * A8.1: idem para negócios (nome, descrição, categoria, cidade, comunidade).
+ */
+export function businessMatchesQueryAny(
+  b: SearchableBusiness,
+  rawQuery: string
+): boolean {
+  const toks = significantTokens(rawQuery);
+  if (toks.length === 0) return false;
+  const hay = haystack(b.name, b.description, b.category, b.city, b.community);
+  const hits = toks.filter((t) => hay.includes(t)).length;
+  return hits >= Math.min(2, toks.length);
 }
 
 export interface BusinessHit<T extends SearchableBusiness> {

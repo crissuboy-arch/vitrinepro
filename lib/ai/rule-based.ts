@@ -29,6 +29,14 @@ const KNOWN_CITIES = [
   "viseu", "leiria", "santarém", "santarem", "faro", "setúbal", "setubal",
 ];
 
+/**
+ * A8.1: stopwords conversacionais — palavras que expressam intenção,
+ * não o produto/serviço procurado. Removidas da query para não
+ * contaminarem o matching textual (EVERY-token).
+ */
+const QUERY_STOPWORDS_PATTERN =
+  /\b(onde|aonde|posso|quero|preciso|tem|há|ha|procuro|procurando|gostaria|gostava|mostre|mostra|me|encontrar|encontro|encontra|comer|comprar|para|pra|de|da|do|das|dos|dum|duma|num|numa|uma|um|umas|uns|o|a|os|as|e|que|qual|quais|algum|alguma|bom|boa|melhor|ainda)\b/gi;
+
 function extractPrice(msg: string): number | null {
   const m = msg.match(/at[ée]?\s*(?:€\s*)?(\d+(?:[.,]\d{1,2})?)\s*(?:€|euros?)?/i)
     || msg.match(/(?:€\s*)(\d+(?:[.,]\d{1,2})?)/)
@@ -53,18 +61,23 @@ export class RuleBasedProvider implements AIProvider {
   readonly available = true;
 
   async interpretIntent(message: string, ctx: IntentContext): Promise<Partial<VitrineIntent>> {
-    const low = message.toLowerCase();
     const intent: Partial<VitrineIntent> = {};
 
     // Query: remove marcadores de intenção, mantém o essencial.
-    let query = message
-      .replace(/quero|preciso|tem|há|onde encontro|procuro|gostaria/gi, " ")
+    // A8.1: remoção de localização usa a lista de cidades conhecidas com
+    // regex acento-sensível (não \w, que não casa "Á" de "Águeda").
+    let query = message;
+    for (const c of KNOWN_CITIES) {
+      query = query.replace(new RegExp(`\\b(em|na|no|de)\\s+${c}\\b[?!.,]*`, "gi"), " ");
+    }
+    query = query
       .replace(/perto de mim|próximo de mim|aqui perto/gi, " ")
       .replace(/para hoje|hoje|ainda hoje/gi, " ")
       .replace(/at[ée]?\s*€?\s*\d+(?:[.,]\d{1,2})?\s*(?:€|euros?)?/gi, " ")
       .replace(/€\s*\d+(?:[.,]\d{1,2})?/g, " ")
       .replace(/\d+(?:[.,]\d{1,2})?\s*euros?/gi, " ")
-      .replace(/em\s+\w+|na\s+\w+|no\s+\w+/gi, " ")
+      .replace(QUERY_STOPWORDS_PATTERN, " ")
+      .replace(/[?!.,;:]+/g, " ")
       .replace(/\s+/g, " ")
       .trim();
     intent.query = query.slice(0, 200);

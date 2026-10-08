@@ -10,9 +10,12 @@
  */
 import {
   businessMatchesQuery,
+  businessMatchesQueryAny,
   normalizeQuery,
   queryTokens,
   productMatchesQuery,
+  productMatchesQueryAny,
+  significantTokens,
 } from "../local-search";
 import { distanceKm } from "../geo";
 import { productAvailabilityState, isOpenNow, businessServiceState } from "../availability";
@@ -46,7 +49,9 @@ export interface ScoredPost extends IntelligencePost {
 /** Filtro + match metadata para businesses. */
 export function filterBusinesses(
   businesses: IntelligenceBusiness[],
-  intent: VitrineIntent
+  intent: VitrineIntent,
+  /** A8.1: true = fallback ANY-token (só quando o estrito dá zero). */
+  anyMode = false
 ): ScoredBusiness[] {
   const tokens = intentTokens(intent);
   const hasLoc =
@@ -62,31 +67,31 @@ export function filterBusinesses(
 
     // Texto (reutiliza lib/local-search).
     if (tokens.length > 0) {
-      if (
-        !businessMatchesQuery(
-          {
-            id: b.id,
-            name: b.name,
-            description: b.description,
-            category: b.category,
-            city: b.city,
-          },
-          intent.query
-        )
-      )
-        continue;
+      const biz = {
+        id: b.id,
+        name: b.name,
+        description: b.description,
+        category: b.category,
+        city: b.city,
+      };
+      const ok = anyMode
+        ? businessMatchesQueryAny(biz, intent.query)
+        : businessMatchesQuery(biz, intent.query);
+      if (!ok) continue;
       match.push("text_match");
     }
 
     // Categoria.
     if (intent.category) {
-      if ((b.category || "").toLowerCase() !== intent.category.toLowerCase()) continue;
+      if (normalizeQuery(b.category || "") !== normalizeQuery(intent.category)) continue;
       match.push("category_match");
     }
 
     // Cidade.
     if (intent.city) {
-      if ((b.city || "").toLowerCase() !== intent.city.toLowerCase()) continue;
+      // A8.1: normaliza acentos — "Águeda" ≡ "Agueda". O valor original
+      // de b.city é preservado para exibição; só o matching normaliza.
+      if (normalizeQuery(b.city || "") !== normalizeQuery(intent.city)) continue;
       match.push("city_match");
     }
 
@@ -121,7 +126,9 @@ export function filterBusinesses(
 /** Filtro + match metadata para produtos. */
 export function filterProducts(
   products: IntelligenceProduct[],
-  intent: VitrineIntent
+  intent: VitrineIntent,
+  /** A8.1: true = fallback ANY-token (só quando o estrito dá zero). */
+  anyMode = false
 ): ScoredProduct[] {
   const tokens = intentTokens(intent);
   const hasLoc =
@@ -136,18 +143,22 @@ export function filterProducts(
     const match: MatchReason[] = [];
 
     if (tokens.length > 0) {
-      if (!productMatchesQuery({ id: p.id, name: p.name, description: p.description, business_id: p.business_id }, intent.query))
-        continue;
+      const prod = { id: p.id, name: p.name, description: p.description, business_id: p.business_id };
+      const ok = anyMode
+        ? productMatchesQueryAny(prod, intent.query)
+        : productMatchesQuery(prod, intent.query);
+      if (!ok) continue;
       match.push("text_match");
     }
 
     if (intent.category) {
-      if ((p.business_category || "").toLowerCase() !== intent.category.toLowerCase()) continue;
+      if (normalizeQuery(p.business_category || "") !== normalizeQuery(intent.category)) continue;
       match.push("category_match");
     }
 
     if (intent.city) {
-      if ((p.business_city || "").toLowerCase() !== intent.city.toLowerCase()) continue;
+      // A8.1: normaliza acentos — "Águeda" ≡ "Agueda".
+      if (normalizeQuery(p.business_city || "") !== normalizeQuery(intent.city)) continue;
       match.push("city_match");
     }
 
@@ -187,7 +198,9 @@ export function filterProducts(
 export function filterPosts(
   posts: IntelligencePost[],
   intent: VitrineIntent,
-  now: Date = new Date()
+  now: Date = new Date(),
+  /** A8.1: true = fallback ANY-token (só quando o estrito dá zero). */
+  anyMode = false
 ): ScoredPost[] {
   const tokens = intentTokens(intent);
   const out: ScoredPost[] = [];
@@ -201,12 +214,21 @@ export function filterPosts(
     const match: MatchReason[] = [];
     if (tokens.length > 0) {
       const hay = normalizeQuery([p.title, p.content, p.type].filter(Boolean).join(" "));
-      const toks = queryTokens(intent.query);
-      if (!toks.every((t) => hay.includes(t))) continue;
+      let ok: boolean;
+      if (anyMode) {
+        const toks = significantTokens(intent.query);
+        const hits = toks.filter((t) => hay.includes(t)).length;
+        ok = toks.length > 0 && hits >= Math.min(2, toks.length);
+      } else {
+        const toks = queryTokens(intent.query);
+        ok = toks.every((t) => hay.includes(t));
+      }
+      if (!ok) continue;
       match.push("text_match");
     }
     if (intent.city) {
-      if ((p.business_city || "").toLowerCase() !== intent.city.toLowerCase()) continue;
+      // A8.1: normaliza acentos — "Águeda" ≡ "Agueda".
+      if (normalizeQuery(p.business_city || "") !== normalizeQuery(intent.city)) continue;
       match.push("city_match");
     }
 
