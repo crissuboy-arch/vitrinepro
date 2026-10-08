@@ -9,7 +9,8 @@ import { supabase } from "../lib/supabase";
 import { Eye, EyeOff } from "lucide-react";
 import { trackSignUp } from "@/app/lib/analytics";
 import { pixelLead, pixelCompleteRegistration } from "@/app/lib/meta-pixel";
-import { resolvePostAuthTarget } from "@/lib/auth-redirect";
+import { resolvePostAuthTarget, fetchIsAdminClient } from "@/lib/auth-redirect";
+import { useHomeRedirect } from "@/components/auth/useHomeRedirect";
 
 function getReadableError(message: string): string {
   if (!message) return "Ocorreu um erro. Tenta novamente.";
@@ -62,17 +63,14 @@ function LoginForm() {
   const plan = searchParams.get("plan");
   const nextPath = searchParams.get("next");
 
+  // Correção definitiva da navegação: quem já tem sessão não fica no
+  // formulário — vai para a sua home (admin → /admin, merchant →
+  // /dashboard, consumidor → /explorar; next seguro vence).
+  // useHomeRedirect devolve true quando se confirmou SEM sessão.
+  const visitorStay = useHomeRedirect({ nextPath });
+
   // Veredito admin server-side (nunca só o email do frontend).
-  const fetchIsAdmin = async (): Promise<boolean> => {
-    try {
-      const r = await fetch("/api/auth/is-admin");
-      if (!r.ok) return false;
-      const j = await r.json();
-      return j?.isAdmin === true;
-    } catch {
-      return false;
-    }
-  };
+  const fetchIsAdmin = fetchIsAdminClient;
 
   // Google OAuth: redireciona para o Google via Supabase Auth.
   // O redirectTo preserva next/plan para o /auth/callback resolver o destino
@@ -178,6 +176,16 @@ function LoginForm() {
 
   // A6.5 Parte A — intenção de entrada ("Tenho um negócio" chega com next=/onboarding)
   const isBusinessIntent = nextPath === "/onboarding";
+
+  // Utilizador já autenticado (a verificar ou a redirecionar): loader
+  // neutro, nunca o formulário.
+  if (!visitorStay) {
+    return (
+      <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#C8A96B]/30 border-t-[#C8A96B] rounded-full animate-spin" aria-label="A carregar" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center p-4">

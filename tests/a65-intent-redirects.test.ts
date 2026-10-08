@@ -70,8 +70,13 @@ describe("A6.5 Parte A — /login usa destino por intenção", () => {
     const src = read("app/login/page.tsx");
     const uses = src.match(/resolvePostAuthTarget\(\{ nextPath, hasBusiness, isAdmin \}\)/g) ?? [];
     assert.ok(uses.length >= 2, `esperado nos 2 ramos (signup+login), achado ${uses.length}`);
-    assert.ok(src.includes("/api/auth/is-admin"),
+    // A10.6: veredito admin centralizado em fetchIsAdminClient (lib/auth-redirect),
+    // que consulta GET /api/auth/is-admin no servidor — nunca só email do frontend.
+    const lib = read("lib/auth-redirect.ts");
+    assert.ok(lib.includes('fetch("/api/auth/is-admin")'),
       "veredito admin server-side (nunca só email do frontend)");
+    assert.ok(src.includes("fetchIsAdminClient"),
+      "/login usa o veredito admin centralizado");
     assert.ok(!src.includes("resolveBusinessCountTarget(hasBusiness ? 1 : 0)"),
       "lógica antiga (0 businesses → onboarding) removida");
   });

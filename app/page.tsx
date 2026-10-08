@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "./lib/supabase";
 import dynamic from "next/dynamic";
+import { useHomeRedirect } from "@/components/auth/useHomeRedirect";
 
 // Overlay widgets are non-critical — lazy-load them so they stay out of the initial bundle.
 const ChatWidget = dynamic(() => import("./components/ChatWidget"), { ssr: false });
@@ -179,6 +180,12 @@ const exampleShowcase: ExampleItem[] = [
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
+  // Correção definitiva da navegação: utilizadores autenticados nunca
+  // veem a landing comercial — são redirecionados para a sua home
+  // (admin → /admin, merchant → /dashboard, consumidor → /explorar).
+  // Enquanto verifica (ou vai redirecionar), NÃO renderiza a landing
+  // para evitar flash.
+  const visitorStay = useHomeRedirect();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSession, setActiveSession] = useState<any>(null);
   
@@ -357,6 +364,19 @@ export default function HomePage() {
   };
 
   const activeExample = exampleShowcase[selectedExampleIndex];
+
+  // Sem sessão confirmada → visitante: mostra a landing.
+  // Com sessão (a verificar ou a redirecionar) → loader neutro, nunca a landing.
+  if (!visitorStay) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 w-auto object-contain opacity-80" />
+          <div className="w-8 h-8 border-2 border-[#C8A96B]/30 border-t-[#C8A96B] rounded-full animate-spin" aria-label="A carregar" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${playfair.variable} ${dmSans.variable} font-sans min-h-screen bg-[#0F172A] text-slate-100 flex flex-col select-none selection:bg-[#C8A96B] selection:text-[#0F172A] overflow-x-hidden`}>

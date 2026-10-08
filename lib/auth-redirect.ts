@@ -68,3 +68,40 @@ export function resolvePostAuthTarget({
   if (hasBusiness) return "/dashboard"; // absoluto: router.push relativo quebrava no /auth/callback
   return "/explorar";
 }
+
+/**
+ * Destino "home" por tipo de conta AUTENTICADA (correção definitiva da
+ * navegação — utilizadores autenticados nunca ficam na landing comercial):
+ *
+ *   admin      → "/admin"
+ *   merchant   → "/dashboard"
+ *   consumidor → "/explorar"
+ *
+ * Usado por `/` e `/login` para redirecionar quem já tem sessão.
+ * Pura e testável; o veredito admin vem sempre do servidor
+ * (GET /api/auth/is-admin), nunca só do email no frontend.
+ */
+export function resolveHomeTarget({
+  hasBusiness,
+  isAdmin = false,
+}: {
+  hasBusiness: boolean;
+  isAdmin?: boolean;
+}): string {
+  return resolvePostAuthTarget({ hasBusiness, isAdmin });
+}
+
+/**
+ * Veredito admin no cliente via API server-side.
+ * Nunca decidir privilégios apenas com o email exibido no frontend.
+ */
+export async function fetchIsAdminClient(): Promise<boolean> {
+  try {
+    const r = await fetch("/api/auth/is-admin");
+    if (!r.ok) return false;
+    const j = await r.json();
+    return j?.isAdmin === true;
+  } catch {
+    return false;
+  }
+}
