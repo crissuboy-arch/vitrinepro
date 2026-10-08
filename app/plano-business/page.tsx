@@ -333,7 +333,7 @@ export default function PlanoBusiness() {
           >
             {ctaLoading ? "A processar..." : "Activar Plano Business →"}
           </button>
-          <p className="text-[10px] text-slate-500">30 dias de garantia de devolução · Ativação imediata</p>
+          <p className="text-[10px] text-slate-500">14 dias para resolução (Termos) · Ativação imediata</p>
         </div>
       </section>
 

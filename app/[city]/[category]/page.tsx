@@ -19,12 +19,17 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
     return {
       title: "Página não encontrada | VitrinePro",
       description: "A página que procura não existe ou está inativa.",
+      robots: { index: false, follow: false },
     };
   }
 
   const name = category.name;
   const cityName = city.name;
   const count = businesses.length;
+
+  // I5 (A10.2): página vazia não é indexada como oferta comercial real.
+  const robots =
+    count === 0 ? { index: false, follow: true } : { index: true, follow: true };
   const title = `Melhores ${name} em ${cityName} | VitrinePro`;
   const description = `Procura por ${name.toLowerCase()} em ${cityName}? Encontre ${count} profissional${count !== 1 ? "ais" : ""} e loja${count !== 1 ? "s" : ""} com contactos de WhatsApp directos, moradas e avaliações reais.`;
   const canonical = `${getSiteUrl()}/${citySlug}/${categorySlug}`;
@@ -32,6 +37,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
   return {
     title,
     description,
+    robots,
     alternates: {
       canonical,
     },

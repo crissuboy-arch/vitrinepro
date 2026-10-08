@@ -45,7 +45,7 @@ const PLANS = [
     name: "Top",
     price: "€59",
     period: "/mês",
-    features: ["1º lugar garantido", "Banner destacados", "API acesso", "Suporte prioritário"],
+    features: ["Posição prioritária na pesquisa", "Banner destacados", "API acesso", "Suporte prioritário"],
     cta: "Quero Top",
   },
 ];

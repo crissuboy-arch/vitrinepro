@@ -89,8 +89,8 @@ export default function TermosDeServicoPag() {
               <div className="grid sm:grid-cols-3 gap-3">
                 {[
                   { plano: "Grátis", preco: "€0/mês", desc: "Acesso às funcionalidades base sem limite de tempo." },
-                  { plano: "Premium", preco: "€12/mês", desc: "Analytics, destaque no marketplace, chatbot IA e galeria ilimitada." },
-                  { plano: "Business", preco: "€29,90/mês", desc: "Todas as funcionalidades Premium mais destaque prioritário e link curto personalizado." },
+                  { plano: "Pro", preco: "€12/mês", desc: "Analytics, destaque no marketplace, chatbot IA e galeria ilimitada." },
+                  { plano: "Business", preco: "€29,90/mês", desc: "Todas as funcionalidades Pro mais destaque prioritário e link curto personalizado." },
                 ].map(({ plano, preco, desc }) => (
                   <div key={plano} className="border border-[#E5E7EB] rounded-xl p-4 text-sm">
                     <p className="font-bold text-[#0F172A]">{plano}</p>

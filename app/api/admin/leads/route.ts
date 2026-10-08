@@ -13,27 +13,12 @@
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { createClient as createServerSupabase } from "@/lib/supabase-server";
+// I4-C (A10.2): allowlist e service client vêm do helper central —
+// cópia local eliminada (era divergência com @/lib/admin-auth).
+import { getAdminEmails, getServiceClient } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
-
-const DEFAULT_ADMIN_EMAILS = ["cris.suboy@gmail.com", "geralvitrinepropt@gmail.com"];
-
-function getAdminEmails(): string[] {
-  const raw = process.env.ADMIN_EMAILS;
-  const list = raw
-    ? raw.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean)
-    : DEFAULT_ADMIN_EMAILS;
-  return list.map((e) => e.toLowerCase());
-}
-
-function getServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
-}
 
 async function getCallerEmail(request: Request): Promise<string | null> {
   // 1. Cookie session (dashboard usage)
@@ -60,9 +45,12 @@ async function getCallerEmail(request: Request): Promise<string | null> {
 
 export async function GET(request: Request) {
   const email = await getCallerEmail(request);
-  if (!email || !getAdminEmails().includes(email.toLowerCase())) {
-    // Same response for unauthenticated and non-admin: no oracle.
-    return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
+  // I4-D (A10.2): 401 não autenticado, 403 autenticado sem permissão.
+  if (!email) {
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
+  if (!getAdminEmails().includes(email.toLowerCase())) {
+    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
 
   const admin = getServiceClient();

@@ -36,9 +36,13 @@ export async function GET(request: Request) {
 
     if (q) {
       // Busca por nome, slug, cidade ou user_id/owner.
-      query = query.or(
-        `name.ilike.%${q}%,slug.ilike.%${q}%,city.ilike.%${q}%,user_id.eq.${q}`
-      );
+      // I4-A (A10.2): user_id.eq só com UUID válido — texto livre em
+      // coluna UUID quebra o PostgREST ("invalid input syntax for type uuid").
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
+      const orFilter = isUuid
+        ? `name.ilike.%${q}%,slug.ilike.%${q}%,city.ilike.%${q}%,user_id.eq.${q}`
+        : `name.ilike.%${q}%,slug.ilike.%${q}%,city.ilike.%${q}%`;
+      query = query.or(orFilter);
     }
 
     const { data, error, count } = await query;

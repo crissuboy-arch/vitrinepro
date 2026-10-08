@@ -38,13 +38,13 @@ const plans: Plan[] = [
     ],
   },
   {
-    name: "Premium",
-    planId: "premium",
+    name: "Pro",
+    planId: "pro",
     price: { monthly: 12, yearly: 120 },
     description: "Para negócios que querem mais visibilidade, chatbot IA e clientes.",
     color: "border-[#C8A96B]",
     badge: "Mais popular",
-    cta: "Activar Premium",
+    cta: "Ativar Pro",
     ctaStyle: "bg-[#C8A96B] text-[#0F172A] hover:bg-[#D4BB82]",
     features: [
       { text: "1 negócio no diretório", included: true },
@@ -53,7 +53,7 @@ const plans: Plan[] = [
       { text: "Chatbot IA 24h na página pública", included: true },
       { text: "Galeria de fotos ilimitada", included: true },
       { text: "Analytics de visitas e cliques", included: true },
-      { text: "Badge Premium dourado", included: true },
+      { text: "Badge Pro dourado", included: true },
       { text: "Instagram, LinkedIn e redes sociais", included: true },
       { text: "SEO optimizado para Google", included: true },
       { text: "Domínio personalizado", included: false },
@@ -69,8 +69,8 @@ const plans: Plan[] = [
     cta: "Activar Business",
     ctaStyle: "bg-[#0F172A] text-white hover:bg-[#1F2937]",
     features: [
-      { text: "Tudo do Premium +", included: true },
-      { text: "1.º lugar garantido na pesquisa", included: true },
+      { text: "Tudo do Pro +", included: true },
+      { text: "Posição prioritária na pesquisa", included: true },
       { text: "Chatbot IA avançado com IA Claude", included: true },
       { text: "Destaque máximo no marketplace", included: true },
       { text: "Relatório mensal de desempenho", included: true },
@@ -97,18 +97,14 @@ const faqs = [
     a: "Sim. Pode fazer upgrade ou downgrade a qualquer momento. A diferença de valor é calculada proporcionalmente.",
   },
   {
-    q: "Como funciona o pagamento anual?",
-    a: "O pagamento anual oferece 2 meses grátis. É cobrado uma vez por ano e pode ser cancelado antes da renovação.",
-  },
-  {
     q: "Aceitam que meios de pagamento?",
     a: "Aceitamos cartões de crédito/débito (Visa, Mastercard, MB Way) e transferência bancária.",
   },
 ];
 
 export default function PricingPage() {
-  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  // Decisão Cris (A10.2): só cobrança mensal — checkout Stripe não tem anual.
 
   return (
     <div className="min-h-screen bg-[#FAF7F2]">
@@ -136,34 +132,14 @@ export default function PricingPage() {
           Escolha o plano certo para o seu negócio. Comece grátis e faça upgrade quando precisar.
         </p>
 
-        {/* Billing toggle */}
-        <div className="inline-flex items-center gap-3 bg-white border border-[#E5E7EB] rounded-xl p-1.5">
-          <button
-            onClick={() => setBilling("monthly")}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${billing === "monthly" ? "bg-[#0F172A] text-white" : "text-[#1F2937] hover:text-[#0F172A]"}`}
-          >
-            Mensal
-          </button>
-          <button
-            onClick={() => setBilling("yearly")}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${billing === "yearly" ? "bg-[#0F172A] text-white" : "text-[#1F2937] hover:text-[#0F172A]"}`}
-          >
-            Anual
-            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${billing === "yearly" ? "bg-[#C8A96B] text-[#0F172A]" : "bg-[#FAF7F2] text-[#C8A96B] border border-[#C8A96B]"}`}>
-              2 meses grátis
-            </span>
-          </button>
-        </div>
+        {/* Billing: mensal (único período suportado pelo checkout) */}
       </section>
 
       {/* Plans */}
       <section className="container mx-auto px-4 pb-20">
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {plans.map((plan) => {
-            const price = billing === "monthly" ? plan.price.monthly : plan.price.yearly;
-            const perMonth = billing === "yearly" && plan.price.yearly > 0
-              ? (plan.price.yearly / 12).toFixed(2)
-              : null;
+            const price = plan.price.monthly;
 
             return (
               <div
@@ -188,11 +164,8 @@ export default function PricingPage() {
                     <>
                       <div className="flex items-end gap-1">
                         <span className="text-4xl font-display text-[#0F172A]">€{price}</span>
-                        <span className="text-[#1F2937] text-sm mb-1">/{billing === "monthly" ? "mês" : "ano"}</span>
+                        <span className="text-[#1F2937] text-sm mb-1">/mês</span>
                       </div>
-                      {perMonth && (
-                        <p className="text-[#9CA3AF] text-sm mt-0.5">≈ €{perMonth}/mês</p>
-                      )}
                     </>
                   )}
                 </div>
@@ -225,9 +198,9 @@ export default function PricingPage() {
           })}
         </div>
 
-        {/* Money back */}
+        {/* Money back — alinhado com Termos 5.3 (14 dias, direito de resolução). */}
         <p className="text-center text-[#1F2937] text-sm mt-8">
-          🔒 30 dias de garantia de devolução do dinheiro em todos os planos pagos.
+          🔒 14 dias para resolução, conforme os Termos de Serviço.
         </p>
       </section>
 

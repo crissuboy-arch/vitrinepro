@@ -27,6 +27,8 @@ const SITE_DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  // I5 (A10.2): canonical explícito da home.
+  alternates: { canonical: siteUrl },
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   applicationName: "VitrinePro",

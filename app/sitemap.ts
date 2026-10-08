@@ -34,11 +34,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .limit(1000),
       supabase
         .from("cities")
-        .select("slug")
+        .select("id, slug")
         .eq("is_active", true),
       supabase
         .from("categories")
-        .select("slug")
+        .select("id, slug")
         .eq("is_active", true),
     ]);
 
@@ -52,15 +52,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
 
     if (citiesRes.data && catsRes.data) {
-      for (const city of citiesRes.data) {
-        for (const cat of catsRes.data) {
-          seoRoutes.push({
-            url: `${siteUrl}/${city.slug}/${cat.slug}`,
-            changeFrequency: "weekly" as const,
-            priority: 0.8,
-            lastModified: new Date(),
-          });
-        }
+      // I5 (A10.2): só inclui cidade×categoria com conteúdo real elegível
+      // (≥1 negócio publicado). Combinações vazias não entram no sitemap
+      // para não gerar páginas indexáveis sem oferta local.
+      const { data: combos } = await supabase
+        .from("businesses")
+        .select("city_id, category_id")
+        .eq("published", true)
+        .not("city_id", "is", null)
+        .not("category_id", "is", null)
+        .limit(5000);
+      const citySlugById = new Map<string, string>(
+        (citiesRes.data || []).map((c: { id: string; slug: string }) => [c.id, c.slug])
+      );
+      const catSlugById = new Map<string, string>(
+        (catsRes.data || []).map((c: { id: string; slug: string }) => [c.id, c.slug])
+      );
+      const seen = new Set<string>();
+      for (const b of combos || []) {
+        const cSlug = citySlugById.get(b.city_id) || b.city_id;
+        const kSlug = catSlugById.get(b.category_id) || b.category_id;
+        if (!cSlug || !kSlug) continue;
+        const key = `${cSlug}/${kSlug}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        seoRoutes.push({
+          url: `${siteUrl}/${key}`,
+          changeFrequency: "weekly" as const,
+          priority: 0.8,
+          lastModified: new Date(),
+        });
       }
     }
   } catch {

@@ -27,9 +27,19 @@ import {
 export const runtime = "nodejs";
 
 // Rate limit simples: 60 req/min por IP.
+// I8 (A10.2): limpeza periódica para o mapa não crescer sem limite.
 const hits = new Map<string, { count: number; reset: number }>();
+let lastSweep = Date.now();
+function sweepHits(now: number) {
+  if (now - lastSweep < 60_000) return;
+  lastSweep = now;
+  for (const [ip, rec] of hits) {
+    if (now > rec.reset) hits.delete(ip);
+  }
+}
 function rateLimited(ip: string): boolean {
   const now = Date.now();
+  sweepHits(now);
   const rec = hits.get(ip);
   if (!rec || now > rec.reset) {
     hits.set(ip, { count: 1, reset: now + 60000 });

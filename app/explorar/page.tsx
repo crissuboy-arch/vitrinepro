@@ -374,6 +374,13 @@ export default function ExplorarPage() {
           .filter((p: any) => productMatchesQuery(p, q))
           .map((p: any) => ({ ...p, business: bizById.get(p.business_id) || null }))
           .filter((h: any) => h.business)
+          // I1 (A10.2): mesma semântica de cidade dos negócios — produto de
+          // outra cidade não aparece quando uma cidade está selecionada.
+          .filter((h: any) => {
+            if (selectedCity === "Todas as Cidades") return true;
+            const bc = String(h.business?.city || "").toLowerCase();
+            return bc === selectedCity.toLowerCase();
+          })
           // A5 — modo "Preciso Hoje": só exclui com evidência negativa.
           // Produto FALSE nunca aparece como disponível; UNKNOWN passa.
           // Negócio fechado agora: só passa se o produto tem capacidade confirmada.
@@ -408,7 +415,7 @@ export default function ExplorarPage() {
       void runProductSearch(q);
     }, 350);
     return () => clearTimeout(timer);
-  }, [searchQuery, mounted, displayBusinesses, needToday]);
+  }, [searchQuery, mounted, displayBusinesses, needToday, selectedCity]);
 
   // A5-UX — submit da pesquisa (botão "🔎 Buscar" ou Enter): executa
   // imediatamente a MESMA pesquisa do debounce automático.
@@ -455,17 +462,36 @@ export default function ExplorarPage() {
         if (prodRes.status === "fulfilled") {
           const prods = (prodRes.value.data || [])
             .map((p: any) => ({ ...p, business: bizById.get(p.business_id) || null }))
-            .filter((p: any) => p.business);
+            .filter((p: any) => p.business)
+            // I1 (A10.2): mesma semântica de cidade dos negócios.
+            .filter((p: any) => {
+              if (selectedCity === "Todas as Cidades") return true;
+              return String(p.business?.city || "").toLowerCase() === selectedCity.toLowerCase();
+            });
           setFeedProducts(prods);
         }
         if (postRes.status === "fulfilled") {
           const posts = filterNovidadesFeed(
-            (postRes.value.data || []).map((r: any) => ({
-              ...r,
-              business: r.businesses ? { name: r.businesses.name, slug: r.businesses.slug } : null,
-            }))
+            (postRes.value.data || []).map((r: any) => {
+              const biz = bizById.get(r.business_id);
+              return {
+                ...r,
+                business: r.businesses
+                  ? { name: r.businesses.name, slug: r.businesses.slug, city: biz?.city || null }
+                  : null,
+              };
+            })
           );
-          setFeedPosts(posts);
+          // I1 (A10.2): mesma semântica de cidade — post de outra cidade
+          // não aparece no feed quando uma cidade está selecionada.
+          const cityFiltered =
+            selectedCity === "Todas as Cidades"
+              ? posts
+              : posts.filter(
+                  (p: any) =>
+                    String(p.business?.city || "").toLowerCase() === selectedCity.toLowerCase()
+                );
+          setFeedPosts(cityFiltered);
         }
       } catch {
         // Degradação graciosa: feed segue só com negócios.
@@ -474,7 +500,7 @@ export default function ExplorarPage() {
     return () => {
       cancelled = true;
     };
-  }, [mounted, displayBusinesses]);
+  }, [mounted, displayBusinesses, selectedCity]);
 
   // Colunas responsivas: 2 mobile, 3 tablet, 4 desktop.
   useEffect(() => {

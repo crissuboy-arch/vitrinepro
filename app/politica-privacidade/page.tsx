@@ -159,6 +159,12 @@ export default function PoliticaPrivacidadePage() {
                   garantia: "Cláusulas Contratuais Padrão (SCCs)",
                   site: "https://vercel.com/legal/privacy-policy"
                 },
+                {
+                  nome: "Anthropic, PBC (EUA)",
+                  papel: "Processamento das mensagens do assistente “Pergunte à Vitrine” — as perguntas enviadas nesse chat são transmitidas à Anthropic para gerar a resposta",
+                  garantia: "Cláusulas Contratuais Padrão (SCCs)",
+                  site: "https://www.anthropic.com/legal/privacy"
+                },
               ].map(({ nome, papel, garantia, site }) => (
                 <div key={nome} className="border border-[#E5E7EB] rounded-xl p-4 text-sm">
                   <p className="font-semibold text-[#0F172A]">{nome}</p>
@@ -176,7 +182,7 @@ export default function PoliticaPrivacidadePage() {
           <section className="space-y-3">
             <h2 className="text-lg font-display font-semibold text-[#0F172A]">6. Transferências Internacionais de Dados</h2>
             <p className="text-sm text-[#1F2937] leading-relaxed">
-              Alguns dos nossos subcontratantes (Supabase, Stripe, Vercel) têm servidores nos Estados Unidos da América. Estas transferências são realizadas ao abrigo de Cláusulas Contratuais Padrão aprovadas pela Comissão Europeia, nos termos do artigo 46.º do RGPD, garantindo um nível de proteção equivalente ao exigido na União Europeia.
+              Alguns dos nossos subcontratantes (Supabase, Stripe, Vercel, Anthropic) têm servidores nos Estados Unidos da América. Estas transferências são realizadas ao abrigo de Cláusulas Contratuais Padrão aprovadas pela Comissão Europeia, nos termos do artigo 46.º do RGPD, garantindo um nível de proteção equivalente ao exigido na União Europeia.
             </p>
           </section>
 

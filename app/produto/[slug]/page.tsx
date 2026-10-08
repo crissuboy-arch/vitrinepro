@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getProductBySlug } from "@/lib/business-actions";
 import { normalizeProductFraming, productImgStyle } from "@/lib/product-framing";
+import { availabilityBadge, productAvailabilityState } from "@/lib/availability";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -59,7 +60,9 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
 
   const business = product.businesses;
   const isDigital = product.type === "digital";
-  const isFree = isDigital && (product.price === 0 || product.price === null || product.price === undefined);
+  // I6 (A10.2): price NULL NUNCA significa €0 nem "grátis" — só price === 0
+  // explícito é gratuito. NULL usa apresentação neutra ("Preço sob consulta").
+  const isFree = isDigital && product.price === 0;
   const whatsappNumber = business?.whatsapp || business?.phone || "";
   const cleanWhatsapp = whatsappNumber.replace(/\D/g, "");
 
@@ -102,10 +105,10 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col font-sans select-none">
       
-      {/* Schema LD JSON */}
+      {/* Schema LD JSON — safeJsonLd (A10.1 C6): neutraliza </script> */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(productSchema) }}
       />
 
       {/* Header */}
@@ -228,27 +231,39 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                 </div>
               )}
 
-              {/* Pricing Display */}
+              {/* Pricing Display — I6 (A10.2): NULL ≠ grátis */}
               <div className="pt-2 flex items-baseline gap-2">
-                {product.price !== null && product.price > 0 ? (
+                {product.price !== null && product.price !== undefined && product.price > 0 ? (
                   <>
                     <span className="text-3xl md:text-4.5xl font-extrabold text-[#C8A96B] font-display">
                       €{product.price.toFixed(2)}
                     </span>
                     <span className="text-xs text-slate-400 font-light">Preço único</span>
                   </>
-                ) : (
+                ) : product.price === 0 ? (
                   <span className="text-3xl md:text-4.5xl font-extrabold text-emerald-400 font-display">
                     Grátis
+                  </span>
+                ) : (
+                  <span className="text-xl md:text-2xl font-semibold text-slate-300 font-display">
+                    Preço sob consulta
                   </span>
                 )}
               </div>
 
-              {/* Status Stock */}
-              <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Disponível para Encomenda
-              </div>
+              {/* Status Stock — I6 (A10.2): só afirma disponibilidade com dado real.
+                  available_today=true → badge; false → indisponível; null → sem afirmação. */}
+              {(() => {
+                const badge = availabilityBadge(productAvailabilityState(product));
+                if (!badge) return null;
+                const ok = badge === "Disponível hoje";
+                return (
+                  <div className={`flex items-center gap-1.5 text-xs font-medium ${ok ? "text-emerald-400" : "text-slate-400"}`}>
+                    <span className={`w-2 h-2 rounded-full ${ok ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`}></span>
+                    {badge}
+                  </div>
+                );
+              })()}
 
             </div>
 
