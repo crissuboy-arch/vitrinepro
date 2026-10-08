@@ -154,3 +154,117 @@ export const NOVIDADES_FULL_SELECT =
 /** Colunas do SELECT legado (migration ainda NÃO aplicada). */
 export const NOVIDADES_LEGACY_SELECT =
   "id,business_id,type,title,content,image_url,created_at";
+
+/* ─── A10.5 — carregamento robusto ("Novidades travadas") ───
+ *
+ * O dashboard ficava preso em "A carregar novidades…" quando o fetch
+ * nunca resolvia (rede travada) ou quando loadBusinessData lançava
+ * antes de chamar o loader. Este helper GARANTE um modo terminal:
+ * "full" | "legacy" | "unavailable" — nunca "loading" para sempre.
+ */
+
+/** Modo terminal do carregamento de novidades. */
+export type NovidadesLoadMode = "full" | "legacy" | "unavailable";
+
+export interface NovidadesLoadResult {
+  mode: NovidadesLoadMode;
+  /** Linhas carregadas (vazio em "unavailable" ou sem novidades). */
+  rows: Record<string, unknown>[];
+  /** Mensagem legível quando mode === "unavailable"; null nos outros. */
+  error: string | null;
+}
+
+/**
+ * Interface mínima do cliente Supabase (injeção de dependência p/ testes).
+ * O cliente real (@/app/lib/supabase) é aceite estruturalmente; o `any`
+ * evita a explosão de tipos genéricos do supabase-js.
+ */
+export interface NovidadesDbClient {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from(table: string): any;
+}
+
+/** Timeout de segurança: o loading SEMPRE termina. */
+export const NOVIDADES_LOAD_TIMEOUT_MS = 15000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label}: tempo esgotado após ${ms / 1000}s`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+function readableError(err: unknown): string {
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    if (typeof e["message"] === "string" && e["message"]) return e["message"];
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return String(err ?? "erro desconhecido");
+}
+
+/**
+ * Carrega as novidades de um negócio com degradação graciosa e timeout.
+ *
+ * 1. Tenta as colunas completas (migration 20261006000013 aplicada).
+ * 2. Em erro de coluna inexistente, recua para as colunas base ("legacy").
+ * 3. Qualquer outro erro (401/403/500, timeout, rede) → "unavailable"
+ *    com mensagem legível — NUNCA deixa o UI preso em "loading".
+ *
+ * Não altera RLS nem dados; só lê via RLS owner-scoped existente.
+ */
+export async function loadNovidadesState(
+  client: NovidadesDbClient,
+  businessId: string,
+  opts?: { timeoutMs?: number }
+): Promise<NovidadesLoadResult> {
+  const timeoutMs = opts?.timeoutMs ?? NOVIDADES_LOAD_TIMEOUT_MS;
+  const run = (
+    select: string
+  ): Promise<{ data: unknown; error: { message?: string; code?: string } | null }> => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const query: any = client
+      .from("business_posts")
+      .select(select)
+      .eq("business_id", businessId)
+      .order("created_at", { ascending: false });
+    return withTimeout(Promise.resolve(query), timeoutMs, "carregar novidades");
+  };
+
+  try {
+    const res = await run(NOVIDADES_FULL_SELECT);
+    if (res.error) throw res.error;
+    return {
+      mode: "full",
+      rows: (res.data as Record<string, unknown>[] | null) ?? [],
+      error: null,
+    };
+  } catch (err) {
+    if (!isMissingColumnError(err)) {
+      return {
+        mode: "unavailable",
+        rows: [],
+        error: `Não foi possível carregar as novidades (${readableError(err)}).`,
+      };
+    }
+  }
+
+  try {
+    const legacy = await run(NOVIDADES_LEGACY_SELECT);
+    if (legacy.error) throw legacy.error;
+    return {
+      mode: "legacy",
+      rows: (legacy.data as Record<string, unknown>[] | null) ?? [],
+      error: null,
+    };
+  } catch (legacyErr) {
+    return {
+      mode: "unavailable",
+      rows: [],
+      error: `Não foi possível carregar as novidades (${readableError(legacyErr)}).`,
+    };
+  }
+}

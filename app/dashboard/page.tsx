@@ -20,10 +20,9 @@ import { MONTRA_TABS, DEFAULT_MONTRA_TAB, isValidMontraTab } from "@/lib/montra-
 import {
   NOVIDADE_TYPES,
   NOVIDADE_CTA_OPTIONS,
-  NOVIDADES_FULL_SELECT,
-  NOVIDADES_LEGACY_SELECT,
   isMissingColumnError,
   novidadeTypeLabel,
+  loadNovidadesState,
 } from "@/lib/novidades";
 import { buildBusinessUpdatePayload, isValidGoogleReviewUrl } from "@/lib/business-profile";
 import { uploadLogo, uploadCover, uploadGallery, uploadProductImage, uploadNovidadeImage } from "@/lib/supabase-storage";
@@ -227,6 +226,8 @@ function DashboardContent() {
   // = tabela inacessível (secção escondida, sem crash).
   const [novidades, setNovidades] = useState<any[]>([]);
   const [novidadesMode, setNovidadesMode] = useState<"loading" | "full" | "legacy" | "unavailable">("loading");
+  // A10.5: erro legível quando o carregamento falha (nunca silêncio).
+  const [novidadesError, setNovidadesError] = useState<string | null>(null);
   const [showNovidadeModal, setShowNovidadeModal] = useState(false);
   const [editingNovidade, setEditingNovidade] = useState<any | null>(null);
   const [novType, setNovType] = useState("novidade");
@@ -338,6 +339,16 @@ function DashboardContent() {
     try {
       setBusiness(biz);
 
+      // A10.5: novidades carregam de forma independente e com timeout
+      // garantido (lib/novidades: loadNovidadesState). Uma falha noutra
+      // secção (products/gallery/...) nunca pode deixar "Novidades"
+      // preso em "loading".
+      try {
+        void loadNovidades(biz.id);
+      } catch (err) {
+        console.error("[DASHBOARD] loadNovidades dispatch falhou:", err);
+      }
+
       // Populate edit form states
       setEditName(biz.name || "");
       setEditDescription(biz.description || "");
@@ -382,8 +393,6 @@ function DashboardContent() {
       if (gallRes.data) setGallery(gallRes.data);
       if (catsRes.data) setCategories(catsRes.data);
       if (citiesRes.data) setCities(citiesRes.data);
-      // A6.5 — novidades carregam à parte: nunca quebram o resto do dashboard.
-      void loadNovidades(biz.id);
     } catch (err) {
       console.error("[DASHBOARD] Business load exception:", err);
     }
@@ -1189,42 +1198,28 @@ function DashboardContent() {
   };
 
   // ===== A6.5 — Novidades na Vitrine (business_posts) =====
-  // DEGRADAÇÃO GRACIOSA: a migration 20261006000013 pode ainda não estar
-  // aplicada. Tenta as colunas novas; em erro de coluna inexistente recua
-  // para as colunas base (modo "legacy"); só esconde se a tabela falhar.
+  // A10.5 — "Novidades travadas": o loader anterior deixava o UI preso em
+  // "loading" se o fetch nunca resolvesse ou se loadBusinessData lançasse
+  // antes da chamada. Agora:
+  // - loadNovidadesState (lib/novidades) GARANTE modo terminal via timeout;
+  // - a chamada acontece logo após o ownership check, independente do
+  //   Promise.all das outras secções;
+  // - erro legível + botão "Tentar novamente" em vez de silêncio.
   const loadNovidades = async (businessId: string) => {
     setNovidadesMode("loading");
+    setNovidadesError(null);
     try {
-      const res = await supabase
-        .from("business_posts")
-        .select(NOVIDADES_FULL_SELECT)
-        .eq("business_id", businessId)
-        .order("created_at", { ascending: false });
-      if (res.error) throw res.error;
-      setNovidades(res.data ?? []);
-      setNovidadesMode("full");
+      const result = await loadNovidadesState(supabase, businessId);
+      setNovidades(result.rows);
+      setNovidadesError(result.error);
+      setNovidadesMode(result.mode);
     } catch (err: any) {
-      const msg = String(err?.message || err);
-      if (!isMissingColumnError(msg)) {
-        console.error("[DASHBOARD] loadNovidades falhou:", msg);
-        setNovidades([]);
-        setNovidadesMode("unavailable");
-        return;
-      }
-      try {
-        const legacy = await supabase
-          .from("business_posts")
-          .select(NOVIDADES_LEGACY_SELECT)
-          .eq("business_id", businessId)
-          .order("created_at", { ascending: false });
-        if (legacy.error) throw legacy.error;
-        setNovidades(legacy.data ?? []);
-        setNovidadesMode("legacy");
-      } catch (legacyErr: any) {
-        console.error("[DASHBOARD] loadNovidades (legado) falhou:", legacyErr?.message);
-        setNovidades([]);
-        setNovidadesMode("unavailable");
-      }
+      // Defesa em profundidade: o helper nunca devia lançar, mas o
+      // loading TEM de terminar sempre.
+      console.error("[DASHBOARD] loadNovidades falhou de forma inesperada:", err);
+      setNovidades([]);
+      setNovidadesError("Não foi possível carregar as novidades.");
+      setNovidadesMode("unavailable");
     }
   };
 
@@ -2083,7 +2078,9 @@ function DashboardContent() {
                   <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Novidades na Vitrine</h3>
                   <p className="text-xs text-gray-400">Publica promoções, eventos e avisos — aparecem no Explorar.</p>
                 </div>
-                {novidadesMode !== "unavailable" && novidadesMode !== "loading" && (
+                {/* A10.5: o botão aparece em todos os modos exceto "loading" —
+                    em "unavailable" a tentativa de guardar mostra o erro real. */}
+                {novidadesMode !== "loading" && (
                   <button
                     onClick={openNovidadeModal}
                     className="px-4 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-xs font-bold rounded-lg transition-colors"
@@ -2103,7 +2100,18 @@ function DashboardContent() {
                 </p>
               )}
               {novidadesMode === "unavailable" && (
-                <p className="text-xs text-gray-500">As novidades estão indisponíveis de momento.</p>
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500">As novidades estão indisponíveis de momento.</p>
+                  {novidadesError && (
+                    <p className="text-xs text-red-400">{novidadesError}</p>
+                  )}
+                  <button
+                    onClick={() => business?.id && loadNovidades(business.id)}
+                    className="px-3 py-1.5 border border-gray-700 text-gray-300 rounded-lg text-xs hover:border-[#C8A96B] hover:text-[#C8A96B] transition-colors"
+                  >
+                    Tentar novamente
+                  </button>
+                </div>
               )}
 
               {(novidadesMode === "full" || novidadesMode === "legacy") && (
