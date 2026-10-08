@@ -422,6 +422,20 @@ function DashboardContent() {
     }
   }, [mounted, montraId]);
 
+  // A10.5b — auto-recuperação de Novidades: se a aba for aberta e o
+  // carregamento inicial nunca aconteceu (modo "idle"), dispara-o aqui.
+  // NOTA (A10.5d): este hook tem de viver ANTES de qualquer early return
+  // do componente (antes de `if (!mounted || loading)` / `if (!business)`).
+  // Na posição anterior (após os returns), a vista de conta nunca o
+  // registava e "Gerenciar Montra" registava +1 hook após o render
+  // anterior → React error #310 ("Rendered more hooks than during the
+  // previous render") → "This page couldn't load".
+  useEffect(() => {
+    if (activeTab === "novidades" && business?.id && novidadesMode === "idle") {
+      void loadNovidades(business.id);
+    }
+  }, [activeTab, business?.id, novidadesMode]);
+
   const handleUpgrade = async (planId: string) => {
     if (!business?.id) return;
     setCheckoutLoading(true);
@@ -1223,16 +1237,6 @@ function DashboardContent() {
       setNovidadesMode("unavailable");
     }
   };
-
-  // A10.5b — auto-recuperação: se a aba Novidades for aberta e o carregamento
-  // inicial nunca aconteceu (modo "idle"), dispara-o aqui. Isto torna o
-  // "loading" infinito estruturalmente impossível: o texto "A carregar…"
-  // só aparece dentro de loadNovidades(), que garante modo terminal.
-  useEffect(() => {
-    if (activeTab === "novidades" && business?.id && novidadesMode === "idle") {
-      void loadNovidades(business.id);
-    }
-  }, [activeTab, business?.id, novidadesMode]);
 
   const resetNovidadeForm = () => {
     setEditingNovidade(null);
