@@ -117,11 +117,14 @@ function nullIfBlank(value: string | null | undefined): string | null {
  * A10.4 item 3 — valida o link de avaliação do Google.
  *
  * Aceita: URL HTTPS cujo host seja um domínio Google legítimo
- * (google.com, maps.google.com, g.page, goo.gl, search.google.com…),
- * incluindo os formatos oficiais de link de avaliação
- * (g.page/.../review, google.com/maps/..., search.google.com/local/writereview...).
+ * (google.com, maps.google.com, g.page, goo.gl, search.google.com,
+ * share.google…), incluindo os formatos oficiais de link de avaliação
+ * (g.page/.../review, google.com/maps/..., search.google.com/local/writereview...)
+ * e o link oficial de compartilhamento do Perfil da Empresa
+ * (share.google/... — abre o perfil, onde está a ação de avaliar).
  *
- * Rejeita: javascript:, data:, http:, hosts não-Google, URLs malformadas.
+ * Rejeita: javascript:, data:, http:, hosts não-Google, domínios
+ * semelhantes (share-google.com, sharegoogle.com…), URLs malformadas.
  * String vazia → false (para limpar, o dashboard grava NULL via nullIfBlank).
  */
 const GOOGLE_REVIEW_HOSTS = [
@@ -136,6 +139,10 @@ const GOOGLE_REVIEW_HOSTS = [
   "g.page",
   "goo.gl",
   "maps.app.goo.gl",
+  // A10.5: link oficial de compartilhamento do Perfil da Empresa
+  // (ex.: https://share.google/xxxxx). Domínio do Google; abre o
+  // perfil da empresa (destino legítimo do Google).
+  "share.google",
 ];
 
 export function isValidGoogleReviewUrl(raw: string | null | undefined): boolean {

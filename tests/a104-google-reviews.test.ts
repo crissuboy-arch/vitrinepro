@@ -26,6 +26,19 @@ describe("A10.4 item 3 — validação do link Google", () => {
     assert.equal(isValidGoogleReviewUrl("https://www.google.pt/maps/place/X"), true);
   });
 
+  it("aceita o link oficial de compartilhamento do Perfil da Empresa (share.google)", () => {
+    assert.equal(isValidGoogleReviewUrl("https://share.google/abcXYZ123"), true);
+    assert.equal(isValidGoogleReviewUrl("https://share.google/15rurHWJgMWXMx0jd"), true);
+  });
+
+  it("rejeita domínios semelhantes a share.google", () => {
+    assert.equal(isValidGoogleReviewUrl("https://share-google.com/x"), false);
+    assert.equal(isValidGoogleReviewUrl("https://sharegoogle.com/x"), false);
+    assert.equal(isValidGoogleReviewUrl("https://share.google.evil.com/x"), false);
+    assert.equal(isValidGoogleReviewUrl("https://evil-share.google/x"), false);
+    assert.equal(isValidGoogleReviewUrl("http://share.google/x"), false); // sem HTTPS
+  });
+
   it("rejeita URLs maliciosas e inseguras", () => {
     assert.equal(isValidGoogleReviewUrl("javascript:alert(1)"), false);
     assert.equal(isValidGoogleReviewUrl("data:text/html,<h1>x</h1>"), false);
