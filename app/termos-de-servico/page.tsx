@@ -100,7 +100,7 @@ export default function TermosDeServicoPag() {
                 ))}
               </div>
               <div className="space-y-2 text-sm text-[#1F2937]">
-                <p><strong>4.1</strong> Os pagamentos são processados pela Stripe, Inc. e cobrados com a periodicidade escolhida (mensal ou anual).</p>
+                <p><strong>4.1</strong> Os pagamentos são processados pela Stripe, Inc. e cobrados mensalmente.</p>
                 <p><strong>4.2</strong> As subscrições renovam-se automaticamente no final de cada período, salvo cancelamento antes da data de renovação.</p>
                 <p><strong>4.3</strong> Os preços indicados incluem o IVA à taxa legal em vigor em Portugal (quando aplicável).</p>
                 <p><strong>4.4</strong> Em caso de alteração de preços, os clientes existentes serão notificados com pelo menos 30 dias de antecedência.</p>

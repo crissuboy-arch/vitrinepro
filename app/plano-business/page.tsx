@@ -54,12 +54,7 @@ const features = [
   {
     icon: "🤖",
     title: "Chatbot IA 24/7",
-    desc: "Assistente virtual com IA Claude responde clientes automaticamente fora do horário. Nunca perca um lead.",
-  },
-  {
-    icon: "🌍",
-    title: "Multi-localização",
-    desc: "Gerencie múltiplos pontos de serviço a partir de um único painel. Ideal para negócios com várias moradas.",
+    desc: "Assistente virtual responde clientes automaticamente fora do horário. Nunca perca um lead.",
   },
   {
     icon: "📱",
@@ -76,9 +71,9 @@ const steps = [
 ];
 
 const faqs = [
-  { q: "O plano Business inclui tudo do Premium?", a: "Sim. O Business inclui todas as funcionalidades do Premium e adiciona destaque máximo, chatbot IA avançado, multi-localização, relatório mensal e suporte prioritário." },
+  { q: "O plano Business inclui tudo do Premium?", a: "Sim. O Business inclui todas as funcionalidades do Pro e adiciona destaque na pesquisa, chatbot IA 24h e suporte prioritário." },
   { q: "Posso cancelar a qualquer momento?", a: "Sim. Sem fidelização. Se cancelar, o seu negócio fica ativo no plano gratuito sem perder o perfil." },
-  { q: "Como funciona o pagamento?", a: "O pagamento é mensal (€29,90/mês) ou anual com desconto. Processado com segurança pelo Stripe com cartão de crédito." },
+  { q: "Como funciona o pagamento?", a: "O pagamento é mensal (€29,90/mês). Processado com segurança pelo Stripe com cartão de crédito." },
   { q: "Em quanto tempo fica ativo?", a: "Imediatamente após o pagamento o plano é ativado automaticamente. Sem espera, sem aprovação manual." },
   { q: "O link público funciona sem app?", a: "Sim. A sua vitrine é uma página web responsiva. Abre no telemóvel, tablet e computador sem instalar nada." },
 ];
@@ -320,7 +315,7 @@ export default function PlanoBusiness() {
             <div className="text-slate-400 text-sm">/mês · cancele quando quiser</div>
           </div>
           <ul className="text-left space-y-2 text-sm">
-            {["Tudo do plano Premium incluído", "1.º lugar garantido nas pesquisas", "Chatbot IA Claude avançado", "Multi-localização", "Suporte prioritário por email", "Relatório mensal de desempenho"].map((f) => (
+            {["Tudo do plano Pro incluído", "Destaque na pesquisa", "Chatbot IA 24h", "Suporte prioritário por email"].map((f) => (
               <li key={f} className="flex items-start gap-2 text-slate-300">
                 <span className="text-[#C8A96B] flex-shrink-0 mt-0.5">✓</span> {f}
               </li>
