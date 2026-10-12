@@ -52,6 +52,41 @@ describe("transfer: autorização e confirmação", () => {
   });
 });
 
+describe("entrega de contas: convite seguro", () => {
+  const src = read("app/api/admin/invites/route.ts");
+
+  it("exige requireAdmin", () => {
+    assert.ok(src.includes("requireAdmin()"), "admin obrigatório");
+  });
+  it("nunca cria senha padrão partilhada", () => {
+    assert.ok(!src.toLowerCase().includes("password"), "sem senha no código");
+    assert.ok(
+      src.includes("inviteUserByEmail"),
+      "convite do Supabase (link único)"
+    );
+  });
+  it("não reenvia convite se a conta já existe", () => {
+    assert.ok(src.includes("already_exists"), "devolve conta existente");
+  });
+  it("valida o formato do email", () => {
+    assert.ok(src.includes("Email inválido"), "recusa email inválido");
+  });
+  it("audita o convite", () => {
+    assert.ok(src.includes('adminLog("users.invite"'), "audit log");
+  });
+});
+
+describe("transfer: identidade do destino confirmada", () => {
+  const src = read("app/api/admin/businesses/[id]/transfer/route.ts");
+  it("exige email confirmado da conta de destino", () => {
+    assert.ok(
+      src.includes("email_confirmed_at"),
+      "verifica confirmação de email"
+    );
+    assert.ok(src.includes("409"), "recusa destino não verificado");
+  });
+});
+
 describe("impact: somente leitura", () => {
   const src = read("app/api/admin/businesses/[id]/impact/route.ts");
   it("exige requireAdmin", () => {

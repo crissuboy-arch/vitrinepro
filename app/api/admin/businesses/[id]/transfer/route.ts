@@ -112,6 +112,26 @@ export async function POST(
     );
   }
 
+  // Identidade do destino: a conta tem de existir E ter o email confirmado
+  // (a cliente aceitou o convite e definiu a própria senha). Não se
+  // transfere propriedade para conta não verificada.
+  const { data: destUser } = await svc.auth.admin.getUserById(destId);
+  if (!destUser?.user) {
+    return NextResponse.json(
+      { error: "Conta de destino não encontrada" },
+      { status: 404 }
+    );
+  }
+  if (!destUser.user.email_confirmed_at) {
+    return NextResponse.json(
+      {
+        error:
+          "A conta de destino ainda não confirmou o email. Envie o convite (POST /api/admin/invites) e aguarde a confirmação.",
+      },
+      { status: 409 }
+    );
+  }
+
   const { error: updError } = await svc
     .from("businesses")
     .update({ user_id: destId, updated_at: new Date().toISOString() })
