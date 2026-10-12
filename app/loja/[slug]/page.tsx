@@ -178,7 +178,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
                         className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden hover:border-[#C8A96B]/50 transition-all duration-300 flex flex-col justify-between group"
                       >
                         <div>
-                          <div className="relative h-44 bg-slate-950 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                          <div className="relative aspect-[4/5] bg-slate-950 flex-shrink-0 flex items-center justify-center overflow-hidden">
                             {prod.image_url ? (
                               <Image
                                 src={prod.image_url}

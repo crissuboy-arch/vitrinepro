@@ -982,7 +982,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                       className="bg-slate-900/60 border border-slate-800/80 rounded-xl overflow-hidden hover:border-[#C8A96B]/50 transition-all duration-300 flex flex-col group"
                     >
                       <div
-                        className="relative h-44 bg-slate-950 flex-shrink-0 flex items-center justify-center cursor-pointer overflow-hidden"
+                        className="relative aspect-[4/5] bg-slate-950 flex-shrink-0 flex items-center justify-center cursor-pointer overflow-hidden"
                         onClick={() => product.image_url && setLightboxImg(product.image_url)}
                       >
                         {product.image_url ? (
