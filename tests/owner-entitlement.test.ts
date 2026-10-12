@@ -7,7 +7,8 @@
  * - Montra da owner → entitlement "business" (sem Stripe, sem gravar plano).
  * - Qualquer outra Montra → plano normalizado do banco (nunca escalado).
  * - Consumidor/merchant nunca recebem privilégios de owner.
- * - Owner é mais estreita que admin (allowlist própria).
+ * - Owner é uma allowlist EXPLÍCITA e própria (duas contas autorizadas);
+ *   não concede automaticamente a outros administradores.
  */
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
@@ -47,10 +48,11 @@ describe("owner-entitlement", () => {
     assert.equal(effectivePlanId(null, false), "free");
   });
 
-  it("isOwnerEmail: case-insensitive, allowlist própria", () => {
+  it("isOwnerEmail: case-insensitive, as duas contas autorizadas", () => {
     assert.equal(isOwnerEmail("cris.suboy@gmail.com"), true);
-    assert.equal(isOwnerEmail("CRIS.SUBOY@GMAIL.COM"), true);
-    assert.equal(isOwnerEmail("geralvitrinepropt@gmail.com"), false); // admin ≠ owner
+    assert.equal(isOwnerEmail("geralvitrinepropt@gmail.com"), true);
+    assert.equal(isOwnerEmail("GERALVITRINEPROPT@GMAIL.COM"), true);
+    assert.equal(isOwnerEmail("outro.admin@gmail.com"), false); // admin não-owner
     assert.equal(isOwnerEmail("cliente@loja.pt"), false);
     assert.equal(isOwnerEmail(null), false);
     assert.equal(isOwnerEmail(""), false);
@@ -66,7 +68,10 @@ describe("owner-entitlement", () => {
     assert.equal(isOwnerEmail("cris.suboy@gmail.com"), false);
   });
 
-  it("fallback padrão é só a cris (não todos os admins)", () => {
-    assert.deepEqual(getOwnerEmails(), ["cris.suboy@gmail.com"]);
+  it("fallback padrão: só as duas contas autorizadas (não outros admins)", () => {
+    assert.deepEqual(getOwnerEmails(), [
+      "cris.suboy@gmail.com",
+      "geralvitrinepropt@gmail.com",
+    ]);
   });
 });

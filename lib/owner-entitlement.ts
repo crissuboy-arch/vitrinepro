@@ -27,7 +27,10 @@ import { normalizePlan, type PlanId } from "./plans.ts";
 // admin-auth é importado dinamicamente (só no servidor, só quando preciso)
 // para este módulo continuar importável em testes sem o alias @/.
 
-const DEFAULT_OWNER_EMAILS = ["cris.suboy@gmail.com"];
+const DEFAULT_OWNER_EMAILS = [
+  "cris.suboy@gmail.com",
+  "geralvitrinepropt@gmail.com",
+];
 
 /** Allowlist da proprietária — env PLATFORM_OWNER_EMAILS ou fallback. */
 export function getOwnerEmails(): string[] {

@@ -14,6 +14,13 @@ import { join } from "node:path";
 
 const read = (p: string) => readFileSync(join(import.meta.dirname, "..", p), "utf8");
 
+/** Extrai os emails do DEFAULT_OWNER_EMAILS no código-fonte. */
+function getFallbackEmails(src: string): string[] {
+  const m = src.match(/DEFAULT_OWNER_EMAILS\s*=\s*\[([\s\S]*?)\]/);
+  if (!m) return [];
+  return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+}
+
 describe("transfer: autorização e confirmação", () => {
   const src = read("app/api/admin/businesses/[id]/transfer/route.ts");
 
@@ -67,10 +74,14 @@ describe("entitlement: verificação server-side", () => {
       "não lê a allowlist de admin"
     );
   });
-  it("fallback não inclui o segundo admin", () => {
-    assert.ok(
-      !lib.includes("geralvitrinepropt@gmail.com"),
-      "owner mais estreita que admin"
+  it("fallback contém exatamente as duas contas autorizadas", () => {
+    const src = read("lib/owner-entitlement.ts");
+    assert.ok(src.includes("cris.suboy@gmail.com"), "conta Cris");
+    assert.ok(src.includes("geralvitrinepropt@gmail.com"), "conta VitrinePro");
+    assert.equal(
+      getFallbackEmails(src).length,
+      2,
+      "nenhum outro email no fallback"
     );
   });
   it("rota entitlement verifica no servidor", () => {
