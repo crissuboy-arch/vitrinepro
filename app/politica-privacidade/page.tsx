@@ -165,6 +165,12 @@ export default function PoliticaPrivacidadePage() {
                   garantia: "Cláusulas Contratuais Padrão (SCCs)",
                   site: "https://www.anthropic.com/legal/privacy"
                 },
+                {
+                  nome: "OpenRouter (EUA)",
+                  papel: "Processamento das mensagens do assistente virtual das Montras (planos Pro/Business) — as perguntas enviadas nesse chat são transmitidas à OpenRouter para gerar a resposta. Os pedidos são encaminhados apenas para fornecedores que não recolhem dados do utilizador (data_collection: deny)",
+                  garantia: "Cláusulas Contratuais Padrão (SCCs)",
+                  site: "https://openrouter.ai/privacy"
+                },
               ].map(({ nome, papel, garantia, site }) => (
                 <div key={nome} className="border border-[#E5E7EB] rounded-xl p-4 text-sm">
                   <p className="font-semibold text-[#0F172A]">{nome}</p>
@@ -182,7 +188,7 @@ export default function PoliticaPrivacidadePage() {
           <section className="space-y-3">
             <h2 className="text-lg font-display font-semibold text-[#0F172A]">6. Transferências Internacionais de Dados</h2>
             <p className="text-sm text-[#1F2937] leading-relaxed">
-              Alguns dos nossos subcontratantes (Supabase, Stripe, Vercel, Anthropic) têm servidores nos Estados Unidos da América. Estas transferências são realizadas ao abrigo de Cláusulas Contratuais Padrão aprovadas pela Comissão Europeia, nos termos do artigo 46.º do RGPD, garantindo um nível de proteção equivalente ao exigido na União Europeia.
+              Alguns dos nossos subcontratantes (Supabase, Stripe, Vercel, Anthropic, OpenRouter) têm servidores nos Estados Unidos da América. Estas transferências são realizadas ao abrigo de Cláusulas Contratuais Padrão aprovadas pela Comissão Europeia, nos termos do artigo 46.º do RGPD, garantindo um nível de proteção equivalente ao exigido na União Europeia.
             </p>
           </section>
 

@@ -13,19 +13,24 @@
  *  - Chatbot entitlement validated server-side against the business plan
  *    (Pro/Business). Anonymous visitors keep working — no login required —
  *    but only within the business's quota/entitlement and the rate limit.
- *  - Anthropic errors never leak stack traces or secrets to the client.
- *  - Anthropic stays the provider (no OpenAI migration here).
+ *  - Provider errors never leak stack traces or secrets to the client.
+ *  - OpenRouter is the provider (lib/ai/openrouter-chat.ts): fixed cheap
+ *    model, server-side key, data_collection "deny".
  */
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { rateLimit, getClientIp, __resetRateLimitsForTests } from "@/lib/rate-limit";
 import { PLANS, planHasChatbot } from "@/lib/plans";
+import { getSiteUrl } from "@/lib/site";
+import {
+  callOpenRouterChat,
+  getOpenRouterKey,
+} from "@/lib/ai/openrouter-chat";
 import {
   isValidMessage,
   sanitizeHistory,
   isValidBusinessRef,
-  type ChatMessage,
 } from "@/lib/chat-validation";
 
 export const runtime = "nodejs";
@@ -121,7 +126,7 @@ Regras de conduta:
 5. Mantenha um tom acolhedor de quem deseja ajudar o cliente.`;
 }
 
-/** Offline fallback when ANTHROPIC_API_KEY is not configured. */
+/** Offline fallback when OPENROUTER_API_KEY is not configured. */
 function ruleBasedReply(
   message: string,
   business: BusinessRow | null,
@@ -166,46 +171,6 @@ function ruleBasedReply(
     return `Estamos em: ${business.address || "consulte a nossa página"}.`;
   }
   return "Posso te orientar melhor pelo WhatsApp. Queres que eu te encaminhe?";
-}
-
-async function callAnthropic(system: string, history: ChatMessage[], message: string): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001", // A10.6: 3.5-sonnet aposentado pela Anthropic (404) → Haiku 4.5
-        max_tokens: 1024,
-        system,
-        messages: [...history, { role: "user", content: message }],
-      }),
-    });
-
-    if (!response.ok) {
-      // Log status only — never the body (may contain keyed error detail).
-      console.error(`[CHAT API] Anthropic respondeu com status ${response.status}`);
-      return null;
-    }
-
-    const data = await response.json();
-    const text = data?.content?.[0]?.text;
-    return typeof text === "string" && text.length > 0 ? text : null;
-  } catch (err) {
-    console.error("[CHAT API] Falha ao contactar Anthropic:", err instanceof Error ? err.message : "desconhecido");
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 export async function POST(request: Request) {
@@ -302,14 +267,19 @@ export async function POST(request: Request) {
 
   const system = isPlatform ? platformSystemPrompt() : businessSystemPrompt(business as BusinessRow, products);
 
-  // 5. Provider call (Anthropic stays; safe errors only).
-  const reply = await callAnthropic(system, cleanHistory, (message as string).trim());
+  // 5. Provider call (OpenRouter; safe errors only).
+  const reply = await callOpenRouterChat(
+    system,
+    cleanHistory,
+    (message as string).trim(),
+    getSiteUrl()
+  );
   if (reply) {
     return NextResponse.json({ reply });
   }
 
   // 6. Graceful degradation: rule-based fallback or polite error.
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!getOpenRouterKey()) {
     return NextResponse.json({ reply: ruleBasedReply((message as string).trim(), business, products) });
   }
   return NextResponse.json(
