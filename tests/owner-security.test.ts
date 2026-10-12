@@ -39,7 +39,12 @@ describe("transfer: autorização e confirmação", () => {
   it("slugs protegidos nunca transferidos", () => {
     assert.ok(src.includes("turma-da-monica"), "protege turma-da-monica");
     assert.ok(src.includes("objetiva-metal"), "protege objetiva-metal");
-    assert.ok(src.includes("cantinho-da-lu"), "protege cantinho-da-lu");
+    const m = src.match(/PROTECTED_SLUGS\s*=\s*\[([\s\S]*?)\]/);
+    assert.ok(m, "array PROTECTED_SLUGS existe");
+    assert.ok(
+      !m[1].includes("cantinho-da-lu"),
+      "cantinho-da-lu fora da blocklist por autorização explícita (2026-10-12)"
+    );
   });
   it("audita a transferência", () => {
     assert.ok(src.includes('adminLog("businesses.transfer"'), "audit log");
@@ -84,6 +89,37 @@ describe("transfer: identidade do destino confirmada", () => {
       "verifica confirmação de email"
     );
     assert.ok(src.includes("409"), "recusa destino não verificado");
+  });
+});
+
+describe("handover UI: transferência só com confirmação explícita", () => {
+  const src = read("app/admin/handover.tsx");
+
+  it("usa os endpoints Super Admin existentes", () => {
+    assert.ok(src.includes("/api/admin/businesses?q="), "localiza pelo slug");
+    assert.ok(src.includes("/api/admin/invites"), "verifica/convida conta");
+    assert.ok(src.includes("/impact"), "inventário read-only");
+    assert.ok(src.includes("/transfer"), "transferência");
+  });
+  it("nunca executa sem confirmação explícita", () => {
+    assert.ok(src.includes("confirm: true"), "envia confirm:true");
+    assert.ok(src.includes("window.confirm"), "dupla confirmação no browser");
+    // O botão só ativa com checkbox + conta verificada + inventário.
+    assert.ok(src.includes("dest.email_confirmed"), "bloqueia destino não verificado");
+    assert.ok(src.includes("canTransfer"), "gate de ativação do botão");
+  });
+  it("não pede UUIDs à administradora", () => {
+    assert.ok(!src.toLowerCase().includes("cole o uuid"), "sem UUID manual");
+    assert.ok(src.includes("IDs resolvidos internamente"), "resolve no servidor");
+  });
+  it("não toca em Stripe, plano ou RLS", () => {
+    assert.ok(!src.toLowerCase().includes("stripe"), "sem Stripe");
+    assert.ok(!src.includes("plan:"), "não altera plano");
+  });
+  it("aba integrada no painel existente", () => {
+    const page = read("app/admin/page.tsx");
+    assert.ok(page.includes('"handover"'), "tab registada");
+    assert.ok(page.includes("HandoverPanel"), "componente integrado");
   });
 });
 

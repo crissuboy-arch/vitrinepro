@@ -22,11 +22,9 @@ import { requireAdmin, getServiceClient, adminLog } from "@/lib/admin-auth";
 export const runtime = "nodejs";
 
 // Montras cuja propriedade NUNCA pode ser transferida por esta rota.
-const PROTECTED_SLUGS = [
-  "turma-da-monica",
-  "objetiva-metal",
-  "cantinho-da-lu-1780338635504",
-];
+// (cantinho-da-lu foi removida daqui por autorização explícita da
+// proprietária em 2026-10-12 — transferência para a cliente real.)
+const PROTECTED_SLUGS = ["turma-da-monica", "objetiva-metal"];
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

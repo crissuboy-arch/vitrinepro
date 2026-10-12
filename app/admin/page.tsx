@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useAuth } from "../context/SupabaseAuthContext";
 import { supabase } from "../lib/supabase";
 import { isPaidTier } from "@/lib/plans";
+import HandoverPanel from "./handover";
 
 // UI-only gate: hides admin controls in the browser.
 // Real authorization happens server-side (app/api/admin/* checks ADMIN_EMAILS).
@@ -117,7 +118,7 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<"overview" | "businesses" | "categories" | "cities" | "users" | "leads">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "businesses" | "categories" | "cities" | "users" | "leads" | "handover">("overview");
 
   // Visão Geral (dados reais)
   const [overview, setOverview] = useState<AdminStats | null>(null);
@@ -665,6 +666,16 @@ export default function AdminPage() {
             }`}
           >
             📩 Leads ({leads.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("handover")}
+            className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${
+              activeTab === "handover"
+                ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
+                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+            }`}
+          >
+            🔑 Entregar
           </button>
         </div>
 
@@ -1532,6 +1543,9 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* ══════════ ENTREGAR MONTRA A CLIENTE ══════════ */}
+        {activeTab === "handover" && <HandoverPanel />}
       </div>
     </div>
   );
