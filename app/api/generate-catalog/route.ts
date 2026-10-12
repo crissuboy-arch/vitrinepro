@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import chromium from "@sparticuz/chromium-min";
 import puppeteer from "puppeteer-core";
 import { isPaidTier } from "@/lib/plans";
+import { isOwnerEmail, effectivePlanId } from "@/lib/owner-entitlement";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -291,8 +292,9 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ error: "Negócio não encontrado." }), { status: 404 });
   }
 
-  const plan = biz.plan || "free";
+  const plan = effectivePlanId(biz.plan || "free", isOwnerEmail(user.email));
   // A2.5: canonical paid-tier check (legacy aliases "premium"/"gold" included).
+  // Owner efectiva: Montra da proprietária tem entitlement pago sem Stripe.
   if (!isPaidTier(plan)) {
     return new Response(JSON.stringify({ error: "Funcionalidade exclusiva para planos Premium e Business." }), { status: 403 });
   }

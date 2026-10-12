@@ -28,6 +28,10 @@ import {
   getOpenRouterKey,
 } from "@/lib/ai/openrouter-chat";
 import {
+  getOwnerUserIds,
+  effectivePlanId,
+} from "@/lib/owner-entitlement";
+import {
   isValidMessage,
   sanitizeHistory,
   isValidBusinessRef,
@@ -54,6 +58,7 @@ interface ProductRow {
 
 interface BusinessRow {
   id: string;
+  user_id?: string | null;
   name: string;
   slug: string;
   whatsapp?: string | null;
@@ -233,7 +238,7 @@ export async function POST(request: Request) {
   if (!isPlatform) {
     let query = supabase
       .from("businesses")
-      .select("id, name, slug, whatsapp, phone, email, address, opening_hours, plan, published")
+      .select("id, user_id, name, slug, whatsapp, phone, email, address, opening_hours, plan, published")
       .eq("published", true)
       .limit(1);
     if (typeof businessId === "string" && businessId) query = query.eq("id", businessId);
@@ -246,7 +251,14 @@ export async function POST(request: Request) {
     business = data as BusinessRow;
 
     // 4. Entitlement validated server-side: chatbot is a Pro/Business benefit.
-    if (!planHasChatbot(business.plan)) {
+    // Owner efectiva: Montra da proprietária tem entitlement Business
+    // (calculado, nunca gravado — o plano no banco não muda).
+    const ownerIds = await getOwnerUserIds();
+    const effectivePlan = effectivePlanId(
+      business.plan,
+      !!business.user_id && ownerIds.includes(business.user_id)
+    );
+    if (!planHasChatbot(effectivePlan)) {
       return NextResponse.json(
         {
           reply:

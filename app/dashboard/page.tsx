@@ -293,8 +293,24 @@ function DashboardContent() {
       }
 
       loadedUserIdRef.current = session.user.id;
+
+      // Entitlement da proprietária (server-side). Se for owner, as PRÓPRIAS
+      // Montras usam plano Business efetivo (calculado, nunca gravado —
+      // o plano no banco e o Stripe não mudam).
+      let isOwner = false;
+      try {
+        const ent = await fetch("/api/auth/entitlement").then((r) => r.json());
+        isOwner = ent?.isOwner === true;
+      } catch {
+        // Sem entitlement → planos do banco (comportamento normal).
+      }
+      const applyOwnerEntitlement = (list: any[]) => {
+        if (isOwner) for (const b of list) b.plan = "business";
+        return list;
+      };
+
       const all = await getMyBusinesses(session.user.id);
-      setBusinesses(all);
+      setBusinesses(applyOwnerEntitlement(all));
 
       if (all.length === 0) {
         // A6.5 Parte A — consumidor autenticado com 0 businesses: NUNCA forçado
@@ -320,7 +336,7 @@ function DashboardContent() {
         return;
       }
 
-      await loadBusinessData(session.user.id, biz);
+      await loadBusinessData(session.user.id, applyOwnerEntitlement([biz])[0]);
     } catch (err) {
       console.error("[DASHBOARD] Fetch load exception:", err);
     } finally {

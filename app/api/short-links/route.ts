@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { isBusinessTier } from "@/lib/plans";
+import { isOwnerEmail, effectivePlanId } from "@/lib/owner-entitlement";
 
 export async function GET() {
   try {
@@ -76,7 +77,13 @@ export async function POST(request: Request) {
 
     // Verify plan is 'business'
     // A2.5: business tier only (canonical check).
-    if (!isBusinessTier(business.plan)) {
+    // Owner efectiva: Montra da proprietária tem entitlement Business
+    // sem Stripe (calculado, nunca gravado).
+    const effectivePlan = effectivePlanId(
+      business.plan,
+      isOwnerEmail(user.email)
+    );
+    if (!isBusinessTier(effectivePlan)) {
       return NextResponse.json(
         { error: "Funcionalidade disponível apenas no plano Business." },
         { status: 403 }
