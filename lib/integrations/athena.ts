@@ -64,3 +64,55 @@ export interface AthenaAuthenticatedContext {
   tenantId: string;
   scopes: AthenaScope[];
 }
+
+// ── FASE 2: autenticação máquina-a-máquina ──────────────────────────────
+
+import { timingSafeEqual } from "node:crypto";
+import { NextResponse } from "next/server";
+
+/**
+ * Nome da variável de ambiente (server-only, NUNCA NEXT_PUBLIC_)
+ * com a chave secreta da integração. Configurada na Vercel
+ * (Settings → Environment Variables); nunca commitada.
+ */
+export const ATHENA_API_KEY_ENV = "ATHENA_API_KEY";
+
+export interface IntegrationAuthResult {
+  ok: boolean;
+  response?: NextResponse;
+}
+
+/**
+ * Valida a chave de integração servidor-a-servidor.
+ *
+ * - Espera `Authorization: Bearer <chave>`.
+ * - Comparação em tempo constante (anti timing-attack).
+ * - 500 se a chave não estiver configurada no servidor
+ *   (não expõe nada além disso).
+ * - 401 se ausente ou inválida.
+ *
+ * Separada da autenticação de clientes: não usa Supabase Auth,
+ * não cria sessão, não toca em RLS.
+ */
+export function requireIntegrationKey(request: Request): IntegrationAuthResult {
+  const configured = process.env[ATHENA_API_KEY_ENV];
+  if (!configured) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Integração não configurada" }, { status: 500 }),
+    };
+  }
+  const header = request.headers.get("authorization") || "";
+  const presented = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  const a = Buffer.from(presented, "utf8");
+  const b = Buffer.from(configured, "utf8");
+  const valid =
+    presented.length > 0 && a.length === b.length && timingSafeEqual(a, b);
+  if (!valid) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Não autorizado" }, { status: 401 }),
+    };
+  }
+  return { ok: true };
+}
