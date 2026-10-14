@@ -272,17 +272,15 @@ export default function VitrineClient({ slug }: { slug: string }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
-  const [similarBusinesses, setSimilarBusinesses] = useState<any[]>([]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Load favorite status + similar businesses after business loads
+  // Load favorite status after business loads
   useEffect(() => {
     if (!business?.id) return;
 
@@ -299,21 +297,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
       if (data) { setIsFavorited(true); setFavoriteId(data.id); }
     };
 
-    // Fetch similar businesses (same category, excluding current)
-    const fetchSimilar = async () => {
-      const { data } = await supabase
-        .from("businesses")
-        .select("id, name, slug, category, city, logo_url, cover_url, cover_position_x, cover_position_y, cover_zoom, rating_average, plan")
-        .eq("published", true)
-        .eq("category", business.category)
-        .neq("id", business.id)
-        .limit(4);
-      setSimilarBusinesses(data || []);
-    };
-
     checkFav();
-    fetchSimilar();
-  }, [business?.id, business?.category]);
+  }, [business?.id]);
 
   const toggleFavorite = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -371,7 +356,6 @@ export default function VitrineClient({ slug }: { slug: string }) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           loggedInUser = user;
-          setCurrentUser(user);
         }
       } catch (err) {
         console.error("Error loading user in public page:", err);
@@ -860,34 +844,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
         </a>
       )}
 
-      {/* Top Navbar */}
-      <nav className="bg-[#0b1326] border-b border-slate-800/80 sticky top-0 z-30">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {currentUser && business && currentUser.id === business.user_id ? (
-              <Link
-                href="/dashboard"
-                className="text-xs font-semibold text-[#C8A96B] hover:text-[#D4BB82] transition-colors border border-[#C8A96B]/30 hover:border-[#C8A96B]/60 px-3 py-2 rounded-lg"
-              >
-                ⚙️ Voltar ao Dashboard
-              </Link>
-            ) : (
-              <Link
-                href="/"
-                className="text-xs text-slate-400 hover:text-white transition-colors border border-slate-800 hover:border-slate-600 px-3 py-2 rounded-lg"
-              >
-                ← Início
-              </Link>
-            )}
-            <Link href="/explorar" className="text-xs font-semibold text-slate-400 hover:text-white transition-colors border border-slate-800 hover:border-slate-650 px-3 py-2 rounded-lg">
-              🔍 Explorar
-            </Link>
-          </div>
-          <Link href="/" className="hover:opacity-90 transition-opacity">
-            <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 w-auto object-contain" />
-          </Link>
-        </div>
-      </nav>
+      {/* Sem navbar global nesta rota pública: experiência focada só no estabelecimento. */}
 
       {/* Full-width Cover Header */}
       <div className="relative h-60 sm:h-72 md:h-96 w-full bg-[#1b253b]">
@@ -1419,47 +1376,14 @@ export default function VitrineClient({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {/* ── Similar businesses ── */}
-      {similarBusinesses.length > 0 && (
-        <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
-          <h3 className="text-xl font-bold font-display text-white">Pessoas também visitaram</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {similarBusinesses.map(biz => (
-              <Link
-                key={biz.id}
-                href={`/vitrine/${biz.slug}`}
-                className="group bg-slate-900/60 border border-slate-800 hover:border-[#C8A96B]/40 rounded-xl overflow-hidden transition-all hover:-translate-y-0.5"
-              >
-                <div className="h-20 bg-slate-800 overflow-hidden relative">
-                  {biz.cover_url
-                    ? <img src={biz.cover_url} alt={`Capa de ${biz.name}`} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform" />
-                    : <div className="w-full h-full flex items-center justify-center text-2xl">🏪</div>}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent" />
-                </div>
-                <div className="p-3">
-                  <p className="text-white text-xs font-bold truncate group-hover:text-[#C8A96B] transition-colors">{biz.name}</p>
-                  <p className="text-slate-500 text-[10px] truncate">📍 {biz.city}</p>
-                  <p className="text-[#C8A96B] text-[10px] mt-1 font-bold">★ {biz.rating_average?.toFixed(1) || "5.0"}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Secção de montras similares removida: rota pública focada só neste estabelecimento. */}
 
-      {/* Footer */}
+      {/* Footer — sem navegação global: apenas atribuição discreta, sem links. */}
       <footer className="bg-[#050B14] border-t border-slate-900 py-10 mt-16 text-center text-slate-500 text-xs">
         <div className="max-w-5xl mx-auto px-4 flex flex-col items-center gap-3">
-          <Link href="/" className="hover:opacity-90 transition-opacity">
-            <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 object-contain bg-transparent" />
-          </Link>
-          <p className="text-slate-400">
-            <a href={`${CANONICAL_URL}?ref=${business.slug}`} 
-               target="_blank"
-               rel="noopener noreferrer"
-               style={{ color: "#C8A96B", textDecoration: "none", fontSize: "13px" }}>
-              ⚡ Criado com VitrinePro
-            </a>
+          <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 object-contain bg-transparent" />
+          <p className="text-slate-400" style={{ color: "#C8A96B", fontSize: "13px" }}>
+            ⚡ Criado com VitrinePro
           </p>
           <p className="text-[10px] text-slate-600">© 2026 VitrinePro. Todos os direitos reservados.</p>
         </div>
