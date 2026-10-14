@@ -1931,7 +1931,7 @@ function DashboardContent() {
                   className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white placeholder:text-gray-600"
                 />
                 <p className="text-[11px] text-gray-500 mt-1">
-                  Cole aqui o link para os clientes avaliarem seu negócio diretamente no Google.
+                  Cole o link do seu estabelecimento no Google para que os clientes possam deixar uma avaliação.
                 </p>
               </div>
             </div>

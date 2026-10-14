@@ -86,7 +86,7 @@ describe("A10.4 item 3 — botão na Montra pública", () => {
   it("botão só renderiza com link válido (nunca vazio)", () => {
     const src = read("app/vitrine/[slug]/VitrineClient.tsx");
     assert.ok(src.includes("isValidGoogleReviewUrl(business.googleReviewUrl)"), "gate de validade");
-    assert.ok(src.includes("Avaliar no Google"), "botão existe");
+    assert.ok(src.includes("Avalie-nos no Google"), "botão existe");
     assert.ok(src.includes('target="_blank"'), "abre em nova aba");
     assert.ok(src.includes('rel="noopener noreferrer"'), "link externo seguro");
   });
