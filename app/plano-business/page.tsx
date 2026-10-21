@@ -388,6 +388,9 @@ export default function PlanoBusiness() {
         <div className="max-w-4xl mx-auto px-4 space-y-2">
           <img src="/logo-vitrinepro.png" alt="VitrinePro" className="h-10 mx-auto object-contain" />
           <p>© 2026 VitrinePro. Todos os direitos reservados.</p>
+          <p className="text-[10px] text-slate-600">
+            Desenvolvido pela <span className="text-[#C9A96E]/80 font-medium">Ofensiva Criativa</span>
+          </p>
           <div className="flex justify-center gap-4">
             <Link href="/" className="hover:text-white transition-colors">Início</Link>
             <Link href="/pricing" className="hover:text-white transition-colors">Preços</Link>

@@ -44,6 +44,7 @@ import { BUSINESS_CHECKOUT_ENABLED, normalizePlan } from "@/lib/plans";
 // Landing components
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
+import { HeroCarrossel } from "@/components/ui/hero-carrossel";
 import DiscoverySearch from "@/components/landing/DiscoverySearch";
 import StatsSection from "@/components/landing/StatsSection";
 import BusinessTypesSection from "@/components/landing/BusinessTypesSection";
@@ -399,6 +400,17 @@ export default function HomePage() {
 
       {/* SECÇÃO 1 — HERO */}
       <HeroSection onCadastrar={handleCadastrarClick} />
+
+      {/* SECÇÃO 2 — EXEMPLOS DE MONTRAS (carrossel que vivia dentro da hero):
+          primeiro exemplo é real (Cantinho da Lu, com link para a Montra
+          pública); os restantes são demonstrações etiquetadas no próprio
+          carrossel. */}
+      <section className="relative py-14 md:py-20 bg-[#0A0D14] border-b border-[#C9A96E]/20 z-10">
+        <div className="max-w-6xl mx-auto px-4">
+          <HeroCarrossel />
+        </div>
+      </section>
+
       {/* A4.2 — descoberta local: "O que você procura perto de você?" */}
       <DiscoverySearch />
       <StatsSection />
@@ -568,6 +580,9 @@ export default function HomePage() {
 
           <p className="text-[10px] text-slate-700 pt-2">
             © 2026 VitrinePro · Portugal · Todos os direitos reservados
+          </p>
+          <p className="text-[10px] text-slate-600">
+            Desenvolvido pela <span className="text-[#C9A96E]/80 font-medium">Ofensiva Criativa</span>
           </p>
         </div>
       </footer>
