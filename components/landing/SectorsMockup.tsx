@@ -4,19 +4,25 @@
  * "Negócios reais. Todos os setores." (mockup aprovado): 6 cartões de
  * setor com as fotografias ilustrativas que o próprio mockup usa (já
  * usadas no site), faixa de factos do produto (sem números inventados)
- * e — só em mobile, como no mockup mobile — o bloco de destaque do
- * exemplo real Cantinho da Lu.
+ * e o bloco de demonstração do exemplo real Cantinho da Lu.
  *
- * Cantinho da Lu: nome/setor/cidade/produtos/preços reais e link para
- * a Montra pública verdadeira (publicada — presente no sitemap live).
- * A fotografia de capa é ilustrativa (a mesma aprovada na branch
- * feat/hero-ajuste); a nota do bloco diz-lo expressamente.
+ * CORREÇÃO VISUAL (21/10/2026, tarde): a demonstração passa a ser a
+ * peça central desta secção (2.ª dobra), em todos os ecrãs, com o
+ * MOCKUP DO TELEMÓVEL APROVADO pela Cristiane — ficheiro exato
+ * `public/mockup-cantinho-da-lu.png` (byte a byte do asset que ela
+ * forneceu; transparência preservada, sem cortes nem distorção). O
+ * telemóvel desenhado em CSS que aqui estava foi removido. O bloco é
+ * uma representação publicitária aprovada pela proprietária — a nota
+ * junto ao link diz-lo, sem afirmar que é uma captura literal da
+ * interface. Nome e link são os da Montra pública verdadeira dela
+ * (publicada — presente no sitemap live). Sem avaliações nem
+ * estatísticas inventadas.
  */
 
 import Link from "next/link";
+import Image from "next/image";
 
 const CANTINHO_URL = "https://vitrinepro.digital/vitrine/cantinho-da-lu-1780338635504";
-const CANTINHO_COVER = "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&q=80";
 
 const SECTORS: { icon: string; name: string; text: string; q: string; img?: string }[] = [
   {
@@ -71,7 +77,7 @@ const FACTS: { big: string; full: string; short: string }[] = [
 export default function SectorsMockup() {
   return (
     <section id="setores" className="py-12 lg:py-24 border-t border-[#C8A96B]/[0.12] relative z-10">
-      <div className="max-w-[1320px] mx-auto px-5 lg:px-10 text-center">
+      <div className="max-w-[1320px] mx-auto px-5 lg:px-10 text-center animate-fade-in-up">
         <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#C8A96B]/[0.22] bg-[#C8A96B]/[0.06] text-[10px] lg:text-[11px] font-semibold uppercase tracking-[0.18em] text-[#C8A96B]">
           Todos os negócios num só lugar
         </span>
@@ -118,49 +124,45 @@ export default function SectorsMockup() {
           <span className="w-1.5 h-1.5 rounded-full bg-white/25" />
         </div>
 
-        {/* Destaque mobile: exemplo real Cantinho da Lu (mockup mobile) */}
-        <div className="lg:hidden mt-[30px] text-left p-[18px] rounded-[20px] border border-[#C8A96B]/[0.22] bg-gradient-to-b from-[#101A33]/85 to-[#0B1224]/85">
-          <span className="inline-block px-2.5 py-1 rounded-full bg-[#3dd68c]/[0.12] text-[#5be3a4] text-[11px] font-semibold border border-[#3dd68c]/30 mb-2.5">
-            ● Exemplo real · uso autorizado
-          </span>
-          <h3 className="font-display font-bold text-2xl mb-1.5">Cantinho da Lu</h3>
-          <p className="text-[13.5px] text-[#A9B1C3] leading-[1.6]">
-            Uma Montra publicada, com dados reais. Veja como fica no telemóvel.
-          </p>
-
-          <div aria-hidden="true" className="w-[58%] mx-auto my-4 rounded-[26px] border-[6px] border-[#1b2440] bg-[#05080f] shadow-[0_24px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(200,169,107,0.12)] overflow-hidden">
-            <div className="bg-[#0c1428] p-2 flex flex-col gap-[7px]">
-              <img src={CANTINHO_COVER} alt="" className="rounded-lg aspect-[4/3] w-full object-cover" loading="lazy" />
-              <p className="text-[11px] font-bold text-[#F7F4EE] px-1">Cantinho da Lu</p>
-              <div className="px-1 space-y-1 text-[10px]">
-                <p className="flex justify-between">
-                  <span className="text-[#d3d9e6]">Coxinha no Cone</span>
-                  <span className="text-[#E6CB8C] font-bold">€3,00</span>
-                </p>
-                <p className="flex justify-between">
-                  <span className="text-[#d3d9e6]">Coxinha Grande com Catupiry</span>
-                  <span className="text-[#E6CB8C] font-bold">€2,50</span>
-                </p>
-              </div>
-              <span className="block text-center text-[10px] font-semibold py-[7px] rounded-lg bg-[#1fa855] text-white">WhatsApp</span>
-            </div>
+        {/* Demonstração: exemplo real Cantinho da Lu com o mockup do
+            telemóvel aprovado (asset exato, transparência preservada) */}
+        <div className="mt-[30px] lg:mt-[70px] text-left p-[18px] lg:p-10 rounded-[20px] border border-[#C8A96B]/[0.22] bg-gradient-to-b from-[#101A33]/85 to-[#0B1224]/85 grid lg:grid-cols-[auto_1fr] gap-6 lg:gap-12 items-center">
+          <div className="mx-auto lg:mx-0 w-[240px] sm:w-[280px] lg:w-[300px]">
+            <Image
+              src="/mockup-cantinho-da-lu.png"
+              alt="Telemóvel com a Montra do Cantinho da Lu — mockup publicitário aprovado"
+              width={941}
+              height={1672}
+              className="w-full h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.55)]"
+              sizes="(min-width: 1024px) 300px, (min-width: 640px) 280px, 240px"
+            />
           </div>
 
-          <a
-            href={CANTINHO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-5 py-[15px] rounded-[13px] font-bold text-[15px] text-[#0A0D14] bg-gradient-to-b from-[#E3C98B] to-[#C8A96B] shadow-[0_8px_28px_rgba(200,169,107,0.28)] w-full"
-          >
-            Ver Montra ao vivo →
-          </a>
-          <p className="text-[10.5px] text-[#E6CB8C]/85 break-all mt-2.5">
-            vitrinepro.digital/vitrine/cantinho-da-lu-1780338635504
-          </p>
-          <p className="text-[10.5px] text-[#A9B1C3]/70 leading-[1.5] mt-2.5">
-            Exemplo real de uma Montra publicada, com produtos e preços reais. Sem avaliações nem estatísticas
-            inventadas; a fotografia de capa é ilustrativa.
-          </p>
+          <div>
+            <span className="inline-block px-2.5 py-1 rounded-full bg-[#3dd68c]/[0.12] text-[#5be3a4] text-[11px] font-semibold border border-[#3dd68c]/30 mb-2.5">
+              ● Exemplo real · uso autorizado
+            </span>
+            <h3 className="font-display font-bold text-2xl lg:text-4xl mb-1.5">Cantinho da Lu</h3>
+            <p className="text-[13.5px] lg:text-base text-[#A9B1C3] leading-[1.6] max-w-[520px]">
+              Uma Montra publicada, com dados reais. Veja como fica no telemóvel — e imagine a do seu negócio.
+            </p>
+
+            <a
+              href={CANTINHO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-5 py-[15px] rounded-[13px] font-bold text-[15px] text-[#0A0D14] bg-gradient-to-b from-[#E3C98B] to-[#C8A96B] shadow-[0_8px_28px_rgba(200,169,107,0.28)] w-full sm:w-auto mt-5"
+            >
+              Ver Montra ao vivo →
+            </a>
+            <p className="text-[10.5px] text-[#E6CB8C]/85 break-all mt-2.5">
+              vitrinepro.digital/vitrine/cantinho-da-lu-1780338635504
+            </p>
+            <p className="text-[10.5px] text-[#A9B1C3]/70 leading-[1.5] mt-2.5 max-w-[520px]">
+              Mockup publicitário aprovado pela proprietária, a partir da Montra real dela. Os produtos, preços e
+              fotografias atuais estão na Montra, no link acima. Sem avaliações nem estatísticas inventadas.
+            </p>
+          </div>
         </div>
 
         {/* Faixa de factos — só verdades do produto */}

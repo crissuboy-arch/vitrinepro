@@ -59,7 +59,7 @@ export default function FaqMockup() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
-      <div className="max-w-[1320px] mx-auto px-10 text-center">
+      <div className="max-w-[1320px] mx-auto px-10 text-center animate-fade-in-up">
         <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#C8A96B]/[0.22] bg-[#C8A96B]/[0.06] text-[11px] font-semibold uppercase tracking-[0.18em] text-[#C8A96B]">
           FAQ
         </span>

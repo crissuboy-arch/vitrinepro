@@ -51,7 +51,7 @@ function Item({ children }: { children: React.ReactNode }) {
 export default function PlansMockup({ onSelectPlan }: PlansMockupProps) {
   return (
     <section id="planos" className="py-12 lg:py-24 border-t border-[#C8A96B]/[0.12] relative z-10">
-      <div className="max-w-[1320px] mx-auto px-5 lg:px-10 text-center">
+      <div className="max-w-[1320px] mx-auto px-5 lg:px-10 text-center animate-fade-in-up">
         <span className={TAG}>Planos</span>
         <h2 className="font-display font-bold text-[29px] lg:text-[clamp(34px,3.6vw,52px)] leading-[1.12] lg:leading-[1.1] mt-3.5 lg:mt-[18px] mb-2.5 lg:mb-3.5 text-[#F7F4EE]">
           Comece grátis. <span className="text-[#E6CB8C]">Cresça quando quiser.</span>

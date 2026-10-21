@@ -12,18 +12,18 @@
  * novas. Animações de entrada existentes (animate-fade-in-up, WaveText
  * nos CTAs) mantidas.
  *
- * Cartão real da hero = Cantinho da Lu (regra de reconciliação):
- * nome, setor, cidade e produtos/preços REAIS, e o cartão inteiro liga
- * à Montra pública verdadeira dela (confirmada no sitemap live).
- * A fotografia de capa é ilustrativa — a mesma já aprovada na branch
- * feat/hero-ajuste (carrossel) — porque a capa real não é incorporável
- * de forma fiável (a og:image da página dela é a imagem institucional).
- * Sem ratings nem estatísticas inventadas.
+ * CORREÇÃO VISUAL (21/10/2026, tarde): o portátil e o telefone
+ * desenhados que ficavam SOBRE a zona do globo foram retirados da
+ * hero — o globo volta a ser o único protagonista da lateral direita,
+ * inteiro e visível (composição copy-à-esquerda + globo-sozinho
+ * aprovada na branch feat/hero-ajuste). O papel de demonstração da
+ * Montra passa para a 2.ª dobra (SectorsMockup), com o mockup do
+ * telemóvel aprovado pela Cristiane.
  *
- * As imagens do "laptop" (grelha do Explorar) e dos cartões flutuantes
- * mobile são as fotografias REAIS de Montras publicadas que o próprio
- * mockup aprovado usa (capas/produtos servidos do storage público da
- * plataforma) — elementos decorativos, sem alegações associadas.
+ * Os cartões flutuantes da stage mobile são as fotografias REAIS de
+ * Montras publicadas que o próprio mockup aprovado usa (capas/produtos
+ * servidos do storage público da plataforma) — elementos decorativos,
+ * sem alegações associadas. Sem ratings nem estatísticas inventadas.
  */
 
 import Link from "next/link";
@@ -36,10 +36,7 @@ const GlobeBackground = dynamic(
   { ssr: false }
 );
 
-const CANTINHO_URL = "https://vitrinepro.digital/vitrine/cantinho-da-lu-1780338635504";
-const CANTINHO_COVER = "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&q=80";
-
-// Fotografias reais de Montras publicadas usadas no mockup aprovado.
+// Fotografias reais de Montras publicadas usadas no mockup aprovado (stage mobile).
 const IMG_NEGOCIO_REAL =
   "https://ryxbmsmheysdhnhzpbug.supabase.co/storage/v1/object/public/vitrine-covers/acfe72de-7a3b-4a3e-94cf-520acbc8f10f/1791465946097-yxaez94.jpg";
 const IMG_PRODUTO_1 =
@@ -61,82 +58,6 @@ const BTN_PRIMARY =
   "inline-flex items-center justify-center gap-2.5 px-[30px] py-4 rounded-[14px] font-bold text-[15px] text-[#0A0D14] bg-gradient-to-b from-[#E3C98B] to-[#C8A96B] shadow-[0_10px_36px_rgba(200,169,107,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(200,169,107,0.4)] w-full lg:w-auto";
 const BTN_GHOST =
   "inline-flex items-center justify-center gap-2.5 px-[30px] py-4 rounded-[14px] font-bold text-[15px] text-[#F7F4EE] bg-white/[0.03] border border-white/[0.22] transition-all duration-300 hover:border-[#C8A96B] w-full lg:w-auto";
-
-/** Telefone da stage desktop: a Montra real do Cantinho da Lu. */
-function CantinhoPhone() {
-  return (
-    <a
-      href={CANTINHO_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Ver a Montra real do Cantinho da Lu"
-      className="absolute right-[4%] top-[30%] w-[25%] block bg-[#05080f] border-[7px] border-[#1b2440] rounded-[30px] overflow-hidden shadow-[0_40px_90px_rgba(0,0,0,0.65),0_0_60px_rgba(200,169,107,0.18)] [transform:perspective(1500px)_rotateY(-14deg)_rotateZ(3deg)]"
-    >
-      <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-[36%] h-3 rounded-lg bg-[#05080f] z-[3]" />
-      <div className="relative aspect-[1/1.05] bg-cover bg-center" style={{ backgroundImage: `url(${CANTINHO_COVER})` }}>
-        <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-[#C8A96B] text-[#0A0D14] text-[9px] font-bold tracking-wide">
-          ✓ Exemplo real
-        </span>
-      </div>
-      <div className="p-3 bg-[#0c1428]">
-        <p className="text-xs font-bold text-[#F7F4EE]">Cantinho da Lu</p>
-        <p className="text-[9.5px] text-[#A9B1C3] mt-1">Lanches e Salgados · Águeda</p>
-        <div className="mt-2 space-y-1 text-[9.5px]">
-          <p className="flex justify-between gap-2">
-            <span className="text-[#d3d9e6]">Coxinha no Cone</span>
-            <span className="text-[#E6CB8C] font-bold">€3,00</span>
-          </p>
-          <p className="flex justify-between gap-2">
-            <span className="text-[#d3d9e6]">Coxinha c/ Catupiry</span>
-            <span className="text-[#E6CB8C] font-bold">€2,50</span>
-          </p>
-        </div>
-        <div className="flex gap-1.5 mt-2.5" aria-hidden="true">
-          <span className="flex-1 text-center text-[9.5px] font-semibold py-[7px] rounded-lg bg-[#1fa855] text-white">WhatsApp</span>
-          <span className="flex-1 text-center text-[9.5px] py-[7px] rounded-lg bg-white/[0.08] text-[#F7F4EE]">Ver Montra</span>
-        </div>
-      </div>
-    </a>
-  );
-}
-
-/** Laptop da stage desktop: grelha do Explorar com fotos reais (decorativo). */
-function ExplorarLaptop() {
-  const cards = [
-    { img: IMG_NEGOCIO_REAL, label: "Negócio real" },
-    { img: IMG_PRODUTO_1, label: "Produto" },
-    { img: IMG_PRODUTO_2, label: "Produto" },
-  ];
-  return (
-    <div
-      aria-hidden="true"
-      className="absolute left-[-6%] top-1/2 w-[62%] bg-[#05080f] border-[7px] border-b-[12px] border-[#1b2440] rounded-[14px] shadow-[0_40px_90px_rgba(0,0,0,0.65),0_0_60px_rgba(200,169,107,0.18)] [transform:perspective(1500px)_rotateY(-16deg)_rotateX(5deg)]"
-    >
-      <div className="flex gap-[5px] px-2 py-1.5 bg-[#0b1224]">
-        <span className="w-[7px] h-[7px] rounded-full bg-[#3a4568]" />
-        <span className="w-[7px] h-[7px] rounded-full bg-[#3a4568]" />
-        <span className="w-[7px] h-[7px] rounded-full bg-[#3a4568]" />
-      </div>
-      <div className="p-2.5 bg-gradient-to-b from-[#0f1830] to-[#0a1020]">
-        <div className="px-3 py-2 rounded-[9px] bg-white/[0.06] text-[10px] text-[#A9B1C3] mb-2.5">
-          🔍 Pesquise negócios, serviços, produtos…
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {cards.map((c) => (
-            <div
-              key={c.label + c.img}
-              className="relative aspect-[3/4] rounded-[10px] bg-cover bg-center flex items-end overflow-hidden"
-              style={{ backgroundImage: `url(${c.img}), linear-gradient(135deg,#2a3355,#15203d)` }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#070B14]/90" />
-              <span className="relative z-[2] text-[10px] font-semibold p-2">{c.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function HeroMockup() {
   const globeOn = useGlobeGate();
@@ -244,8 +165,11 @@ export default function HeroMockup() {
           </div>
         </div>
 
-        {/* ── Stage desktop: GLOBO REAL + dispositivos ── */}
-        <div className="relative hidden lg:block w-full max-w-[760px] ml-auto aspect-[1/1.02] animate-fade-in-up delay-200">
+        {/* ── Stage desktop: GLOBO REAL sozinho, protagonista da lateral
+            direita (correção visual 21/10/2026 — os dispositivos
+            desenhados que o cobriam saíram da hero; a demonstração da
+            Montra vive agora na 2.ª dobra). ── */}
+        <div className="relative hidden lg:block w-full max-w-[720px] ml-auto aspect-square animate-fade-in-up delay-200">
           <div
             aria-hidden="true"
             className="absolute rounded-full"
@@ -256,12 +180,8 @@ export default function HeroMockup() {
             }}
           />
           {/* O globo verdadeiro da plataforma (Three.js, globe-hero.tsx),
-              montado onde o mockup desenha o seu .globe3d. */}
-          <div aria-hidden="true" className="absolute" style={{ inset: "-16% -34% -6% -8%" }}>
-            {globeOn && <GlobeBackground />}
-          </div>
-          <ExplorarLaptop />
-          <CantinhoPhone />
+              inteiro e visível, sem nada por cima. */}
+          {globeOn && <GlobeBackground />}
         </div>
       </div>
     </section>

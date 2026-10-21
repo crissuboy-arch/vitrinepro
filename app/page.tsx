@@ -26,6 +26,7 @@ import { BUSINESS_CHECKOUT_ENABLED, normalizePlan } from "@/lib/plans";
 import NavMockup from "@/components/landing/NavMockup";
 import HeroMockup from "@/components/landing/HeroMockup";
 import DiscoverMockup from "@/components/landing/DiscoverMockup";
+import MarqueeMockup from "@/components/landing/MarqueeMockup";
 import SectorsMockup from "@/components/landing/SectorsMockup";
 import { ProblemMockup, FeaturesMockup, StepsMockup } from "@/components/landing/InfoMockup";
 import PlansMockup from "@/components/landing/PlansMockup";
@@ -137,6 +138,14 @@ export default function HomePage() {
   return (
     <div className={`${playfair.variable} ${dmSans.variable} font-sans relative min-h-screen bg-[#070B14] text-[#F7F4EE] flex flex-col select-none selection:bg-[#C8A96B] selection:text-[#0A0D14] overflow-x-hidden`}>
 
+      {/* Stripe-like Ambient Radial Mesh Gradients — restaurados da
+          landing original (f142170) na Correção Visual de 21/10/2026:
+          os brilhos ambientes que o redesign tinha retirado. */}
+      <div className="absolute top-[-10%] left-[-15%] w-[80vw] h-[80vw] sm:w-[60vw] sm:h-[60vw] rounded-full bg-gradient-to-tr from-[#C8A96B]/5 to-[#0A1226]/40 blur-[130px] pointer-events-none z-0" />
+      <div className="absolute top-[20%] right-[-20%] w-[90vw] h-[90vw] sm:w-[70vw] sm:h-[70vw] rounded-full bg-gradient-to-br from-blue-900/10 to-[#0A1226]/50 blur-[160px] pointer-events-none z-0" />
+      <div className="absolute bottom-[15%] left-[-20%] w-[90vw] h-[90vw] sm:w-[60vw] sm:h-[60vw] rounded-full bg-gradient-to-tr from-[#C8A96B]/3 to-[#0F172A]/50 blur-[140px] pointer-events-none z-0" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-[#C8A96B]/5 to-transparent blur-[120px] pointer-events-none z-0" />
+
       {/* Navbar (mockup) */}
       <NavMockup />
 
@@ -147,8 +156,13 @@ export default function HomePage() {
         {/* Pesquisa real + categorias */}
         <DiscoverMockup />
 
+        {/* Faixa marquee de categorias — efeito restaurado da landing
+            original (f142170, StatsSection) na Correção Visual */}
+        <MarqueeMockup />
+
         {/* Negócios reais · Todos os setores (+ faixa de factos;
-            destaque mobile do exemplo real Cantinho da Lu) */}
+            demonstração do exemplo real Cantinho da Lu com o mockup
+            do telemóvel aprovado) */}
         <SectorsMockup />
 
         {/* Problema (fora em ecrãs pequenos, como no mockup mobile) */}
