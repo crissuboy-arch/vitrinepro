@@ -1,50 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback, useRef, type CSSProperties } from "react"
 
-interface VitrineSlide {
-  nome: string;
-  tipo: string;
-  emoji: string;
-  badge: string;
-  imagem: string;
-  items: { nome: string; preco: string }[];
-  /** true apenas para Montras reais (hoje: só o Cantinho da Lu). */
-  real?: boolean;
-  /** Slug mostrado na barra de endereço do mockup (default: derivado do nome). */
-  slug?: string;
-  /** URL pública real — quando existe, o cartão inteiro liga à Montra. */
-  link?: string;
-  /** Métricas ilustrativas dos slides de demonstração legados.
-   *  No slide real NÃO se mostram números que não sejam os verificados. */
-  rating?: string;
-  visitas?: string;
-  curtidas?: string;
-  favoritos?: string;
-  partilhas?: string;
-}
-
-const vitrines: VitrineSlide[] = [
-  {
-    // ── EXEMPLO REAL — Cantinho da Lu (1.ª cliente real da VitrinePro).
-    // Nome, setor, cidade, plano e produtos/preços são os reais dela;
-    // o cartão liga à Montra pública verdadeira. A imagem é ilustrativa
-    // (fotografia genérica de pastelaria/salgados): a capa real dela não
-    // é incorporável de forma fiável a partir daqui — a og:image servida
-    // pela página pública é a imagem institucional da VitrinePro e a
-    // linha da base de dados não é legível via API pública anónima.
-    nome: "Cantinho da Lu",
-    tipo: "Lanches e Salgados · Águeda",
-    emoji: "🥟",
-    badge: "Pro",
-    imagem: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&q=80",
-    items: [
-      { nome: "Coxinha no Cone", preco: "€3.00" },
-      { nome: "Coxinha Grande com Catupiry", preco: "€2.50" },
-    ],
-    real: true,
-    slug: "cantinho-da-lu-1780338635504",
-    link: "https://vitrinepro.digital/vitrine/cantinho-da-lu-1780338635504",
-  },
+const vitrines = [
   {
     nome: "Tasca do Zé",
     tipo: "Restaurante · Lisboa",
@@ -58,6 +15,19 @@ const vitrines: VitrineSlide[] = [
       { nome: "Arroz de Marisco", preco: "€18.00" },
     ],
     visitas: "1.2k", curtidas: "84", favoritos: "37", partilhas: "12",
+  },
+  {
+    nome: "Corte Fino Barber",
+    tipo: "Barbearia · Porto",
+    emoji: "💈",
+    rating: "4.9",
+    badge: "Pro",
+    imagem: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&q=80",
+    items: [
+      { nome: "Corte Clássico", preco: "€12.00" },
+      { nome: "Corte + Barba", preco: "€18.00" },
+    ],
+    visitas: "843", curtidas: "56", favoritos: "23", partilhas: "8",
   },
   {
     nome: "Skin Glow Studio",
@@ -74,45 +44,18 @@ const vitrines: VitrineSlide[] = [
     visitas: "2.1k", curtidas: "142", favoritos: "89", partilhas: "31",
   },
   {
-    // Demonstração nova (loja/comércio) — sem métricas inventadas:
-    // rating e estatísticas ficam de fora; a etiqueta "Demonstração"
-    // no cartão identifica-a como exemplo fictício.
-    nome: "Boutique Elegance Moda",
-    tipo: "Loja de Moda · Funchal",
-    emoji: "🛍️",
+    nome: "Pastelaria Doce Lisboa",
+    tipo: "Pastelaria · Sintra",
+    emoji: "🎂",
+    rating: "4.8",
     badge: "Pro",
-    imagem: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800&q=80",
+    imagem: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&q=80",
     items: [
-      { nome: "Vestido Floral Primavera", preco: "€39.90" },
-      { nome: "Mala de Ombro Couro Ecológico", preco: "€24.90" },
+      { nome: "Pastel de Nata", preco: "€1.20" },
+      { nome: "Bolo de Aniversário", preco: "€35.00" },
+      { nome: "Croissant", preco: "€1.80" },
     ],
-    slug: "boutique-elegance-moda",
-  },
-  {
-    // Demonstração nova (prestador de serviços) — idem, sem métricas.
-    nome: "Canalizações Silva",
-    tipo: "Canalizador · Coimbra",
-    emoji: "🔧",
-    badge: "Pro",
-    imagem: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800&q=80",
-    items: [
-      { nome: "Deteção de Fugas de Água", preco: "€45.00" },
-      { nome: "Desentupimento de Esgotos", preco: "€60.00" },
-    ],
-    slug: "canalizacoes-silva",
-  },
-  {
-    nome: "Corte Fino Barber",
-    tipo: "Barbearia · Porto",
-    emoji: "💈",
-    rating: "4.9",
-    badge: "Pro",
-    imagem: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&q=80",
-    items: [
-      { nome: "Corte Clássico", preco: "€12.00" },
-      { nome: "Corte + Barba", preco: "€18.00" },
-    ],
-    visitas: "843", curtidas: "56", favoritos: "23", partilhas: "8",
+    visitas: "976", curtidas: "201", favoritos: "67", partilhas: "44",
   },
 ]
 
@@ -174,18 +117,7 @@ export function HeroCarrossel() {
         margin: "0 auto",
       }}
     >
-      <div style={{ transition: "opacity 0.4s ease", opacity: animating ? 0 : 1, position: "relative" }}>
-      {/* Slide real: o cartão inteiro liga à Montra pública verdadeira
-          (stretched link — o cartão não tem elementos interativos dentro). */}
-      {v.link && (
-        <a
-          href={v.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Ver a Montra real: ${v.nome}`}
-          style={{ position: "absolute", inset: 0, zIndex: 5 }}
-        />
-      )}
+      <div style={{ transition: "opacity 0.4s ease", opacity: animating ? 0 : 1 }}>
       {/* Browser top bar */}
       <div style={{
         background: "#1e2433",
@@ -209,7 +141,7 @@ export function HeroCarrossel() {
           color: "#888",
           textAlign: "center",
         }}>
-          vitrinepro.digital/vitrine/{v.slug ?? v.nome.toLowerCase().replace(/\s+/g, "-")}
+          vitrinepro.digital/vitrine/{v.nome.toLowerCase().replace(/\s+/g, "-")}
         </div>
       </div>
 
@@ -232,23 +164,6 @@ export function HeroCarrossel() {
             position: "absolute", inset: 0,
             background: "linear-gradient(to bottom, transparent 40%, rgba(26,34,53,0.8) 100%)",
           }} />
-          {/* Etiqueta de honestidade: exemplo real vs demonstração */}
-          <div style={{
-            position: "absolute", top: 10, left: 12,
-            background: v.real ? "rgba(201,169,110,0.95)" : "rgba(26,34,53,0.88)",
-            border: v.real ? "1px solid rgba(201,169,110,0.95)" : "1px solid rgba(255,255,255,0.25)",
-            borderRadius: "6px",
-            padding: "3px 10px",
-            fontSize: "10px",
-            fontWeight: 700,
-            letterSpacing: "0.04em",
-            color: v.real ? "#1a2235" : "#c8cdd6",
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-          }}>
-            {v.real ? "✓ Exemplo real" : "Demonstração"}
-          </div>
           <div style={{
             position: "absolute", bottom: 10, left: 12,
             background: "rgba(26,34,53,0.9)",
@@ -263,14 +178,12 @@ export function HeroCarrossel() {
           }}>
             📄 Catálogo PDF
           </div>
-          {v.rating && (
-            <div style={{
-              position: "absolute", bottom: 10, right: 12,
-              fontSize: "12px", color: "#f5f0e8", fontWeight: 600,
-            }}>
-              ★ {v.rating}
-            </div>
-          )}
+          <div style={{
+            position: "absolute", bottom: 10, right: 12,
+            fontSize: "12px", color: "#f5f0e8", fontWeight: 600,
+          }}>
+            ★ {v.rating}
+          </div>
         </div>
 
         {/* Info */}
@@ -347,16 +260,13 @@ export function HeroCarrossel() {
             </div>
           </div>
 
-          {/* Stats — só nos slides que já as tinham; no exemplo real e
-              nas demonstrações novas não se inventam métricas. */}
-          {v.visitas && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", fontSize: "11px", color: "#666" }}>
-              <span>👁 {v.visitas}</span>
-              <span>❤️ {v.curtidas}</span>
-              <span>⭐ {v.favoritos}</span>
-              <span>↗ {v.partilhas}</span>
-            </div>
-          )}
+          {/* Stats */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", fontSize: "11px", color: "#666" }}>
+            <span>👁 {v.visitas}</span>
+            <span>❤️ {v.curtidas}</span>
+            <span>⭐ {v.favoritos}</span>
+            <span>↗ {v.partilhas}</span>
+          </div>
         </div>
       </div>
       </div>
