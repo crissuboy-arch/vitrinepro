@@ -5,11 +5,13 @@ import { Marquee } from "@/components/ui/marquee";
 
 // ─── KPI data ────────────────────────────────────────────────────────────────
 
+// Launch gate (revisão comercial): números de facto do produto — sem
+// contagens de mercado/clientes que não podemos comprovar.
 const STATS = [
-  { value: 2500,  suffix: "+",   label: "Negócios online",    icon: "🏪" },
-  { value: 12000, suffix: "+",   label: "Clientes atendidos", icon: "👥" },
-  { value: 50,    suffix: "+",   label: "Cidades cobertas",   icon: "📍" },
-  { value: 5,     suffix: " min",label: "Para estar online",  icon: "⚡" },
+  { value: 4,  suffix: "",   label: "Passos para criar a Montra", icon: "📝" },
+  { value: 24, suffix: "/7", label: "Vitrine sempre online",      icon: "🌐" },
+  { value: 1,  suffix: "",   label: "Link único para divulgar",   icon: "🔗" },
+  { value: 2,  suffix: "",   label: "Planos: Grátis e Pro",       icon: "⚡" },
 ];
 
 // ─── Marquee data ─────────────────────────────────────────────────────────────

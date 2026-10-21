@@ -10,6 +10,7 @@ import { uploadLogo, uploadCover, uploadGallery } from "@/lib/supabase-storage";
 import { persistBusinessImageField, persistGalleryImages } from "@/lib/business-images";
 import { trackVitrineCreate } from "@/app/lib/analytics";
 import { checkoutPlanParam } from "@/lib/plans";
+import { canPublishBusiness } from "@/lib/publish-requirements";
 
 interface Category {
   id: string;
@@ -211,7 +212,16 @@ export default function OnboardingPage() {
         linkedin: linkedin || undefined,
         website: website || undefined,
         opening_hours: hours as unknown as Record<string, unknown>,
-        published: true, // Auto publish on successful onboarding
+        // Launch gate: só auto-publica se cumprir os requisitos mínimos
+        // (nome + categoria + cidade + WhatsApp). Caso contrário a Montra
+        // nasce em rascunho e publica-se no painel quando estiver completa
+        // (guarda em lib/publish-requirements + toggle do dashboard).
+        published: canPublishBusiness({
+          name,
+          category_id: categoryId || null,
+          city_id: cityId || null,
+          whatsapp,
+        }),
       });
 
       if (!result.success || !result.businessId) {
@@ -320,7 +330,7 @@ export default function OnboardingPage() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-display text-[#C8A96B] font-semibold mb-2">Informações Básicas</h2>
-                <p className="text-sm text-gray-400">Insira os dados essenciais sobre a sua empresa.</p>
+                <p className="text-sm text-gray-400">Só o nome é obrigatório para criar a sua Montra. Os restantes dados podem ser completados depois no painel — mas a categoria, a cidade e o WhatsApp são necessários para a publicar.</p>
               </div>
 
               <div className="space-y-4">
@@ -349,7 +359,7 @@ export default function OnboardingPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Categoria *</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Categoria</label>
                     <select
                       value={categoryId}
                       onChange={(e) => setCategoryId(e.target.value)}
@@ -400,7 +410,7 @@ export default function OnboardingPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Cidade *</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Cidade</label>
                     <select
                       value={cityId}
                       onChange={(e) => setCityId(e.target.value)}
@@ -433,8 +443,8 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (!name || !categoryId || !cityId) {
-                      setError("Por favor, preencha todos os campos obrigatórios (*).");
+                    if (!name.trim()) {
+                      setError("Por favor, indique o nome do negócio — é o único campo obrigatório para criar a Montra.");
                       return;
                     }
                     setError(null);
@@ -453,13 +463,13 @@ export default function OnboardingPage() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-display text-[#C8A96B] font-semibold mb-2">Contactos e Redes Sociais</h2>
-                <p className="text-sm text-gray-400">Adicione os canais de contacto preferidos dos seus clientes.</p>
+                <p className="text-sm text-gray-400">Adicione os canais de contacto preferidos dos seus clientes — ou salte este passo e complete depois no painel. Para publicar a Montra vai precisar de um WhatsApp.</p>
               </div>
 
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">WhatsApp *</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">WhatsApp</label>
                     <input
                       type="tel"
                       value={whatsapp}
@@ -566,7 +576,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <div className="flex justify-between pt-4">
+              <div className="flex justify-between items-center pt-4">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
@@ -574,20 +584,28 @@ export default function OnboardingPage() {
                 >
                   ← Anterior
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!whatsapp) {
-                      setError("WhatsApp é obrigatório para que os clientes o contactem.");
-                      return;
-                    }
-                    setError(null);
-                    setStep(3);
-                  }}
-                  className="px-6 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors"
-                >
-                  Seguinte →
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setStep(3);
+                    }}
+                    className="px-4 py-3 text-gray-400 hover:text-white font-medium rounded-lg transition-colors underline underline-offset-4"
+                  >
+                    Pular por agora
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setStep(3);
+                    }}
+                    className="px-6 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors"
+                  >
+                    Seguinte →
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -597,7 +615,7 @@ export default function OnboardingPage() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-display text-[#C8A96B] font-semibold mb-2">Imagens e Média</h2>
-                <p className="text-sm text-gray-400">Adicione a identidade visual da sua marca e fotos de galeria.</p>
+                <p className="text-sm text-gray-400">Adicione a identidade visual da sua marca e fotos de galeria — ou salte este passo e adicione as imagens depois no painel.</p>
               </div>
 
               <div className="space-y-6">
@@ -664,7 +682,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <div className="flex justify-between pt-4">
+              <div className="flex justify-between items-center pt-4">
                 <button
                   type="button"
                   onClick={() => setStep(2)}
@@ -672,13 +690,22 @@ export default function OnboardingPage() {
                 >
                   ← Anterior
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(4)}
-                  className="px-6 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors"
-                >
-                  Seguinte →
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStep(4)}
+                    className="px-4 py-3 text-gray-400 hover:text-white font-medium rounded-lg transition-colors underline underline-offset-4"
+                  >
+                    Pular por agora
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep(4)}
+                    className="px-6 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors"
+                  >
+                    Seguinte →
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -688,7 +715,7 @@ export default function OnboardingPage() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-display text-[#C8A96B] font-semibold mb-2">Horário de Funcionamento</h2>
-                <p className="text-sm text-gray-400">Defina os dias e horas de abertura do seu negócio.</p>
+                <p className="text-sm text-gray-400">Defina os dias e horas de abertura do seu negócio — os horários vêm pré-preenchidos e pode ajustá-los agora ou depois no painel.</p>
               </div>
 
               <div className="overflow-x-auto border border-gray-800 rounded-xl bg-[#0F172A]">
@@ -737,7 +764,7 @@ export default function OnboardingPage() {
                 </table>
               </div>
 
-              <div className="flex justify-between pt-4">
+              <div className="flex justify-between items-center pt-4">
                 <button
                   type="button"
                   onClick={() => setStep(3)}
@@ -746,14 +773,24 @@ export default function OnboardingPage() {
                 >
                   ← Anterior
                 </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="px-8 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
-                >
-                  {loading ? "A Guardar..." : "Guardar e Concluir ✔"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="px-4 py-3 text-gray-400 hover:text-white font-medium rounded-lg transition-colors underline underline-offset-4 disabled:opacity-50"
+                  >
+                    Pular por agora e concluir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="px-8 py-3 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? "A Guardar..." : "Guardar e Concluir ✔"}
+                  </button>
+                </div>
               </div>
             </div>
           )}

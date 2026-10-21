@@ -107,7 +107,7 @@ export default function LeadCapturePopup() {
                 <span className="text-[#C8A96B]">em 5 minutos</span>
               </h3>
               <p className="text-slate-400 text-xs mt-2 leading-relaxed">
-                Mais de 1.000 negócios em Portugal já têm a sua vitrine online. Cadastre-se grátis agora.
+                A sua vitrine profissional com produtos, contactos e botão de WhatsApp — pronta para partilhar. Cadastre-se grátis agora.
               </p>
             </div>
 

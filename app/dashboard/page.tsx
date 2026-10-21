@@ -14,6 +14,7 @@ import { supabase } from "../lib/supabase";
 import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/business-actions";
 import { isProTier, isBusinessTier, isPaidTier, normalizePlan, BUSINESS_CHECKOUT_ENABLED } from "@/lib/plans";
 import { isPublishedBusiness, isOwnerOf } from "@/lib/visibility";
+import { getMissingPublishRequirements, missingPublishMessage } from "@/lib/publish-requirements";
 import { getSiteUrl } from "@/lib/site";
 import { buildVitrineUrl, buildVitrineQrSrc, buildShortLinkUrl } from "@/lib/vitrine-share";
 import { MONTRA_TABS, DEFAULT_MONTRA_TAB, isValidMontraTab } from "@/lib/montra-tabs";
@@ -703,6 +704,13 @@ function DashboardContent() {
   const handleTogglePublish = async () => {
     if (!business) return;
     const targetStatus = !business.published;
+    // Launch gate: publicar exige os requisitos mínimos (nome, categoria,
+    // cidade, WhatsApp). A guarda aplica-se só à ação de publicar — nunca
+    // despublica uma Montra existente. Ver lib/publish-requirements.
+    if (targetStatus && getMissingPublishRequirements(business).length > 0) {
+      alert(missingPublishMessage(business));
+      return;
+    }
     try {
       const { error } = await supabase
         .from("businesses")

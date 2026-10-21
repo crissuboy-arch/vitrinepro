@@ -240,7 +240,7 @@ function LoginForm() {
           </h1>
           <p className="text-[#1F2937] text-center mb-8">
             {isSignUp 
-              ? "Junte-se a milhares de negócios em Portugal" 
+              ? "A sua vitrine profissional, pronta em minutos" 
               : "Bem-vindo de volta"}
           </p>
 
