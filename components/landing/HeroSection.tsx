@@ -1,7 +1,6 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { HeroCarrossel } from "@/components/ui/hero-carrossel";
 import { WaveText } from "@/components/ui/wave-text";
 
 const GlobeBackground = dynamic(
@@ -41,25 +40,10 @@ export default function HeroSection({ onCadastrar }: HeroSectionProps) {
   const isDesktop = useIsDesktop();
   return (
     <section className="relative flex items-center min-h-svh pt-28 pb-20 md:pt-36 md:pb-28 overflow-hidden bg-[#0A0D14] border-b border-[#C9A96E]/20 z-10">
-      {/* Globo — elemento decorativo na lateral direita, atrás do mockup;
-          comportamento e rotação inalterados (globe-hero.tsx intacto).
-          Desktop only (perf). A máscara dissolve a aresta esquerda para
-          o globo nunca competir com a copy. */}
-      <div
-        aria-hidden="true"
-        className="absolute top-[-10%] right-[-8%] w-[64%] h-[84%] pointer-events-none"
-        style={{
-          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 38%)",
-          maskImage: "linear-gradient(to right, transparent 0%, black 38%)",
-        }}
-      >
-        {isDesktop && <GlobeBackground />}
-      </div>
-
-      {/* Radial gold glow behind globe (agora centrado no globo, à direita) */}
+      {/* Radial gold glow behind globe (centrado na coluna do globo, à direita) */}
       <div style={{
         position: "absolute",
-        top: "34%",
+        top: "50%",
         left: "72%",
         transform: "translate(-50%, -50%)",
         width: "600px",
@@ -130,9 +114,18 @@ export default function HeroSection({ onCadastrar }: HeroSectionProps) {
             </div>
           </div>
 
-          {/* ── Coluna direita: mockup da plataforma (carrossel de Montras) ── */}
-          <div className="animate-fade-in-up delay-200">
-            <HeroCarrossel />
+          {/* ── Coluna direita: o globo original da plataforma (Three.js) ──
+              Componente reutilizado tal como está — rotação, iluminação e
+              efeitos intactos (globe-hero.tsx não é alterado). Agora vive
+              sozinho na coluna: inteiro e legível, sem nenhum elemento
+              sobreposto. Abaixo de lg empilha sob a copy; em mobile (<md)
+              não é montado (decisão de performance existente, gate
+              useIsDesktop) e a dobra fica composta só com a copy. */}
+          <div
+            aria-hidden="true"
+            className="relative hidden md:block h-[400px] lg:h-[600px] xl:h-[660px] animate-fade-in-up delay-200"
+          >
+            {isDesktop && <GlobeBackground />}
           </div>
         </div>
       </div>

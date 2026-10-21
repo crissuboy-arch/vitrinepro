@@ -305,6 +305,9 @@ export default function PricingPage() {
       <footer className="bg-[#0F172A] border-t border-[#1F2937] py-8">
         <div className="container mx-auto px-4 text-center text-xs text-[#9CA3AF]">
           <p>© 2025 VitrinePro. Todos os direitos reservados.</p>
+          <p className="mt-1.5 text-[10px] text-[#6B7280]">
+            Desenvolvido pela <span className="text-[#C9A96E]/80 font-medium">Ofensiva Criativa</span>
+          </p>
         </div>
       </footer>
     </div>
