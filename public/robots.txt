@@ -1,6 +1,0 @@
-# Robots.txt for VitrinePro
-User-agent: *
-Allow: /
-
-# Sitemap URL
-Sitemap: https://vitrinepro.pt/sitemap.xml

@@ -9,8 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // returned 404: /categorias, /cidades, /lojas.
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: siteUrl, changeFrequency: "daily", priority: 1.0, lastModified: new Date() },
-    { url: `${siteUrl}/login`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${siteUrl}/register`, changeFrequency: "monthly", priority: 0.5 },
+    // SEO: /login e /register são páginas de autenticação (noindex) — fora do sitemap.
     { url: `${siteUrl}/pricing`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/explorar`, changeFrequency: "daily", priority: 0.9 },
     { url: `${siteUrl}/plano-business`, changeFrequency: "weekly", priority: 0.9 },

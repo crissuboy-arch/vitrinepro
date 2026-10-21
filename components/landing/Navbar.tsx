@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { WaveText } from "@/components/ui/wave-text";
 import { useAuth } from "@/app/context/SupabaseAuthContext";
 import AccountMenu from "@/components/auth/AccountMenu";
@@ -52,9 +53,12 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="hover:opacity-90 transition-opacity flex-shrink-0" onClick={closeMenu} aria-label="VitrinePro">
-            <img
+            <Image
               src="/brand/logo-horizontal-transparent.png"
               alt="VitrinePro"
+              width={800}
+              height={216}
+              sizes="160px"
               className="h-8 w-auto object-contain"
             />
           </Link>
@@ -135,9 +139,12 @@ export default function Navbar({ onCadastrar }: NavbarProps) {
       >
         {/* Drawer header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/5">
-          <img
+          <Image
             src="/brand/logo-horizontal-transparent.png"
             alt="VitrinePro"
+            width={800}
+            height={216}
+            sizes="160px"
             className="h-7 w-auto object-contain"
           />
           <button

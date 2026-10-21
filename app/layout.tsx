@@ -10,20 +10,22 @@ import MetaPixel from "./components/MetaPixel";
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const siteUrl = getSiteUrl();
 const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 const bingVerification = process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION;
 
-const SITE_TITLE = "VitrinePro - Coloque seu negócio na frente de quem compra";
+const SITE_TITLE = "VitrinePro | Montra digital para negócios locais em Portugal";
 const SITE_DESCRIPTION =
-  "A sua vitrine digital para negócios locais ganharem visibilidade, contactos e clientes sem depender de anúncios pagos.";
+  "Crie a sua montra digital gratuita: produtos, serviços, WhatsApp e avaliações num só link. Feita para negócios locais em Portugal — online em minutos, sem programadores.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -96,7 +98,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${playfair.variable} ${inter.variable}`}>
+    <html lang="pt-PT" className={`${playfair.variable} ${inter.variable}`}>
       <body className="font-sans antialiased">
         <script
           type="application/ld+json"
