@@ -18,6 +18,7 @@
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { withVisibilityFallback } from "@/lib/visibility";
 import {
   searchIntelligence,
   type VitrineIntent,
@@ -98,23 +99,58 @@ export async function POST(request: Request) {
     const now = new Date();
 
     // Só dados públicos (RLS existente garante).
+    // Descoberta pública: published AND businesses.show_in_explore, com
+    // fallback pré-migration (20261021000021): sem a coluna, comporta-se
+    // como antes (a coluna show_in_explore de PRODUCTS já existe desde a
+    // migration 000014 e NÃO é tocada pelo fallback).
     const [bizRes, prodRes, postRes] = await Promise.all([
-      supabase
-        .from("businesses")
-        .select("id, name, slug, description, category, city, latitude, longitude, logo_url, cover_url, opening_hours, service_today")
-        .eq("published", true)
-        .limit(500),
-      supabase
-        .from("products")
-        .select("id, business_id, name, description, price, image_url, available_today, pickup_today, delivery_today, businesses!inner(id, name, slug, city, category, latitude, longitude, published)")
-        .eq("is_visible", true)
-        .eq("show_in_explore", true)
-        .limit(1000),
-      supabase
-        .from("business_posts")
-        .select("id, business_id, type, title, content, image_url, price, starts_at, expires_at, is_active, product_id, businesses!inner(id, name, slug, city, latitude, longitude, published), products!left(id, is_visible, show_in_explore)")
-        .eq("is_active", true)
-        .limit(500),
+      withVisibilityFallback(
+        () =>
+          supabase
+            .from("businesses")
+            .select("id, name, slug, description, category, city, latitude, longitude, logo_url, cover_url, opening_hours, service_today")
+            .eq("published", true)
+            .eq("show_in_explore", true)
+            .limit(500),
+        () =>
+          supabase
+            .from("businesses")
+            .select("id, name, slug, description, category, city, latitude, longitude, logo_url, cover_url, opening_hours, service_today")
+            .eq("published", true)
+            .limit(500)
+      ),
+      withVisibilityFallback(
+        () =>
+          supabase
+            .from("products")
+            .select("id, business_id, name, description, price, image_url, available_today, pickup_today, delivery_today, businesses!inner(id, name, slug, city, category, latitude, longitude, published, show_in_explore)")
+            .eq("is_visible", true)
+            .eq("show_in_explore", true)
+            .eq("businesses.show_in_explore", true)
+            .limit(1000),
+        () =>
+          supabase
+            .from("products")
+            .select("id, business_id, name, description, price, image_url, available_today, pickup_today, delivery_today, businesses!inner(id, name, slug, city, category, latitude, longitude, published)")
+            .eq("is_visible", true)
+            .eq("show_in_explore", true)
+            .limit(1000)
+      ),
+      withVisibilityFallback(
+        () =>
+          supabase
+            .from("business_posts")
+            .select("id, business_id, type, title, content, image_url, price, starts_at, expires_at, is_active, product_id, businesses!inner(id, name, slug, city, latitude, longitude, published, show_in_explore), products!left(id, is_visible, show_in_explore)")
+            .eq("is_active", true)
+            .eq("businesses.show_in_explore", true)
+            .limit(500),
+        () =>
+          supabase
+            .from("business_posts")
+            .select("id, business_id, type, title, content, image_url, price, starts_at, expires_at, is_active, product_id, businesses!inner(id, name, slug, city, latitude, longitude, published), products!left(id, is_visible, show_in_explore)")
+            .eq("is_active", true)
+            .limit(500)
+      ),
     ]);
 
     // A10.1 CRITICAL 5: diferenciar SEARCH_ERROR de ZERO_RESULTS.
@@ -136,7 +172,8 @@ export async function POST(request: Request) {
         opening_hours: b.opening_hours, service_today: b.service_today,
       })),
       products: (prodRes.data || [])
-        .filter((p: any) => p.businesses?.published && (!p.product_id || (p.products?.is_visible && p.products?.show_in_explore)))
+        // Pré-migration, businesses.show_in_explore é undefined = visível.
+        .filter((p: any) => p.businesses?.published && p.businesses?.show_in_explore !== false && (!p.product_id || (p.products?.is_visible && p.products?.show_in_explore)))
         .map((p: any) => ({
           id: p.id, business_id: p.business_id, name: p.name, description: p.description,
           price: p.price, image_url: p.image_url,
@@ -146,7 +183,8 @@ export async function POST(request: Request) {
           business_lat: p.businesses.latitude, business_lng: p.businesses.longitude,
         })),
       posts: (postRes.data || [])
-        .filter((p: any) => p.businesses?.published && (!p.product_id || (p.products?.is_visible && p.products?.show_in_explore)))
+        // Pré-migration, businesses.show_in_explore é undefined = visível.
+        .filter((p: any) => p.businesses?.published && p.businesses?.show_in_explore !== false && (!p.product_id || (p.products?.is_visible && p.products?.show_in_explore)))
         .map((p: any) => ({
           id: p.id, business_id: p.business_id, type: p.type, title: p.title,
           content: p.content, image_url: p.image_url, price: p.price,

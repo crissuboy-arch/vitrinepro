@@ -29,6 +29,7 @@ const EDITABLE = [
   "instagram",
   "website",
   "published",
+  "show_in_explore",
   "is_featured",
   "plan",
   "logo_url",

@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
+import { withVisibilityFallback } from "@/lib/visibility";
 
 interface Business {
   id: string;
@@ -124,12 +125,25 @@ export default function BusinessesPage() {
       try {
         // Fetch raw data
         const [bizRes, catsRes, citiesRes] = await Promise.all([
-          supabase
-            .from('businesses')
-            .select('*')
-            .eq('published', true)
-            .order('created_at', { ascending: false })
-            .limit(200), // cap query — avoid fetching unbounded rows
+          // Descoberta pública: published AND show_in_explore, com fallback
+          // pré-migration (20261021000021): sem a coluna, comporta-se como antes.
+          withVisibilityFallback(
+            () =>
+              supabase
+                .from('businesses')
+                .select('*')
+                .eq('published', true)
+                .eq('show_in_explore', true)
+                .order('created_at', { ascending: false })
+                .limit(200), // cap query — avoid fetching unbounded rows
+            () =>
+              supabase
+                .from('businesses')
+                .select('*')
+                .eq('published', true)
+                .order('created_at', { ascending: false })
+                .limit(200)
+          ),
           supabase.from("categories").select("id, name, icon").eq("is_active", true),
           supabase.from("cities").select("id, name, country").eq("is_active", true),
         ]);

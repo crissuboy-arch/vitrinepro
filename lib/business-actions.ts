@@ -2,6 +2,7 @@
 import { supabase } from "@/app/lib/supabase";
 import { generateSlug } from "./utils";
 import { creationPublishStamp } from "./published-at";
+import { withVisibilityFallback } from "./visibility";
 
 export interface BusinessInput {
   user_id: string;
@@ -320,13 +321,27 @@ export async function getBusinessesByCityAndCategory(
 
     // 2. Query businesses matching the city and category
     // Matching is done by name/id to support legacy and RLS structured data
-    const { data, error } = await supabase
-      .from("businesses")
-      .select("*")
-      .eq("published", true)
-      .or(`city_id.eq.${city.id},city.ilike.${city.name}`)
-      .or(`category_id.eq.${category.id},category.ilike.%${category.name}%`)
-      .order("plan", { ascending: false });
+    // Descoberta pública: published AND show_in_explore, com fallback
+    // pré-migration (20261021000021): sem a coluna, comporta-se como antes.
+    const { data, error } = await withVisibilityFallback(
+      () =>
+        supabase
+          .from("businesses")
+          .select("*")
+          .eq("published", true)
+          .eq("show_in_explore", true)
+          .or(`city_id.eq.${city.id},city.ilike.${city.name}`)
+          .or(`category_id.eq.${category.id},category.ilike.%${category.name}%`)
+          .order("plan", { ascending: false }),
+      () =>
+        supabase
+          .from("businesses")
+          .select("*")
+          .eq("published", true)
+          .or(`city_id.eq.${city.id},city.ilike.${city.name}`)
+          .or(`category_id.eq.${category.id},category.ilike.%${category.name}%`)
+          .order("plan", { ascending: false })
+    );
 
     if (error) throw error;
     return { city, category, businesses: data || [] };
@@ -345,11 +360,7 @@ export async function getMarketplaceProducts(
   offset = 0
 ): Promise<{ products: any[]; hasMore: boolean }> {
   try {
-    let query = supabase
-      .from("products")
-      .select("*, businesses!inner(id, name, slug, published, is_published, plan, logo_url, category_id, city, is_verified_store)")
-      .eq("businesses.published", true);
-
+    let catId: string | null = null;
     if (categorySlug && categorySlug !== "todas") {
       const { data: cat } = await supabase
         .from("categories")
@@ -357,15 +368,27 @@ export async function getMarketplaceProducts(
         .eq("slug", categorySlug)
         .maybeSingle();
 
-      if (cat) {
-        query = query.eq("businesses.category_id", cat.id);
-      }
+      if (cat) catId = cat.id;
     }
 
-    // Fetch one extra to know if there are more pages
-    const { data, error } = await query
-      .order("order_index", { ascending: true })
-      .range(offset, offset + limit);
+    // Descoberta pública: published AND show_in_explore, com fallback
+    // pré-migration (20261021000021): sem a coluna, comporta-se como antes.
+    const runQuery = (withExplore: boolean) => {
+      let query = supabase
+        .from("products")
+        .select("*, businesses!inner(id, name, slug, published, is_published, plan, logo_url, category_id, city, is_verified_store)")
+        .eq("businesses.published", true);
+      if (withExplore) query = query.eq("businesses.show_in_explore", true);
+      if (catId) query = query.eq("businesses.category_id", catId);
+      // Fetch one extra to know if there are more pages
+      return query
+        .order("order_index", { ascending: true })
+        .range(offset, offset + limit);
+    };
+    const { data, error } = await withVisibilityFallback(
+      () => runQuery(true),
+      () => runQuery(false)
+    );
 
     if (error) throw error;
     const rows = data || [];

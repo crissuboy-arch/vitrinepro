@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { getSiteUrl } from "@/lib/site";
+import { withVisibilityFallback } from "@/lib/visibility";
 
 const siteUrl = getSiteUrl();
 
@@ -25,12 +26,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
 
     const [bizRes, citiesRes, catsRes] = await Promise.all([
-      supabase
-        .from("businesses")
-        .select("slug, updated_at")
-        .eq("published", true)
-        .order("updated_at", { ascending: false })
-        .limit(1000),
+      // Descoberta pública: published AND show_in_explore, com fallback
+      // pré-migration (20261021000021): sem a coluna, comporta-se como antes.
+      withVisibilityFallback(
+        () =>
+          supabase
+            .from("businesses")
+            .select("slug, updated_at")
+            .eq("published", true)
+            .eq("show_in_explore", true)
+            .order("updated_at", { ascending: false })
+            .limit(1000),
+        () =>
+          supabase
+            .from("businesses")
+            .select("slug, updated_at")
+            .eq("published", true)
+            .order("updated_at", { ascending: false })
+            .limit(1000)
+      ),
       supabase
         .from("cities")
         .select("id, slug")
@@ -54,13 +68,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // I5 (A10.2): só inclui cidade×categoria com conteúdo real elegível
       // (≥1 negócio publicado). Combinações vazias não entram no sitemap
       // para não gerar páginas indexáveis sem oferta local.
-      const { data: combos } = await supabase
-        .from("businesses")
-        .select("city_id, category_id")
-        .eq("published", true)
-        .not("city_id", "is", null)
-        .not("category_id", "is", null)
-        .limit(5000);
+      const { data: combos } = await withVisibilityFallback(
+        () =>
+          supabase
+            .from("businesses")
+            .select("city_id, category_id")
+            .eq("published", true)
+            .eq("show_in_explore", true)
+            .not("city_id", "is", null)
+            .not("category_id", "is", null)
+            .limit(5000),
+        () =>
+          supabase
+            .from("businesses")
+            .select("city_id, category_id")
+            .eq("published", true)
+            .not("city_id", "is", null)
+            .not("category_id", "is", null)
+            .limit(5000)
+      );
       const citySlugById = new Map<string, string>(
         (citiesRes.data || []).map((c: { id: string; slug: string }) => [c.id, c.slug])
       );

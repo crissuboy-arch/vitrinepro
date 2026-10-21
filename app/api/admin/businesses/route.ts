@@ -28,24 +28,41 @@ export async function GET(request: Request) {
   const to = from + PAGE_SIZE - 1;
 
   try {
-    let query = svc
-      .from("businesses")
-      .select("id, user_id, name, slug, city, category, published, plan, created_at", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    // Degradação graciosa pré-migration (doutrina de lib/visibility.ts):
+    // enquanto a coluna show_in_explore (migration 20261021000021) não for
+    // aplicada, a lista cai para o select legado e assume "visível".
+    const runQuery = (withVisibility: boolean) => {
+      let query = svc
+        .from("businesses")
+        .select(
+          withVisibility
+            ? "id, user_id, name, slug, city, category, published, show_in_explore, plan, created_at"
+            : "id, user_id, name, slug, city, category, published, plan, created_at",
+          { count: "exact" }
+        )
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
-    if (q) {
-      // Busca por nome, slug, cidade ou user_id/owner.
-      // I4-A (A10.2): user_id.eq só com UUID válido — texto livre em
-      // coluna UUID quebra o PostgREST ("invalid input syntax for type uuid").
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
-      const orFilter = isUuid
-        ? `name.ilike.%${q}%,slug.ilike.%${q}%,city.ilike.%${q}%,user_id.eq.${q}`
-        : `name.ilike.%${q}%,slug.ilike.%${q}%,city.ilike.%${q}%`;
-      query = query.or(orFilter);
+      if (q) {
+        // Busca por nome, slug, cidade ou user_id/owner.
+        // I4-A (A10.2): user_id.eq só com UUID válido — texto livre em
+        // coluna UUID quebra o PostgREST ("invalid input syntax for type uuid").
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
+        const orFilter = isUuid
+          ? `name.ilike.%${q}%,slug.ilike.%${q}%,city.ilike.%${q}%,user_id.eq.${q}`
+          : `name.ilike.%${q}%,slug.ilike.%${q}%,city.ilike.%${q}%`;
+        query = query.or(orFilter);
+      }
+      return query;
+    };
+
+    let { data, error, count } = await runQuery(true);
+    if (error && /show_in_explore|42703|column/i.test(String((error as any)?.message || error))) {
+      const retry = await runQuery(false);
+      data = (retry.data || []).map((b: any) => ({ ...b, show_in_explore: true }));
+      error = retry.error;
+      count = retry.count;
     }
-
-    const { data, error, count } = await query;
     if (error) throw error;
 
     adminLog("businesses.list", { admin: auth.email, q: q || null, page, count });

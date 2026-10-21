@@ -84,9 +84,11 @@ describe("TESTE G — RLS inalterada", () => {
     // - PROPOSTA_* (propostas para revisão, NÃO aplicadas)
     // - 20261007000016/17/18 (migrations A10.1 autorizadas e aplicadas manualmente em produção)
     // - 20261007000019 (migration I3 A10.2 autorizada, NÃO aplicada)
+    // - 20261021000021 (controlo admin "Mostrar/Ocultar do Explorar",
+    //   autorizado pela Cristiane em 2026-10-21, NÃO aplicada — entrega-se o ficheiro)
     const out = execSync("git status --porcelain supabase/migrations/", { encoding: "utf8" });
     const lines = out.trim().split("\n").filter(Boolean);
-    const allowed = ["PROPOSTA_", "20261007000016_", "20261007000017_", "20261007000018_", "20261007000019_"];
+    const allowed = ["PROPOSTA_", "20261007000016_", "20261007000017_", "20261007000018_", "20261007000019_", "20261021000021_"];
     const real = lines.filter((l) => !allowed.some((a) => l.includes(a)));
     assert.strictEqual(real.join("\n"), "", "sem migrations aplicadas nesta tarefa além das autorizadas A10.1");
   });
