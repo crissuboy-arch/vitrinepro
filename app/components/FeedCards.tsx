@@ -95,12 +95,24 @@ export function FeedProductCard({ item, eager = false }: { item: any; eager?: bo
 }
 
 /** Card de NEGÓCIO: [cover natural] nome, categoria/localidade */
-export function FeedBusinessCard({ item, eager = false }: { item: any; eager?: boolean }) {
+export function FeedBusinessCard({
+  item,
+  eager = false,
+  onBusinessNavigate,
+}: {
+  item: any;
+  eager?: boolean;
+  onBusinessNavigate?: (slug: string) => void;
+}) {
   const b = item.data;
   const meta = [b.category, b.city].filter(Boolean).join(" • ");
   return (
     <div data-feed-kind="business" className="relative break-inside-avoid rounded-2xl overflow-hidden bg-[#0F172A]/40 border border-gray-800 hover:border-[#C8A96B]/50 transition-colors">
-      <Link href={`/vitrine/${b.slug}`} className="block">
+      <Link
+        href={`/vitrine/${b.slug}`}
+        className="block"
+        onClick={() => onBusinessNavigate?.(b.slug)}
+      >
         {b.cover ? (
           <FeedImage src={b.cover} alt={`Capa de ${b.name}`} eager={eager} />
         ) : (
@@ -159,8 +171,16 @@ export function FeedPostCard({ item, eager = false }: { item: any; eager?: boole
 }
 
 /** Dispatcher: escolhe o card pelo tipo do item */
-export function FeedCard({ item, eager = false }: { item: any; eager?: boolean }) {
+export function FeedCard({
+  item,
+  eager = false,
+  onBusinessNavigate,
+}: {
+  item: any;
+  eager?: boolean;
+  onBusinessNavigate?: (slug: string) => void;
+}) {
   if (item.kind === "product") return <FeedProductCard item={item} eager={eager} />;
   if (item.kind === "post") return <FeedPostCard item={item} eager={eager} />;
-  return <FeedBusinessCard item={item} eager={eager} />;
+  return <FeedBusinessCard item={item} eager={eager} onBusinessNavigate={onBusinessNavigate} />;
 }

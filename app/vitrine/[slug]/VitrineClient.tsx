@@ -13,6 +13,7 @@ import { getCommunityByCountry } from "@/lib/communities"
 import { normalizeCoverFraming, coverImgStyle, CoverFraming } from "@/lib/cover-framing";
 import { normalizeProductFraming, productImgStyle } from "@/lib/product-framing";
 import { isPublishedBusiness, queryVisibleProducts, queryVisibleGallery } from "@/lib/visibility";
+import { claimExploreNavPresentation } from "@/lib/explore-nav";
 import { isPaidTier, planHasChatbot } from "@/lib/plans";
 import { CANONICAL_URL } from "@/lib/site";
 import { shouldRenderChannel, isValidGoogleReviewUrl } from "@/lib/business-profile";
@@ -279,6 +280,16 @@ export default function VitrineClient({ slug }: { slug: string }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Navegação contextual: "← Voltar ao Explorar" SÓ aparece quando existe
+  // um contexto explícito gravado pelo /explorar para ESTA Montra, fresco
+  // e ainda não apresentado (lib/explore-nav.ts). Chegadas diretas — QR
+  // Code, WhatsApp, link partilhado — não têm contexto: experiência
+  // isolada, sem botão, como a rota foi desenhada. Sem document.referrer.
+  const [showBackToExplore, setShowBackToExplore] = useState(false);
+  useEffect(() => {
+    if (claimExploreNavPresentation(slug)) setShowBackToExplore(true);
+  }, [slug]);
 
   // Load favorite status after business loads
   useEffect(() => {
@@ -845,6 +856,23 @@ export default function VitrineClient({ slug }: { slug: string }) {
       )}
 
       {/* Sem navbar global nesta rota pública: experiência focada só no estabelecimento. */}
+
+      {/* Navegação contextual: regresso discreto ao /explorar, apenas
+          quando o visitante veio de lá (contexto explícito válido).
+          Não é uma navbar global e não aparece em chegadas diretas. */}
+      {showBackToExplore && (
+        <div className="w-full bg-[#0F172A] border-b border-white/5">
+          <div className="max-w-5xl mx-auto px-4">
+            <Link
+              href="/explorar"
+              aria-label="Voltar ao Explorar"
+              className="inline-flex items-center gap-1.5 min-h-[44px] py-2 text-xs font-semibold text-slate-300 hover:text-[#C8A96B] transition-colors"
+            >
+              ← Voltar ao Explorar
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Full-width Cover Header */}
       <div className="relative h-60 sm:h-72 md:h-96 w-full bg-[#1b253b]">

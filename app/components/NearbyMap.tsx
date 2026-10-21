@@ -26,11 +26,17 @@ export interface NearbyMapBusiness {
 interface NearbyMapProps {
   businesses: NearbyMapBusiness[];
   userLocation?: { lat: number; lng: number } | null;
+  /** Chamado quando o visitante clica no link de uma Montra no popup do marcador. */
+  onBusinessNavigate?: (slug: string) => void;
 }
 
-export default function NearbyMap({ businesses, userLocation }: NearbyMapProps) {
+export default function NearbyMap({ businesses, userLocation, onBusinessNavigate }: NearbyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  // Callback via ref: o efeito do mapa não deve reconstruir o mapa quando
+  // a identidade da função muda entre renders do pai.
+  const onBusinessNavigateRef = useRef(onBusinessNavigate);
+  onBusinessNavigateRef.current = onBusinessNavigate;
 
   const validBusinesses = businesses.filter(
     (b) =>
@@ -92,6 +98,18 @@ export default function NearbyMap({ businesses, userLocation }: NearbyMapProps) 
         marker.bindPopup(
           `<a href="/vitrine/${encodeURIComponent(b.slug)}" style="font-weight:700;color:#0f172a;">${safeName}</a>`
         );
+        // Clique no link do popup = saída do Explorar para a Montra:
+        // avisa o pai (contexto de navegação "Voltar ao Explorar").
+        marker.on("popupopen", (e: any) => {
+          const el = e?.popup?.getElement?.()?.querySelector?.('a[href^="/vitrine/"]');
+          if (el) {
+            el.addEventListener(
+              "click",
+              () => onBusinessNavigateRef.current?.(b.slug),
+              { once: true }
+            );
+          }
+        });
         bounds.push([b.lat, b.lng]);
       }
 

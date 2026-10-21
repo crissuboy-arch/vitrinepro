@@ -18,6 +18,9 @@ import {
   DISTANCE_FILTERS,
 } from "@/lib/geo";
 import { businessMatchesQuery, productMatchesQuery } from "@/lib/local-search";
+// Navegação contextual Explorar → Montra: contexto explícito (gravar ao
+// sair, restaurar ao regressar) — ver lib/explore-nav.ts.
+import { saveExploreNavContext, consumeExploreNavContext } from "@/lib/explore-nav";
 import dynamic from "next/dynamic";
 
 const NearbyMap = dynamic(() => import("../components/NearbyMap"), { ssr: false });
@@ -127,6 +130,10 @@ export default function ExplorarPage() {
   const [visibleCount, setVisibleCount] = useState(24);
   const [nCols, setNCols] = useState(2);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  // Restauro de navegação (regresso de uma Montra): scroll a repor e
+  // guarda para a reposição de paginação não apagar a contagem restaurada.
+  const navRestoreRef = useRef<{ scrollY: number } | null>(null);
+  const navRestoringRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -161,15 +168,35 @@ export default function ExplorarPage() {
   useEffect(() => {
     if (!mounted) return;
 
-    // Read community filter from URL query param
-    const params = new URLSearchParams(window.location.search);
-    const comm = params.get("comunidade");
-    if (comm && communitiesList.some((c) => c.slug === comm.toLowerCase())) {
-      setSelectedCommunity(comm.toLowerCase());
-    }
-    const q = params.get("q");
-    if (q) {
-      setSearchQuery(q);
+    // Restauro único ao regressar de uma Montra (botão "← Voltar ao
+    // Explorar", botão atrás do browser ou navegação manual): o contexto
+    // explícito tem precedência sobre os parâmetros do URL, porque
+    // captura o estado tal como o visitante o deixou — incluindo o que
+    // os parâmetros já tinham produzido quando ele saiu.
+    const navCtx = consumeExploreNavContext();
+    if (navCtx) {
+      navRestoringRef.current = true;
+      const st = navCtx.state;
+      setSearchQuery(st.searchQuery);
+      setSelectedCategory(st.selectedCategory);
+      setSelectedCity(st.selectedCity);
+      setSelectedCommunity(st.selectedCommunity);
+      setSortMode(st.sortMode);
+      setNeedToday(st.needToday);
+      setMaxDistanceKm(st.maxDistanceKm);
+      setVisibleCount(st.visibleCount);
+      navRestoreRef.current = { scrollY: st.scrollY };
+    } else {
+      // Read community filter from URL query param
+      const params = new URLSearchParams(window.location.search);
+      const comm = params.get("comunidade");
+      if (comm && communitiesList.some((c) => c.slug === comm.toLowerCase())) {
+        setSelectedCommunity(comm.toLowerCase());
+      }
+      const q = params.get("q");
+      if (q) {
+        setSearchQuery(q);
+      }
     }
 
     const loadData = async () => {
@@ -262,6 +289,24 @@ export default function ExplorarPage() {
 
   // A4.18 — cliques de descoberta (sem coordenadas no payload).
   // A5: em modo "Preciso Hoje", o clique é registado como need_today_result_click.
+  // Saída para uma Montra: grava o contexto explícito de navegação
+  // (estado atual + posição de scroll) para a Montra poder oferecer
+  // "← Voltar ao Explorar" e para este ecrã restaurar tudo no regresso.
+  // Ver lib/explore-nav.ts — sem document.referrer, sem parâmetros no URL.
+  const handleBusinessNavigate = (slug: string) => {
+    saveExploreNavContext(slug, {
+      searchQuery,
+      selectedCategory,
+      selectedCity,
+      selectedCommunity,
+      sortMode,
+      needToday,
+      maxDistanceKm,
+      visibleCount,
+      scrollY: typeof window !== "undefined" ? window.scrollY : 0,
+    });
+  };
+
   const trackDiscoveryClick = (
     businessId: string,
     eventType: "business_result_click" | "product_result_click" | "need_today_result_click"
@@ -431,8 +476,14 @@ export default function ExplorarPage() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // Reseta a paginação quando os filtros mudam.
+  // Reseta a paginação quando os filtros mudam — exceto no render em que
+  // o estado está a ser restaurado do contexto de navegação: a contagem
+  // restaurada faz parte da posição de scroll a repor.
   useEffect(() => {
+    if (navRestoringRef.current) {
+      navRestoringRef.current = false;
+      return;
+    }
     setVisibleCount(24);
   }, [searchQuery, selectedCategory, selectedCity, selectedCommunity, needToday]);
 
@@ -658,6 +709,25 @@ export default function ExplorarPage() {
     obs.observe(el);
     return () => obs.disconnect();
   }, [visibleFeedItems.length]);
+
+  // Restauro da posição de scroll ao regressar de uma Montra: aplica
+  // quando os dados chegaram e a lista restaurada já rendeu. Duas
+  // tentativas (rAF + reforço) porque as imagens do feed ajustam as
+  // alturas ao carregar; consome o pedido ao aplicá-lo.
+  useEffect(() => {
+    const pending = navRestoreRef.current;
+    if (!pending || loading) return;
+    const y = pending.scrollY;
+    const raf = requestAnimationFrame(() => window.scrollTo(0, y));
+    const timer = setTimeout(() => {
+      window.scrollTo(0, y);
+      if (navRestoreRef.current === pending) navRestoreRef.current = null;
+    }, 500);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [loading, visibleFeedItems.length, filteredBusinesses.length]);
 
   if (!mounted || loading) {
     return (
@@ -979,6 +1049,7 @@ export default function ExplorarPage() {
                     lng: b.longitude,
                   }))}
                   userLocation={userLoc}
+                  onBusinessNavigate={handleBusinessNavigate}
                 />
               ) : (
                 <div className="text-center py-10 bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl">
@@ -1005,7 +1076,10 @@ export default function ExplorarPage() {
                   key={hit.id}
                   hit={hit}
                   userLoc={userLoc}
-                  onClick={() => trackDiscoveryClick(hit.business.id, needToday ? "need_today_result_click" : "product_result_click")}
+                  onClick={() => {
+                    trackDiscoveryClick(hit.business.id, needToday ? "need_today_result_click" : "product_result_click");
+                    handleBusinessNavigate(hit.business.slug);
+                  }}
                 />
               ))}
             </div>
@@ -1040,7 +1114,12 @@ export default function ExplorarPage() {
                   {feedColumns.map((col, ci) => (
                     <div key={ci} className="flex-1 flex flex-col gap-3 min-w-0">
                       {col.map((item, idx) => (
-                        <FeedCard key={item.key} item={item} eager={ci === 0 && idx < 2} />
+                        <FeedCard
+                          key={item.key}
+                          item={item}
+                          eager={ci === 0 && idx < 2}
+                          onBusinessNavigate={handleBusinessNavigate}
+                        />
                       ))}
                     </div>
                   ))}
@@ -1066,7 +1145,10 @@ export default function ExplorarPage() {
                       <ExplorarCard
                         key={biz.id}
                         biz={biz}
-                        onResultClick={() => trackDiscoveryClick(biz.id, needToday ? "need_today_result_click" : "business_result_click")}
+                        onResultClick={() => {
+                          trackDiscoveryClick(biz.id, needToday ? "need_today_result_click" : "business_result_click");
+                          handleBusinessNavigate(biz.slug);
+                        }}
                       />
                     ))}
                   </div>
@@ -1084,7 +1166,10 @@ export default function ExplorarPage() {
                       <ExplorarCard
                         key={biz.id}
                         biz={biz}
-                        onResultClick={() => trackDiscoveryClick(biz.id, needToday ? "need_today_result_click" : "business_result_click")}
+                        onResultClick={() => {
+                          trackDiscoveryClick(biz.id, needToday ? "need_today_result_click" : "business_result_click");
+                          handleBusinessNavigate(biz.slug);
+                        }}
                       />
                     ))}
                   </div>
