@@ -24,9 +24,7 @@ const NearbyMap = dynamic(() => import("../components/NearbyMap"), { ssr: false 
 import SaveToCollection from "../components/SaveToCollection";
 import { splitExploreSlices } from "@/lib/explore-slices";
 import { buildFeedItems, distributeColumns, columnsForWidth, type FeedItem } from "@/lib/feed";
-import { withVisibilityFallback } from "@/lib/visibility";
 import { FeedCard } from "../components/FeedCards";
-import { filterNovidadesFeed } from "@/lib/novidades";
 import AskVitrine from "@/components/vitrine/AskVitrine";
 // A5 — "Preciso Hoje": disponibilidade honesta (camada pura, sem React).
 import {
@@ -122,9 +120,9 @@ export default function ExplorarPage() {
   const [needToday, setNeedToday] = useState(false);
   // A4.9 — resultados de produtos (buscados só quando há pesquisa).
   const [productHits, setProductHits] = useState<any[]>([]);
-  // Feed visual unificado: produtos e novidades para o modo descoberta.
-  const [feedProducts, setFeedProducts] = useState<any[]>([]);
-  const [feedPosts, setFeedPosts] = useState<any[]>([]);
+  // Feed principal (descoberta): UM cartão por Montra publicada — sem
+  // estados de produtos/novidades; produtos vivem dentro das Montras e,
+  // na pesquisa, aparecem na secção separada "Produtos encontrados".
   // Paginação progressiva: 24 itens iniciais, +24 por lote.
   const [visibleCount, setVisibleCount] = useState(24);
   const [nCols, setNCols] = useState(2);
@@ -424,83 +422,6 @@ export default function ExplorarPage() {
     void runProductSearch(searchQuery);
   };
 
-  // Feed visual: busca produtos (para o modo descoberta) e novidades.
-  // Não altera banco; só leitura. RLS já restringe a negócios publicados.
-  useEffect(() => {
-    if (!mounted) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const bizById = new Map(displayBusinesses.map((b: any) => [b.id, b]));
-        // allSettled: falha numa query não zera a outra.
-        const [prodRes, postRes] = await Promise.allSettled([
-          withVisibilityFallback(
-            () =>
-              supabase
-                .from("products")
-                .select("id, name, price, image_url, business_id, order_index, is_visible, show_in_explore")
-                .eq("is_visible", true)
-                .eq("show_in_explore", true)
-                .order("order_index", { ascending: true })
-                .limit(60),
-            () =>
-              supabase
-                .from("products")
-                .select("id, name, price, image_url, business_id, order_index")
-                .order("order_index", { ascending: true })
-                .limit(60)
-          ),
-          supabase
-            .from("business_posts")
-            .select("id,business_id,type,title,content,image_url,price,starts_at,expires_at,is_active,product_id,cta_type,cta_target,created_at,businesses!inner(name,slug,published),products!left(is_visible,show_in_explore)")
-            .eq("is_active", true)
-            .eq("businesses.published", true)
-            .order("created_at", { ascending: false })
-            .limit(20),
-        ]);
-        if (cancelled) return;
-        if (prodRes.status === "fulfilled") {
-          const prods = (prodRes.value.data || [])
-            .map((p: any) => ({ ...p, business: bizById.get(p.business_id) || null }))
-            .filter((p: any) => p.business)
-            // I1 (A10.2): mesma semântica de cidade dos negócios.
-            .filter((p: any) => {
-              if (selectedCity === "Todas as Cidades") return true;
-              return String(p.business?.city || "").toLowerCase() === selectedCity.toLowerCase();
-            });
-          setFeedProducts(prods);
-        }
-        if (postRes.status === "fulfilled") {
-          const posts = filterNovidadesFeed(
-            (postRes.value.data || []).map((r: any) => {
-              const biz = bizById.get(r.business_id);
-              return {
-                ...r,
-                business: r.businesses
-                  ? { name: r.businesses.name, slug: r.businesses.slug, city: biz?.city || null }
-                  : null,
-              };
-            })
-          );
-          // I1 (A10.2): mesma semântica de cidade — post de outra cidade
-          // não aparece no feed quando uma cidade está selecionada.
-          const cityFiltered =
-            selectedCity === "Todas as Cidades"
-              ? posts
-              : posts.filter(
-                  (p: any) =>
-                    String(p.business?.city || "").toLowerCase() === selectedCity.toLowerCase()
-                );
-          setFeedPosts(cityFiltered);
-        }
-      } catch {
-        // Degradação graciosa: feed segue só com negócios.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [mounted, displayBusinesses, selectedCity]);
 
   // Colunas responsivas: 2 mobile, 3 tablet, 4 desktop.
   useEffect(() => {
@@ -634,22 +555,80 @@ export default function ExplorarPage() {
       });
     }
 
+    // Pesquisa: os negócios donos de produtos encontrados também entram
+    // como cartão de negócio — procurar "coxinha" encontra a Montra pelos
+    // seus produtos, não só cartões soltos de produto. Entram depois dos
+    // que correspondem pelos campos do negócio, ordenados pelo mesmo
+    // scoreBusiness, e respeitam os filtros de categoria e "Preciso Hoje".
+    // A cidade é re-verificada aqui (semântica I1): a lista de negócios é
+    // filtrada sincronamente, os produtos chegam assíncronos da pesquisa.
+    if (searchQuery.trim().length >= 2 && productHits.length > 0) {
+      const alreadyIn = new Set(scoped.map((b: any) => b.id));
+      const viaProduct = new Map<string, any>();
+      for (const p of productHits) {
+        if (
+          selectedCity !== "Todas as Cidades" &&
+          String(p.business?.city || "").toLowerCase() !== selectedCity.toLowerCase()
+        ) {
+          continue;
+        }
+        const b = p.business;
+        if (b && !alreadyIn.has(b.id) && !viaProduct.has(b.id)) {
+          viaProduct.set(b.id, b);
+        }
+      }
+      const extras = [...viaProduct.values()]
+        .filter(
+          (b: any) =>
+            selectedCategory === "Todas" ||
+            String(b.category || "").toLowerCase() === selectedCategory.toLowerCase()
+        )
+        .filter(
+          (b: any) =>
+            !needToday ||
+            businessQualifiesNeedToday({
+              service_today: b.service_today,
+              opening_hours: b.opening_hours,
+            })
+        )
+        .map((b: any) => {
+          const coords = businessCoords(b);
+          const d =
+            userLoc && coords
+              ? distanceKm(userLoc.lat, userLoc.lng, coords.lat, coords.lng)
+              : null;
+          return {
+            ...b,
+            _distanceKm: d,
+            _openState: isOpenNow(b.opening_hours),
+            _serviceState: businessServiceState({ service_today: b.service_today }),
+          };
+        })
+        .sort((a: any, b: any) => scoreBusiness(b) - scoreBusiness(a));
+      scoped = [...scoped, ...extras];
+    }
+
     return scoped;
-  }, [displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity, userLoc, maxDistanceKm, sortMode, needToday]);
+  }, [displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity, userLoc, maxDistanceKm, sortMode, needToday, productHits]);
 
   // A6 fix (Problema 3): premium além do cap desce para a secção regular —
   // a contagem "Vitrinas Publicadas (N)" corresponde sempre aos cartões visíveis.
   const { featured: featuredSlice, regular: regularSlice } =
     splitExploreSlices(filteredBusinesses, 3);
 
-  // Feed visual unificado (modo descoberta, sem pesquisa): negócios +
-  // produtos + novidades intercaladas, com anti-duplicação. Só no modo
-  // descoberta — a pesquisa mantém o comportamento atual.
+  // Modo descoberta = sem termo de pesquisa (a pesquisa mantém secções
+  // separadas: negócios e "Produtos encontrados").
   const isDiscoveryMode = searchQuery.trim().length < 2;
+
+  // Feed principal (modo descoberta): UM cartão por Montra publicada.
+  // Produtos e novidades NÃO entram como cartões soltos — os produtos
+  // vivem dentro das respetivas Montras e, na pesquisa, aparecem na
+  // secção separada "Produtos encontrados". buildFeedItems mantém a
+  // maquinaria do feed (ordem lógica + colunas), só com negócios.
   const feedItems: FeedItem[] = useMemo(() => {
     if (!isDiscoveryMode) return [];
-    return buildFeedItems(filteredBusinesses, feedProducts, feedPosts, 5);
-  }, [isDiscoveryMode, filteredBusinesses, feedProducts, feedPosts]);
+    return buildFeedItems(filteredBusinesses, [], []);
+  }, [isDiscoveryMode, filteredBusinesses]);
 
   const visibleFeedItems = useMemo(
     () => feedItems.slice(0, visibleCount),
@@ -753,8 +732,9 @@ export default function ExplorarPage() {
           <AskVitrine userLat={userLoc?.lat ?? null} userLng={userLoc?.lng ?? null} />
         </div>
 
-        {/* Feed visual unificado (negócios + produtos + novidades intercaladas).
-            O antigo carrossel NovidadesFeed foi incorporado ao feed. */}
+        {/* Feed principal: um cartão por Montra publicada. Produtos e
+            novidades não são cartões soltos do feed (ver secção de
+            pesquisa "Produtos encontrados"). */}
 
         {/* Filter Controls Row */}
         <section className="bg-gray-900/60 border border-gray-800 rounded-3xl p-6 shadow-xl space-y-6">
@@ -1012,11 +992,12 @@ export default function ExplorarPage() {
           );
         })()}
 
-        {/* A4.9 — Resultados de produtos (quando a pesquisa encontra produtos) */}
+        {/* A4.9 — Produtos encontrados (secção separada dos negócios,
+            quando a pesquisa encontra produtos; cada cartão liga à Montra) */}
         {searchQuery.trim().length >= 2 && productHits.length > 0 && (
           <section className="space-y-4">
             <h3 className="font-display font-semibold text-lg text-white px-2">
-              🛍️ Produtos ({productHits.length})
+              🛍️ Produtos encontrados ({productHits.length})
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {productHits.map((hit) => (
@@ -1031,8 +1012,9 @@ export default function ExplorarPage() {
           </section>
         )}
 
-        {/* Feed visual de descoberta: masonry com ordem lógica preservada.
-            Negócios + produtos + novidades intercaladas (lib/feed.ts).
+        {/* Feed de descoberta / resultados de negócios: masonry com ordem
+            lógica preservada (lib/feed.ts), UM cartão por Montra publicada
+            — sem produtos nem novidades como cartões soltos.
             Distribuição em colunas via JS (round-robin) — sem biblioteca,
             ordem esquerda→direita/top→base acompanha a ordem lógica.
             Em modo busca: se há produtos mas 0 negócios, OMITE a seção
