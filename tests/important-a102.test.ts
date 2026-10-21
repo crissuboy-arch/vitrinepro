@@ -32,19 +32,23 @@ describe("I1 — filtro de cidade em produtos e posts", () => {
       "feedProducts aplica semântica de cidade"
     );
   });
-  it("feed de posts carrega city e filtra por selectedCity", () => {
+  it("feed principal não carrega produtos nem posts (só negócios)", () => {
     const src = read("app/explorar/page.tsx");
     assert.ok(
-      src.includes("city: biz?.city") && src.includes("p.business?.city"),
-      "feedPosts tem city e filtra"
+      src.includes("buildFeedItems(filteredBusinesses, [], [])") &&
+        !src.includes("feedProducts") &&
+        !src.includes("feedPosts") &&
+        !src.includes("business_posts") &&
+        !src.includes("city: biz?.city"),
+      "feed de descoberta é construído só com negócios — sem fetch de produtos/posts para o feed"
     );
   });
   it("efeitos re-executam quando a cidade muda", () => {
     const src = read("app/explorar/page.tsx");
     assert.ok(
       src.includes("[searchQuery, mounted, displayBusinesses, needToday, selectedCity]") &&
-        src.includes("[mounted, displayBusinesses, selectedCity]"),
-      "deps incluem selectedCity"
+        src.includes("[displayBusinesses, searchQuery, selectedCategory, selectedCity, selectedCommunity, userLoc, maxDistanceKm, sortMode, needToday, productHits]"),
+      "deps incluem selectedCity (pesquisa de produtos e lista de negócios/união)"
     );
   });
 });
