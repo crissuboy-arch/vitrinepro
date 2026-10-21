@@ -4,6 +4,11 @@
  * A rota /vitrine/[slug] (destino dos QR Codes) não deve expor a navegação
  * global da plataforma; as funcionalidades próprias da Montra ficam intactas
  * e os sistemas globais (Explorar, Favoritos) continuam nas suas rotas.
+ *
+ * Única exceção aprovada (21/10/2026): o botão contextual "← Voltar ao
+ * Explorar", visível apenas quando existe um contexto explícito válido
+ * gravado pelo /explorar para esta Montra (lib/explore-nav.ts). Não é uma
+ * navbar e não aparece em chegadas diretas (QR/WhatsApp/link partilhado).
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -20,8 +25,20 @@ describe("Isolamento /vitrine/[slug] — sem navegação global", () => {
   it("não tem navbar global (Início/Explorar/Dashboard)", () => {
     const src = client();
     assert.ok(!src.includes("Top Navbar"), "bloco da navbar removido");
-    assert.ok(!src.includes('href="/explorar"'), "sem link para Explorar");
     assert.ok(!src.includes("Voltar ao Dashboard"), "sem botão de Dashboard");
+  });
+
+  it("link para Explorar só no botão contextual (contexto explícito válido)", () => {
+    const src = client();
+    assert.ok(
+      src.includes('import { claimExploreNavPresentation } from "@/lib/explore-nav";'),
+      "contexto explícito de navegação (lib/explore-nav) importado"
+    );
+    const occurrences = src.split('href="/explorar"').length - 1;
+    assert.equal(occurrences, 1, "uma única ligação para /explorar em todo o cliente");
+    const condIdx = src.indexOf("{showBackToExplore && (");
+    const linkIdx = src.indexOf('href="/explorar"');
+    assert.ok(condIdx >= 0 && condIdx < linkIdx, "a ligação está dentro do bloco condicionado por showBackToExplore");
   });
 
   it("não promove outras Montras", () => {
