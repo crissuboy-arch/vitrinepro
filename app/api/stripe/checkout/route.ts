@@ -9,7 +9,11 @@
  * AFTER:
  *  - Requires an authenticated session (cookie) or Bearer token.
  *  - Verifies the caller OWNS the business (user_id match).
- *  - planId validated server-side against the CHECKOUT_PLANS allowlist.
+ *  - planId validated server-side; NEW Business purchases are gated by
+ *    BUSINESS_CHECKOUT_ENABLED (lib/plans) — with the gate off, this route
+ *    never creates a Business checkout session. Existing active
+ *    subscriptions (incl. Business) still resolve to the Customer Portal
+ *    below, so current subscribers keep "Gerir assinatura".
  *  - Stripe Price IDs come ONLY from env (no hard-coded live IDs).
  *  - Base URL from lib/site (canonical https://vitrinepro.digital fallback).
  *  - No internal error details leaked to the client.
@@ -19,7 +23,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createServerSupabase } from "@/lib/supabase-server";
-import { CHECKOUT_PLANS, normalizePlan, getStripePriceId, type PlanId } from "@/lib/plans";
+import { BUSINESS_CHECKOUT_ENABLED, normalizePlan, getStripePriceId, type PlanId } from "@/lib/plans";
 import { getSiteUrlFromRequest } from "@/lib/site";
 
 export const runtime = "nodejs";
@@ -75,15 +79,20 @@ export async function POST(request: Request) {
     );
   }
 
-  // 2. Plan allowlist validated server-side (never trust the client).
+  // 2. Plan validated server-side (never trust the client). "business" is a
+  // known paid plan so existing Business subscribers can still reach the
+  // Customer Portal branch below; NEW Business purchases are rejected by
+  // the explicit launch gate right before session creation.
   const plan = normalizePlan(planId);
-  if (!(CHECKOUT_PLANS as string[]).includes(plan)) {
+  if (plan !== "pro" && plan !== "business") {
     return NextResponse.json({ error: "Plano inválido." }, { status: 400 });
   }
 
   // 3. Price ID from env only — no hard-coded live price IDs (A2.7).
+  // With the Business gate off, the Business price is not needed here:
+  // portal resolution does not use it and new purchases are blocked below.
   const priceId = getStripePriceId(plan as PlanId);
-  if (!priceId) {
+  if (!priceId && !(plan === "business" && !BUSINESS_CHECKOUT_ENABLED)) {
     console.error(`[STRIPE CHECKOUT] Price ID em falta para o plano '${plan}' (env).`);
     return NextResponse.json({ error: "stripe_not_configured" }, { status: 503 });
   }
@@ -133,6 +142,17 @@ export async function POST(request: Request) {
       } catch {
         // Subscription não encontrada no Stripe — segue para novo checkout.
       }
+    }
+
+    // Launch gate: never create a NEW Business checkout while disabled.
+    // (Existing active subscriptions already returned the Portal above.)
+    if (plan === "business" && !BUSINESS_CHECKOUT_ENABLED) {
+      return NextResponse.json({ error: "business_not_available" }, { status: 403 });
+    }
+
+    if (!priceId) {
+      console.error(`[STRIPE CHECKOUT] Price ID em falta para o plano '${plan}' (env).`);
+      return NextResponse.json({ error: "stripe_not_configured" }, { status: 503 });
     }
 
     const session = await stripe.checkout.sessions.create({

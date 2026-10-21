@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import { BUSINESS_CHECKOUT_ENABLED } from "@/lib/plans";
 
 const features = [
   {
@@ -84,6 +85,8 @@ export default function PlanoBusiness() {
   const [ctaLoading, setCtaLoading] = useState(false);
 
   const handleCta = async () => {
+    // Launch gate: Business is not purchasable in phase 1 (CTAs disabled).
+    if (!BUSINESS_CHECKOUT_ENABLED) return;
     setCtaLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -126,10 +129,10 @@ export default function PlanoBusiness() {
             </Link>
             <button
               onClick={handleCta}
-              disabled={ctaLoading}
+              disabled={ctaLoading || !BUSINESS_CHECKOUT_ENABLED}
               className="px-5 py-2.5 bg-[#C8A96B] text-[#0F172A] rounded-xl font-bold text-sm hover:bg-[#D4BB82] transition-colors disabled:opacity-70"
             >
-              {ctaLoading ? "..." : "Activar Business"}
+              {!BUSINESS_CHECKOUT_ENABLED ? "Brevemente" : ctaLoading ? "..." : "Activar Business"}
             </button>
           </div>
         </div>
@@ -159,10 +162,10 @@ export default function PlanoBusiness() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={handleCta}
-              disabled={ctaLoading}
+              disabled={ctaLoading || !BUSINESS_CHECKOUT_ENABLED}
               className="px-8 py-4 bg-[#C8A96B] text-[#0F172A] rounded-2xl font-bold text-base hover:bg-[#D4BB82] active:scale-[0.98] transition-all disabled:opacity-70 shadow-lg shadow-[#C8A96B]/20"
             >
-              {ctaLoading ? "A processar..." : "Activar Plano Business →"}
+              {!BUSINESS_CHECKOUT_ENABLED ? "Brevemente" : ctaLoading ? "A processar..." : "Activar Plano Business →"}
             </button>
             <Link
               href="/explorar"
@@ -323,10 +326,10 @@ export default function PlanoBusiness() {
           </ul>
           <button
             onClick={handleCta}
-            disabled={ctaLoading}
+            disabled={ctaLoading || !BUSINESS_CHECKOUT_ENABLED}
             className="w-full py-4 bg-[#C8A96B] text-[#0F172A] rounded-2xl font-bold text-base hover:bg-[#D4BB82] active:scale-[0.98] transition-all disabled:opacity-70 shadow-lg"
           >
-            {ctaLoading ? "A processar..." : "Activar Plano Business →"}
+            {!BUSINESS_CHECKOUT_ENABLED ? "Brevemente" : ctaLoading ? "A processar..." : "Activar Plano Business →"}
           </button>
           <p className="text-[10px] text-slate-500">14 dias para resolução (Termos) · Ativação imediata</p>
         </div>
@@ -366,10 +369,10 @@ export default function PlanoBusiness() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             onClick={handleCta}
-            disabled={ctaLoading}
+            disabled={ctaLoading || !BUSINESS_CHECKOUT_ENABLED}
             className="px-8 py-4 bg-[#C8A96B] text-[#0F172A] rounded-2xl font-bold hover:bg-[#D4BB82] transition-colors disabled:opacity-70"
           >
-            {ctaLoading ? "A processar..." : "Activar Business agora →"}
+            {!BUSINESS_CHECKOUT_ENABLED ? "Brevemente" : ctaLoading ? "A processar..." : "Activar Business agora →"}
           </button>
           <Link
             href="/pricing"

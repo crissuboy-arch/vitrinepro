@@ -39,6 +39,7 @@ const faqJsonLd = {
 // Google Fonts
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import { resolveBusinessCountTarget } from "@/lib/visibility";
+import { BUSINESS_CHECKOUT_ENABLED, normalizePlan } from "@/lib/plans";
 
 // Landing components
 import Navbar from "@/components/landing/Navbar";
@@ -307,6 +308,12 @@ export default function HomePage() {
     console.log("[PLANS] Selected plan:", planId);
     if (planId === "free") {
       router.push("/login?mode=signup");
+      return;
+    }
+
+    // Launch gate: Business is not purchasable in phase 1 (CTA is disabled
+    // in PlansSection; this guards any residual call).
+    if (normalizePlan(planId) === "business" && !BUSINESS_CHECKOUT_ENABLED) {
       return;
     }
 

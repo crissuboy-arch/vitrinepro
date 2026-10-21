@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BUSINESS_CHECKOUT_ENABLED } from "@/lib/plans";
 
 interface Plan {
   name: string;
@@ -136,6 +137,9 @@ export default function PricingPage() {
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {plans.map((plan) => {
             const price = plan.price.monthly;
+            // Launch gate: Business card stays visible in phase 1, but its
+            // purchase CTA is disabled ("Brevemente", no checkout/login link).
+            const businessCheckoutDisabled = plan.planId === "business" && !BUSINESS_CHECKOUT_ENABLED;
 
             return (
               <div
@@ -179,16 +183,27 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Link
-                  href={
-                    plan.name === "Free"
-                      ? "/login"
-                      : `/login?next=/dashboard&plan=${plan.planId || plan.name.toLowerCase()}`
-                  }
-                  className={`block w-full py-3.5 rounded-xl font-semibold text-center text-sm transition-colors ${plan.ctaStyle}`}
-                >
-                  {plan.cta}
-                </Link>
+                {businessCheckoutDisabled ? (
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className={`block w-full py-3.5 rounded-xl font-semibold text-center text-sm transition-colors ${plan.ctaStyle} opacity-60 cursor-not-allowed`}
+                  >
+                    Brevemente
+                  </button>
+                ) : (
+                  <Link
+                    href={
+                      plan.name === "Free"
+                        ? "/login"
+                        : `/login?next=/dashboard&plan=${plan.planId || plan.name.toLowerCase()}`
+                    }
+                    className={`block w-full py-3.5 rounded-xl font-semibold text-center text-sm transition-colors ${plan.ctaStyle}`}
+                  >
+                    {plan.cta}
+                  </Link>
+                )}
               </div>
             );
           })}

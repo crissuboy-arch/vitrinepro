@@ -72,8 +72,37 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   },
 };
 
-/** Plans accepted by Stripe checkout (server-side allowlist). */
-export const CHECKOUT_PLANS: PlanId[] = ["pro", "business"];
+/**
+ * Launch gate (decisão Cristiane, 21/10/2026): o lançamento comercial é só
+ * Free + Pro. O Business fica reservado para a fase 2 — a definição do plano
+ * (preço/entitlements) e as assinaturas Business existentes NÃO mudam; esta
+ * flag controla apenas NOVAS contratações do Business. Para reabrir as
+ * vendas do Business, basta voltar a pôr `true` aqui.
+ */
+export const BUSINESS_CHECKOUT_ENABLED = false;
+
+/** Plans that can be NEWLY purchased via Stripe checkout right now. */
+export const CHECKOUT_PLANS: PlanId[] = BUSINESS_CHECKOUT_ENABLED
+  ? ["pro", "business"]
+  : ["pro"];
+
+/** True when a plan can be newly purchased via checkout right now. */
+export function isPlanCheckoutEnabled(plan: PlanInput | null | undefined): boolean {
+  return (CHECKOUT_PLANS as string[]).includes(normalizePlan(plan));
+}
+
+/**
+ * Sanitizes a plan forwarded through auth/onboarding URLs: returns the raw
+ * plan only when it is a currently purchasable checkout plan; otherwise
+ * null (the flow continues normally, without triggering a checkout).
+ */
+export function checkoutPlanParam(plan: PlanInput | null | undefined): string | null {
+  const raw = typeof plan === "string" ? plan.trim() : "";
+  if (!raw) return null;
+  const normalized = normalizePlan(raw);
+  if (normalized === "free") return null;
+  return isPlanCheckoutEnabled(normalized) ? raw : null;
+}
 
 /**
  * Normalizes legacy/variant plan strings to a canonical PlanId.

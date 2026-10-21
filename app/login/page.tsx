@@ -10,6 +10,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { trackSignUp } from "@/app/lib/analytics";
 import { pixelLead, pixelCompleteRegistration } from "@/app/lib/meta-pixel";
 import { resolvePostAuthTarget, fetchIsAdminClient } from "@/lib/auth-redirect";
+import { checkoutPlanParam } from "@/lib/plans";
 import { useHomeRedirect } from "@/components/auth/useHomeRedirect";
 
 function getReadableError(message: string): string {
@@ -60,7 +61,9 @@ function LoginForm() {
     setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
   };
 
-  const plan = searchParams.get("plan");
+  // Launch gate: non-purchasable plans (ex.: business in phase 1) are not
+  // forwarded — login/signup continues in the normal flow, without error.
+  const plan = checkoutPlanParam(searchParams.get("plan"));
   const nextPath = searchParams.get("next");
 
   // Correção definitiva da navegação: quem já tem sessão não fica no

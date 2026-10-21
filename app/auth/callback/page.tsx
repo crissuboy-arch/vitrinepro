@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase";
 import { trackSignUp } from "@/app/lib/analytics";
 import { pixelCompleteRegistration } from "@/app/lib/meta-pixel";
 import { resolvePostAuthTarget } from "@/lib/auth-redirect";
+import { checkoutPlanParam } from "@/lib/plans";
 
 /**
  * Sign-in "fresco": ocorreu há menos de 2 minutos.
@@ -52,7 +53,9 @@ export default function AuthCallbackPage() {
         const hasBusiness = (existingRows?.length ?? 0) > 0;
 
         const urlParams = new URLSearchParams(window.location.search);
-        const plan = urlParams.get("plan");
+        // Launch gate: non-purchasable plans are not forwarded to the
+        // dashboard (they would auto-start a checkout there).
+        const plan = checkoutPlanParam(urlParams.get("plan"));
         const nextPath = urlParams.get("next");
 
         if (!hasBusiness && !isAdmin) {

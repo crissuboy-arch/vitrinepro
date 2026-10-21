@@ -12,7 +12,7 @@ import { normalizeCoverFraming, coverImgStyle, CoverFraming } from "@/lib/cover-
 import Image from "next/image";
 import { supabase } from "../lib/supabase";
 import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/business-actions";
-import { isProTier, isBusinessTier, isPaidTier, normalizePlan } from "@/lib/plans";
+import { isProTier, isBusinessTier, isPaidTier, normalizePlan, BUSINESS_CHECKOUT_ENABLED } from "@/lib/plans";
 import { isPublishedBusiness, isOwnerOf } from "@/lib/visibility";
 import { getSiteUrl } from "@/lib/site";
 import { buildVitrineUrl, buildVitrineQrSrc, buildShortLinkUrl } from "@/lib/vitrine-share";
@@ -454,6 +454,9 @@ function DashboardContent() {
 
   const handleUpgrade = async (planId: string) => {
     if (!business?.id) return;
+    // Launch gate: no NEW Business purchases while disabled. Existing
+    // Business subscribers still pass (their call resolves to the Portal).
+    if (normalizePlan(planId) === "business" && !BUSINESS_CHECKOUT_ENABLED && !isBusinessTier(business.plan)) return;
     setCheckoutLoading(true);
     try {
       const response = await fetch("/api/stripe/checkout", {
@@ -496,12 +499,15 @@ function DashboardContent() {
       const isCurrentBusiness = isBusinessTier(business.plan);
       const isTargetBusiness = isBusinessTier(planParam);
       const alreadyHasPlan = (isCurrentPremium && isTargetPremium) || (isCurrentBusiness && isTargetBusiness);
+      // Launch gate: ?plan=business never auto-starts a Business checkout
+      // while disabled — the flow falls through to the normal dashboard.
+      const businessCheckoutBlocked = isTargetBusiness && !BUSINESS_CHECKOUT_ENABLED;
 
       const isSuccessStatus = params.get("success");
       const isCancelStatus = params.get("cancel");
       const isReturningFromStripe = isSuccessStatus === "stripe" || isCancelStatus === "stripe";
 
-      if (planParam && planParam !== "free" && !alreadyHasPlan && !isReturningFromStripe) {
+      if (planParam && planParam !== "free" && !alreadyHasPlan && !isReturningFromStripe && !businessCheckoutBlocked) {
         if (params.get("success") === "onboarding") {
           setShowSuccessBanner(true);
         }
@@ -4162,33 +4168,39 @@ function PlanSection({
             <p className="text-[10px] text-gray-500 text-center leading-relaxed">
               Chatbot IA · Analytics · Destaque · Catálogo PDF
             </p>
-            <button
-              onClick={() => onUpgrade("business")}
-              disabled={checkoutLoading}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {checkoutLoading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" /> Ativar Business — €29,90/mês
-                </>
-              )}
-            </button>
-            <p className="text-[10px] text-gray-500 text-center leading-relaxed">
-              Tudo do Pro · Link curto personalizado
-            </p>
+            {BUSINESS_CHECKOUT_ENABLED && (
+              <>
+                <button
+                  onClick={() => onUpgrade("business")}
+                  disabled={checkoutLoading}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {checkoutLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" /> Ativar Business — €29,90/mês
+                    </>
+                  )}
+                </button>
+                <p className="text-[10px] text-gray-500 text-center leading-relaxed">
+                  Tudo do Pro · Link curto personalizado
+                </p>
+              </>
+            )}
           </div>
         )}
         {isPremium && !isCanceling && (
           <div className="flex flex-col gap-2 items-stretch md:items-end w-full md:w-auto">
-            <button
-              onClick={() => onUpgrade("business")}
-              disabled={checkoutLoading}
-              className="px-6 py-2.5 border border-purple-500/50 text-purple-300 hover:bg-purple-600 hover:text-white font-bold rounded-xl transition-all text-xs cursor-pointer disabled:opacity-50"
-            >
-              Ativar Business — €29,90/mês
-            </button>
+            {BUSINESS_CHECKOUT_ENABLED && (
+              <button
+                onClick={() => onUpgrade("business")}
+                disabled={checkoutLoading}
+                className="px-6 py-2.5 border border-purple-500/50 text-purple-300 hover:bg-purple-600 hover:text-white font-bold rounded-xl transition-all text-xs cursor-pointer disabled:opacity-50"
+              >
+                Ativar Business — €29,90/mês
+              </button>
+            )}
             <button
               onClick={() => onUpgrade("pro")}
               disabled={checkoutLoading}
