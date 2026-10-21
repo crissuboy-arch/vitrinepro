@@ -19,6 +19,9 @@
  * estatísticas inventadas.
  */
 
+"use client";
+
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -75,6 +78,32 @@ const FACTS: { big: string; full: string; short: string }[] = [
 ];
 
 export default function SectorsMockup() {
+  // Carrossel mobile (correção 21/10/2026): um cartão completo por
+  // posição de snap. O índice ativo segue o scroll real e os dots —
+  // gerados dos dados (6) — navegam para o cartão correspondente.
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [activeSector, setActiveSector] = useState(0);
+
+  const sectorStep = (el: HTMLDivElement) => {
+    const card = el.querySelector<HTMLElement>(":scope > a");
+    return card ? card.offsetWidth + 14 : el.clientWidth; // gap-3.5 = 14px
+  };
+
+  const handleSectorScroll = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const idx = Math.max(0, Math.min(SECTORS.length - 1, Math.round(el.scrollLeft / sectorStep(el))));
+    setActiveSector((prev) => (prev === idx ? prev : idx));
+  };
+
+  const goToSector = (i: number) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    // As posições de snap são i*step: padding-left (20px) e
+    // scroll-padding-left (20px) cancelam-se.
+    el.scrollTo({ left: i * sectorStep(el), behavior: "smooth" });
+  };
+
   return (
     <section id="setores" className="py-12 lg:py-24 border-t border-[#C8A96B]/[0.12] relative z-10">
       <div className="max-w-[1320px] mx-auto px-5 lg:px-10 text-center animate-fade-in-up">
@@ -91,19 +120,46 @@ export default function SectorsMockup() {
           </span>
         </p>
 
-        {/* Cartões de setor: carrossel horizontal em mobile, grelha em desktop */}
-        <div className="flex lg:grid lg:grid-cols-6 gap-3.5 lg:gap-4 mt-[26px] lg:mt-[46px] overflow-x-auto lg:overflow-visible snap-x snap-mandatory lg:snap-none -mx-5 px-5 lg:mx-0 lg:px-0 pb-2 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Cartões de setor: carrossel horizontal em mobile, grelha em desktop.
+            CORREÇÃO MOBILE (21/10/2026, só abaixo de lg — a grelha desktop
+            fica intocada): antes w-[66%] + snap-mandatory deixava o cartão
+            seguinte sempre cortado a meio do título (145/231px visíveis a
+            390px) e aspect-[3/3.7] dava 285px para 125–144px de conteúdo
+            (49–56% vazio). Agora: cartão com a largura útil do contentor
+            (w-full da caixa de conteúdo = um cartão completo por snap),
+            scroll-padding-left igual ao padding para o snap alinhar ao
+            início, e aspect mobile [11/5] adequado ao conteúdo (a imagem
+            continua bg-cover, sem distorção). */}
+        <div
+          ref={scrollerRef}
+          onScroll={handleSectorScroll}
+          className="flex lg:grid lg:grid-cols-6 gap-3.5 lg:gap-4 mt-[26px] lg:mt-[46px] overflow-x-auto lg:overflow-visible snap-x snap-mandatory lg:snap-none -mx-5 px-5 lg:mx-0 lg:px-0 pb-2 lg:pb-0 scroll-pl-5 lg:scroll-pl-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           {SECTORS.map((s) => (
             <Link
               key={s.name}
               href={`/explorar?q=${encodeURIComponent(s.q)}`}
-              className="group relative flex-none w-[66%] sm:w-[40%] lg:w-auto snap-start rounded-[18px] lg:rounded-[20px] overflow-hidden aspect-[3/3.7] lg:aspect-[3/3.6] border border-[#C8A96B]/[0.22] bg-[#101A33] flex items-end text-left transition-all duration-300 hover:-translate-y-1.5 hover:border-[#C8A96B] hover:shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
+              className="group relative flex-none w-full lg:w-auto snap-start rounded-[18px] lg:rounded-[20px] overflow-hidden aspect-[11/5] min-[420px]:aspect-[12/5] sm:aspect-[11/3] lg:aspect-[3/3.6] border border-[#C8A96B]/[0.22] bg-[#101A33] flex items-end text-left transition-all duration-300 hover:-translate-y-1.5 hover:border-[#C8A96B] hover:shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
             >
-              {s.img && (
+              {s.img ? (
                 <div
                   aria-hidden="true"
                   className="absolute inset-0 bg-cover bg-center"
                   style={{ backgroundImage: `url(${s.img}), linear-gradient(135deg,#2a3355,#15203d)` }}
+                />
+              ) : (
+                /* Cartões sem fotografia (Ginásios, Saúde): fundo do
+                   próprio sistema visual — gradiente navy + brilho
+                   dourado CSS, sem assets novos. Só abaixo de lg: em
+                   desktop estes cartões mantêm o fundo sólido original
+                   (desktop pixel-igual é gate desta correção). */
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 lg:hidden"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 82% 12%, rgba(200,169,107,0.22) 0%, transparent 55%), linear-gradient(135deg,#22325e 0%, #101A33 58%, #0B1224 100%)",
+                  }}
                 />
               )}
               <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-[#070B14]/5 via-transparent to-[#070B14]/95" />
@@ -117,11 +173,30 @@ export default function SectorsMockup() {
             </Link>
           ))}
         </div>
-        <div aria-hidden="true" className="flex lg:hidden justify-center gap-1.5 mt-2.5">
-          <span className="w-[18px] h-1.5 rounded bg-[#C8A96B]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-white/25" />
-          <span className="w-1.5 h-1.5 rounded-full bg-white/25" />
-          <span className="w-1.5 h-1.5 rounded-full bg-white/25" />
+        {/* Dots do carrossel: gerados dos dados (6 cartões — antes
+            estavam hardcoded 4). Cada botão tem alvo de toque ≥44px
+            (44×44 com margem vertical negativa para não inflacionar a
+            altura da secção); o ponto visível mantém o desenho anterior. */}
+        <div className="flex lg:hidden justify-center mt-2.5">
+          {SECTORS.map((s, i) => (
+            <button
+              key={s.name}
+              type="button"
+              onClick={() => goToSector(i)}
+              aria-label={`Ir para o setor ${s.name}`}
+              aria-current={activeSector === i ? "true" : undefined}
+              className="flex items-center justify-center min-w-[44px] h-[44px] -my-4 cursor-pointer"
+            >
+              <span
+                aria-hidden="true"
+                className={
+                  activeSector === i
+                    ? "w-[18px] h-1.5 rounded bg-[#C8A96B]"
+                    : "w-1.5 h-1.5 rounded-full bg-white/25"
+                }
+              />
+            </button>
+          ))}
         </div>
 
         {/* Demonstração: exemplo real Cantinho da Lu com o mockup do
