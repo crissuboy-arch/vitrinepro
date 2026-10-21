@@ -1,3 +1,5 @@
+import { BUSINESS_CHECKOUT_ENABLED } from "@/lib/plans";
+
 interface PlansSectionProps {
   onSelectPlan: (planId: string) => void;
 }
@@ -130,12 +132,23 @@ export default function PlansSection({ onSelectPlan }: PlansSectionProps) {
                 ))}
               </ul>
             </div>
-            <button
-              onClick={() => onSelectPlan("business")}
-              className="w-full py-3.5 bg-transparent hover:bg-white/5 border border-[#C9A96E]/50 hover:border-[#C9A96E] text-[#F5F0E8] font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
-            >
-              Começar com Business
-            </button>
+            {BUSINESS_CHECKOUT_ENABLED ? (
+              <button
+                onClick={() => onSelectPlan("business")}
+                className="w-full py-3.5 bg-transparent hover:bg-white/5 border border-[#C9A96E]/50 hover:border-[#C9A96E] text-[#F5F0E8] font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
+              >
+                Começar com Business
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                className="w-full py-3.5 bg-transparent border border-[#C9A96E]/50 text-[#F5F0E8] font-bold rounded-xl text-xs uppercase tracking-wider transition-all opacity-60 cursor-not-allowed"
+              >
+                Brevemente
+              </button>
+            )}
           </div>
 
         </div>

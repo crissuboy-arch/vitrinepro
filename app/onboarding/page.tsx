@@ -9,6 +9,7 @@ import { createBusiness } from "@/lib/business-actions";
 import { uploadLogo, uploadCover, uploadGallery } from "@/lib/supabase-storage";
 import { persistBusinessImageField, persistGalleryImages } from "@/lib/business-images";
 import { trackVitrineCreate } from "@/app/lib/analytics";
+import { checkoutPlanParam } from "@/lib/plans";
 
 interface Category {
   id: string;
@@ -91,7 +92,9 @@ export default function OnboardingPage() {
     setMounted(true);
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
-      const planParam = urlParams.get("plan");
+      // Launch gate: a plan that is not purchasable (ex.: business in
+      // phase 1) is dropped — onboarding continues in the normal flow.
+      const planParam = checkoutPlanParam(urlParams.get("plan"));
       if (planParam) {
         setSelectedPlan(planParam);
       }
@@ -105,7 +108,7 @@ export default function OnboardingPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         const urlParams = new URLSearchParams(window.location.search);
-        const plan = urlParams.get("plan");
+        const plan = checkoutPlanParam(urlParams.get("plan"));
         const redirectUrl = plan ? `/login?plan=${plan}` : "/login";
         router.push(redirectUrl);
       }

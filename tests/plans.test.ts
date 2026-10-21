@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import {
   PLANS,
   CHECKOUT_PLANS,
+  BUSINESS_CHECKOUT_ENABLED,
   normalizePlan,
   planHasChatbot,
   getStripePriceId,
@@ -39,8 +40,11 @@ describe("PLANS — source of truth", () => {
     assert.equal(planHasChatbot("anything-else"), false);
   });
 
-  it("checkout allowlist contains only paid plans", () => {
-    assert.deepEqual([...CHECKOUT_PLANS].sort(), ["business", "pro"]);
+  it("checkout allowlist contains only plans on sale now (Business reserved for phase 2)", () => {
+    // Launch decision 21/10/2026: only Free + Pro are sold; Business
+    // entitlements/prices above stay untouched for existing subscribers.
+    assert.equal(BUSINESS_CHECKOUT_ENABLED, false);
+    assert.deepEqual([...CHECKOUT_PLANS].sort(), ["pro"]);
   });
 
   it("Stripe price IDs come from env only — never hard-coded", () => {
