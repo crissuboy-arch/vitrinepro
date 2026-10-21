@@ -22,8 +22,12 @@ const NAV = [
 ];
 
 export default function FooterMockup() {
+  // CORREÇÃO MOBILE (21/10/2026): pb base 26px → 96px (lg:pb-[34px]
+  // intocado). O botão fixed do ChatWidget (bottom-6 + h-14 = ocupa
+  // os últimos 80px do ecrã) cobria a linha © com a página no fim;
+  // com 96px de respiro a última linha fica livre do botão.
   return (
-    <footer className="pt-8 pb-[26px] lg:pt-14 lg:pb-[34px] border-t border-[#C8A96B]/[0.22] bg-[#050810] relative z-10">
+    <footer className="pt-8 pb-[96px] lg:pt-14 lg:pb-[34px] border-t border-[#C8A96B]/[0.22] bg-[#050810] relative z-10">
       <div className="max-w-[1320px] mx-auto px-5 lg:px-10">
         <div className="flex flex-col lg:flex-row items-center lg:items-start lg:justify-between gap-6 lg:gap-10 text-center lg:text-left text-sm text-[#A9B1C3]">
           <div>

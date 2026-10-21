@@ -66,7 +66,7 @@ export default function HeroMockup() {
 
   return (
     <section
-      className="relative flex items-center overflow-hidden pt-[104px] pb-[60px] lg:pt-[122px] lg:min-h-[min(calc(100vh-34px),860px)]"
+      className="relative flex items-center overflow-hidden pt-[84px] pb-[36px] lg:pt-[122px] lg:pb-[60px] lg:min-h-[min(calc(100vh-34px),860px)]"
       style={{
         background:
           "radial-gradient(1200px 700px at 78% 40%, #12224a 0%, #0B1224 45%, #070B14 100%)",
@@ -91,7 +91,7 @@ export default function HeroMockup() {
             ✦ Negócios locais em Portugal
           </span>
 
-          <h1 className="font-display font-extrabold text-[38px] leading-[1.06] lg:text-[clamp(48px,5.4vw,80px)] lg:leading-[1.03] tracking-[-0.01em] mt-[26px] mb-6 text-[#F7F4EE]">
+          <h1 className="font-display font-extrabold text-[38px] leading-[1.06] lg:text-[clamp(48px,5.4vw,80px)] lg:leading-[1.03] tracking-[-0.01em] mt-4 mb-4 lg:mt-[26px] lg:mb-6 text-[#F7F4EE]">
             Para qualquer negócio, <span className="text-[#E6CB8C]">a sua montra digital.</span>
           </h1>
 
@@ -107,7 +107,13 @@ export default function HeroMockup() {
           {/* Stage mobile: glow + fotos reais flutuantes. O globo WebGL
               NÃO monta em mobile (gate desktop-only mantido) — o glow
               radial e o dot grid preservam o visual da dobra. */}
-          <div aria-hidden="true" className="relative lg:hidden w-[108%] -ml-[4%] aspect-square mt-1.5 -mb-2">
+          {/* CORREÇÃO MOBILE (21/10/2026): a stage media 108% da largura
+              (~421px a 390px) e empurrava a hero para 1099px (130% do
+              viewport). Passa a 76% centrada (~266px) — globo/glow/
+              dot-grid da secção e fotos flutuantes mantidos; a hero
+              fica ≈100–110% do viewport e a pesquisa sobe. Só mobile:
+              este bloco é lg:hidden, o desktop não é tocado. */}
+          <div aria-hidden="true" className="relative lg:hidden w-[72%] mx-auto aspect-square mt-1 -mb-1">
             <div
               className="absolute rounded-full"
               style={{

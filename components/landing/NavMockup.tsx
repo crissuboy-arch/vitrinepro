@@ -77,7 +77,7 @@ export default function NavMockup() {
               onClick={() => setOpen((v) => !v)}
               aria-expanded={open}
               aria-label={open ? "Fechar menu" : "Abrir menu"}
-              className="w-[42px] h-[42px] rounded-xl border border-[#C8A96B]/25 grid place-items-center text-lg text-[#E6CB8C] cursor-pointer"
+              className="w-11 h-11 rounded-xl border border-[#C8A96B]/25 grid place-items-center text-lg text-[#E6CB8C] cursor-pointer"
             >
               {open ? "✕" : "☰"}
             </button>
