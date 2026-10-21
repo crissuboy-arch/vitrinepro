@@ -388,11 +388,22 @@ export default function HomePage() {
   return (
     <div className={`${playfair.variable} ${dmSans.variable} font-sans min-h-screen bg-[#0F172A] text-slate-100 flex flex-col select-none selection:bg-[#C8A96B] selection:text-[#0F172A] overflow-x-hidden`}>
       
-      {/* Stripe-like Ambient Radial Mesh Gradients */}
-      <div className="absolute top-[-10%] left-[-15%] w-[80vw] h-[80vw] sm:w-[60vw] sm:h-[60vw] rounded-full bg-gradient-to-tr from-[#C8A96B]/5 to-[#0A1226]/40 blur-[130px] pointer-events-none z-0" />
-      <div className="absolute top-[20%] right-[-20%] w-[90vw] h-[90vw] sm:w-[70vw] sm:h-[70vw] rounded-full bg-gradient-to-br from-blue-900/10 to-[#0A1226]/50 blur-[160px] pointer-events-none z-0" />
-      <div className="absolute bottom-[15%] left-[-20%] w-[90vw] h-[90vw] sm:w-[60vw] sm:h-[60vw] rounded-full bg-gradient-to-tr from-[#C8A96B]/3 to-[#0F172A]/50 blur-[140px] pointer-events-none z-0" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-[#C8A96B]/5 to-transparent blur-[120px] pointer-events-none z-0" />
+      {/* Stripe-like Ambient Radial Mesh Gradients.
+          CONTENÇÃO INVISÍVEL (publicação da restauração, 21/10/2026):
+          os 4 glows vivem dentro de um contentor decorativo
+          absolute inset-0 overflow-hidden que os recorta na caixa
+          da página — a mesma técnica de b07b8d9. Na composição
+          original (f142170) os glows escapavam horizontalmente
+          (+288px a 1440, +78px a 390 de overshoot medido, com
+          scroll lateral efetivo); as classes/posições de cada glow
+          NÃO mudam — só é recortada a parte que caía fora da
+          página. Sem overflow:hidden em body/html. */}
+      <div aria-hidden="true" className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-15%] w-[80vw] h-[80vw] sm:w-[60vw] sm:h-[60vw] rounded-full bg-gradient-to-tr from-[#C8A96B]/5 to-[#0A1226]/40 blur-[130px] pointer-events-none z-0" />
+        <div className="absolute top-[20%] right-[-20%] w-[90vw] h-[90vw] sm:w-[70vw] sm:h-[70vw] rounded-full bg-gradient-to-br from-blue-900/10 to-[#0A1226]/50 blur-[160px] pointer-events-none z-0" />
+        <div className="absolute bottom-[15%] left-[-20%] w-[90vw] h-[90vw] sm:w-[60vw] sm:h-[60vw] rounded-full bg-gradient-to-tr from-[#C8A96B]/3 to-[#0F172A]/50 blur-[140px] pointer-events-none z-0" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-[#C8A96B]/5 to-transparent blur-[120px] pointer-events-none z-0" />
+      </div>
 
       {/* Navbar Header */}
       <Navbar onCadastrar={handleCadastrarClick} />
