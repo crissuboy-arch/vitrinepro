@@ -15,7 +15,7 @@ const H2 =
   "font-display font-bold text-[29px] lg:text-[clamp(34px,3.6vw,52px)] leading-[1.12] lg:leading-[1.1] mt-3.5 lg:mt-[18px] mb-2.5 lg:mb-3.5 text-[#F7F4EE]";
 const LEAD = "text-[#A9B1C3] text-[14.5px] lg:text-[17px] leading-[1.6] max-w-[720px] mx-auto";
 const SECTION = "py-12 lg:py-24 border-t border-[#C8A96B]/[0.12] relative z-10";
-const WRAP = "max-w-[1320px] mx-auto px-5 lg:px-10 text-center";
+const WRAP = "max-w-[1320px] mx-auto px-5 lg:px-10 text-center animate-fade-in-up";
 
 /* ── Problema ─────────────────────────────────────────── */
 

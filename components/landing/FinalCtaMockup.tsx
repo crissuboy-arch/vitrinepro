@@ -47,7 +47,7 @@ export default function FinalCtaMockup() {
       </div>
 
       <div className="relative z-[2] max-w-[1320px] mx-auto px-5 lg:px-10">
-        <div className="max-w-[640px] mx-auto lg:mx-0 text-center lg:text-left">
+        <div className="max-w-[640px] mx-auto lg:mx-0 text-center lg:text-left animate-fade-in-up">
           <h2 className="font-display font-bold text-[29px] lg:text-[clamp(34px,3.6vw,52px)] leading-[1.12] lg:leading-[1.1] text-[#F7F4EE]">
             Crie a sua montra digital e <span className="text-[#E6CB8C]">dê a conhecer o seu negócio.</span>
           </h2>

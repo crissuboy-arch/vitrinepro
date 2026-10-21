@@ -182,3 +182,20 @@ body {
     animation: marquee-reverse var(--duration, 30s) linear infinite;
   }
 }
+
+/* Acessibilidade (Correção Visual da Landing, 21/10/2026):
+   respeitar prefers-reduced-motion nas animações utilitárias usadas
+   pela landing (entradas fade-in-up e marquees). Nenhuma das versões
+   anteriores tratava esta preferência; sem esta regra, quem a tem
+   ativa continuava a ver o movimento completo. O conteúdo fica
+   visível e estático (opacity forçada a 1, porque .animate-fade-in-up
+   parte de opacity: 0). */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-marquee,
+  .animate-marquee-reverse,
+  .animate-shimmer {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}

@@ -12,6 +12,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { WaveText } from "@/components/ui/wave-text";
 
 const MENU = [
   { label: "Explorar", href: "/explorar" },
@@ -62,7 +63,7 @@ export default function NavMockup() {
               href="/register"
               className="inline-flex items-center justify-center px-6 py-3 rounded-xl font-bold text-sm text-[#0A0D14] bg-gradient-to-b from-[#E3C98B] to-[#C8A96B] shadow-[0_10px_36px_rgba(200,169,107,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(200,169,107,0.4)]"
             >
-              Criar Montra Grátis
+              <WaveText text="Criar Montra Grátis" />
             </Link>
           </div>
         </div>
@@ -104,7 +105,7 @@ export default function NavMockup() {
                 onClick={() => setOpen(false)}
                 className="mt-2 inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-[#0A0D14] bg-gradient-to-b from-[#E3C98B] to-[#C8A96B]"
               >
-                Criar Montra Grátis
+                <WaveText text="Criar Montra Grátis" />
               </Link>
             </nav>
           )}
