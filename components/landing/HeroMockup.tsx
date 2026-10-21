@@ -52,7 +52,9 @@ const BENEFITS = [
   { icon: "✆", desktop: "Contactos diretos por WhatsApp", mobile: "Contactos por WhatsApp" },
 ];
 
-const MICROPROOFS = ["Rápido e fácil", "Sem cartão de crédito", "Comece hoje"];
+// Limpeza de repetições (21/10/2026): a frase do cartão de crédito
+// passa a viver num único sítio da página — a secção de Planos.
+const MICROPROOFS = ["Rápido e fácil", "Comece hoje"];
 
 const BTN_PRIMARY =
   "inline-flex items-center justify-center gap-2.5 px-[30px] py-4 rounded-[14px] font-bold text-[15px] text-[#0A0D14] bg-gradient-to-b from-[#E3C98B] to-[#C8A96B] shadow-[0_10px_36px_rgba(200,169,107,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(200,169,107,0.4)] w-full lg:w-auto";

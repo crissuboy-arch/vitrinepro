@@ -75,8 +75,11 @@ export default function PlansMockup({ onSelectPlan }: PlansMockupProps) {
               <Item>Até 3 produtos</Item>
               <Item>WhatsApp e horários</Item>
             </ul>
+            {/* Limpeza de repetições (21/10/2026): o texto exato do
+                CTA principal fica na navbar, na hero e no CTA final —
+                aqui o cartão Grátis usa uma formulação distinta. */}
             <Link href="/register" className={BTN_GHOST}>
-              Criar Montra Grátis
+              Começar grátis
             </Link>
           </div>
 
@@ -117,6 +120,13 @@ export default function PlansMockup({ onSelectPlan }: PlansMockupProps) {
             </span>
           </div>
         </div>
+
+        {/* Limpeza de repetições (21/10/2026): a frase do cartão de
+            crédito passa a viver SÓ aqui — removida da hero, do
+            "Como funciona" e do CTA final, onde se repetia. */}
+        <p className="mt-6 lg:mt-10 text-[12.5px] lg:text-[13px] text-[#A9B1C3]">
+          Sem cartão de crédito para começar.
+        </p>
       </div>
     </section>
   );
