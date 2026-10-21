@@ -109,6 +109,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (slug === "demo") {
     const cover = "https://images.unsplash.com/photo-1498804103079-a6351b050096?w=1200&h=500&fit=crop";
     return {
+      // Página de demonstração (conteúdo fictício): acessível por link, fora do índice.
+      robots: { index: false, follow: false },
       title: "Café Central em Lisboa | VitrinePro",
       description: "O Café Central é o ponto de encontro de eleição no coração histórico de Lisboa. Cafetaria & Pastelaria com expresso premiado e pastel de nata.",
       keywords: "Café Central, Lisboa, Cafetaria, Pastelaria, Portugal, VitrinePro",
@@ -125,6 +127,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (slug === "exemplo") {
     const cover = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=500&fit=crop";
     return {
+      // Página de demonstração (conteúdo fictício): acessível por link, fora do índice.
+      robots: { index: false, follow: false },
       title: "Estúdio Ouro & Co. em Lisboa | VitrinePro",
       description: "O Estúdio Ouro & Co. é um espaço exclusivo dedicado ao autocuidado, beleza e bem-estar em Lisboa.",
       keywords: "Estúdio Ouro, Lisboa, Beleza, Bem-estar, Portugal, VitrinePro",
@@ -143,6 +147,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       .from("businesses")
       .select("*")
       .eq("slug", slug)
+      // SEO: só Montras PUBLICADAS emitem metadata indexável. Rascunhos
+      // (published=false) caem no fallback noindex abaixo.
+      .eq("published", true)
       .maybeSingle();
 
     if (data) {
@@ -213,6 +220,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   return {
+    // Montra inexistente ou em rascunho: nunca indexar.
+    robots: { index: false, follow: false },
     title: "VitrinePro",
     description: "Crie a sua vitrina profissional e receba pedidos no WhatsApp.",
   };

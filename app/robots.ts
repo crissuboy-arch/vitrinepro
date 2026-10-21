@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // Private / non-indexable areas
-      disallow: ["/dashboard", "/admin", "/onboarding", "/auth", "/favoritos", "/api"],
+      disallow: ["/dashboard", "/admin", "/onboarding", "/auth", "/favoritos", "/conta", "/api"],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
     host: siteUrl,
