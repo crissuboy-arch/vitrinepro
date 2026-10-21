@@ -14,8 +14,8 @@ const features = [
   },
   {
     icon: "🔝",
-    title: "1.º Lugar no Diretório",
-    desc: "O seu negócio aparece sempre no topo das pesquisas dentro da plataforma. Visibilidade máxima garantida.",
+    title: "Destaque no Diretório",
+    desc: "A sua Montra ganha destaque nas pesquisas dentro da plataforma, para ser encontrada mais depressa.",
   },
   {
     icon: "🔍",
@@ -185,9 +185,9 @@ export default function PlanoBusiness() {
       <div className="border-y border-white/5 bg-white/3">
         <div className="max-w-4xl mx-auto px-4 py-6 grid grid-cols-3 gap-4 text-center">
           {[
-            { n: "1.000+", l: "negócios activos" },
-            { n: "33", l: "cidades portuguesas" },
-            { n: "4.9★", l: "avaliação média" },
+            { n: "24/7", l: "vitrine sempre online" },
+            { n: "4", l: "passos para criar a Montra" },
+            { n: "1", l: "link para divulgar em todo o lado" },
           ].map((s) => (
             <div key={s.l}>
               <div className="text-2xl font-bold text-[#C8A96B] font-display">{s.n}</div>
@@ -364,7 +364,7 @@ export default function PlanoBusiness() {
           Pronto para crescer?
         </h2>
         <p className="text-slate-400 max-w-md mx-auto mb-8 text-sm leading-relaxed font-light">
-          Junte-se a mais de 1.000 negócios em Portugal que já têm a sua vitrine digital com VitrinePro.
+          Crie a sua vitrine digital com a VitrinePro e comece hoje a ser encontrado por novos clientes.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button

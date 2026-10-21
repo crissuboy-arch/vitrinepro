@@ -7,7 +7,6 @@ const EXAMPLES = [
     city: "Lisboa",
     cover: "https://images.unsplash.com/photo-1498804103079-a6351b050096?w=600&h=300&fit=crop",
     logo: "☕",
-    rating: "4.9",
     slug: "demo",
     badge: "Premium ✦",
     badgeColor: "#C8A96B",
@@ -18,7 +17,6 @@ const EXAMPLES = [
     city: "Lisboa",
     cover: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=300&fit=crop",
     logo: "💅",
-    rating: "4.8",
     slug: "exemplo",
     badge: "Pro",
     badgeColor: "#60A5FA",
@@ -29,7 +27,6 @@ const EXAMPLES = [
     city: "Porto",
     cover: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&h=300&fit=crop",
     logo: "💈",
-    rating: "5.0",
     slug: "explorar",
     badge: "Premium ✦",
     badgeColor: "#C8A96B",
@@ -44,7 +41,7 @@ export default function ShowcaseSection() {
         {/* Header */}
         <div className="text-center space-y-3">
           <span className="text-[10px] font-bold text-[#C8A96B] uppercase tracking-widest bg-[#C8A96B]/5 px-3 py-1.5 rounded-full border border-[#C8A96B]/15">
-            Exemplos reais
+            Exemplos de vitrines
           </span>
           <h2 className="text-3xl md:text-5xl font-bold font-display text-[#F5F0E8] leading-tight">
             A sua vitrine vai ficar{" "}
@@ -94,7 +91,7 @@ export default function ShowcaseSection() {
                 </div>
 
                 <div className="flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">
-                  <span className="text-[#C8A96B] font-bold">★ {ex.rating}</span>
+                  <span className="text-slate-500 font-semibold">Vitrine de exemplo</span>
                   <span className="text-slate-400 group-hover:text-[#C8A96B] font-semibold transition-colors">
                     Ver vitrine →
                   </span>

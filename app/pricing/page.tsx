@@ -284,7 +284,7 @@ export default function PricingPage() {
       <section className="bg-[#0F172A] py-16 text-center px-4">
         <h2 className="font-display text-3xl text-white mb-4">Pronto para crescer?</h2>
         <p className="text-[#E5E7EB] mb-8 max-w-md mx-auto">
-          Junte-se a centenas de negócios que já usam o VitrinePro para chegar a mais clientes.
+          Crie a sua vitrine profissional e comece a chegar a mais clientes, sem complicações.
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
           <Link
