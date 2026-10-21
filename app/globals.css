@@ -198,4 +198,15 @@ body {
     animation: none !important;
     opacity: 1 !important;
   }
+  /* Extensão (correção mobile 21/10/2026): as restantes animações CSS
+     contínuas usadas na landing/widgets — spinner de loading
+     (animate-spin), pulso do indicador do chat (animate-pulse) e os
+     pontos de "a escrever" (animate-bounce) — também param, com o
+     conteúdo visível e estático. As animações por JS (globo Three.js
+     e WaveText) têm guardas matchMedia próprias nos componentes. */
+  .animate-spin,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
 }

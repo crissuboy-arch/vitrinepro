@@ -33,6 +33,19 @@ export function GlobeBackground() {
   // "never") — a rotação retoma do mesmo estado quando volta a ser visível.
   // Sem qualquer alteração visual enquanto o globo está no ecrã.
   const [active, setActive] = useState(true);
+  // Acessibilidade (correção mobile 21/10/2026): com
+  // prefers-reduced-motion, o globo fica visível mas ESTÁTICO —
+  // frameloop "never" (o frame inicial continua renderizado; só a
+  // rotação contínua para). Sem esconder conteúdo.
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -66,7 +79,7 @@ export function GlobeBackground() {
     >
       {/* dpr limitado a 1.5: o wireframe translúcido é indistinguível a 2x,
           mas o custo de GPU/CPU por frame desce de forma relevante. */}
-      <Canvas dpr={[1, 1.5]} frameloop={active ? "always" : "never"}>
+      <Canvas dpr={[1, 1.5]} frameloop={active && !reducedMotion ? "always" : "never"}>
         <PerspectiveCamera makeDefault position={[0, 0, 2.8]} fov={75} />
         <ambientLight intensity={0.5} />
         <Globe rotationSpeed={0.0025} radius={1.15} />

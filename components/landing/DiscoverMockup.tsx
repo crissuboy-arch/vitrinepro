@@ -45,11 +45,11 @@ export default function DiscoverMockup() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Pesquise negócios, serviços, produtos…"
-            className="flex-1 min-w-0 bg-transparent outline-none text-[13.5px] lg:text-[15px] text-[#F7F4EE] placeholder:text-[#A9B1C3]"
+            className="flex-1 min-w-0 bg-transparent outline-none text-[13.5px] lg:text-[15px] text-[#F7F4EE] placeholder:text-[#A9B1C3] py-3 lg:py-0"
           />
           <button
             type="submit"
-            className="shrink-0 inline-flex items-center justify-center px-3.5 py-[11px] lg:px-[26px] lg:py-3.5 rounded-[10px] lg:rounded-xl font-bold text-[13px] lg:text-[15px] text-[#0A0D14] bg-gradient-to-b from-[#E3C98B] to-[#C8A96B] shadow-[0_10px_36px_rgba(200,169,107,0.28)] transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
+            className="shrink-0 inline-flex items-center justify-center px-3.5 py-[13px] lg:px-[26px] lg:py-3.5 rounded-[10px] lg:rounded-xl font-bold text-[13px] lg:text-[15px] text-[#0A0D14] bg-gradient-to-b from-[#E3C98B] to-[#C8A96B] shadow-[0_10px_36px_rgba(200,169,107,0.28)] transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
           >
             📍 <span className="hidden sm:inline">Perto de mim</span>
             <span className="sm:hidden">Perto</span>

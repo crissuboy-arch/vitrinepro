@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { Send, X, Sparkles, MessageSquare } from "lucide-react";
 
 const INITIAL_QUESTIONS = [
@@ -166,7 +167,7 @@ export default function ChatWidget() {
           <div className="bg-[#0b1326] px-4 py-3 flex items-center justify-between border-b border-slate-800/80">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-transparent flex items-center justify-center overflow-hidden flex-shrink-0">
-                <img src="/brand/logo-horizontal-transparent.png" alt="" className="w-full h-full object-contain" />
+                <Image src="/brand/logo-horizontal-transparent.png" alt="" width={800} height={216} className="w-full h-full object-contain" />
               </div>
               <div>
                 <h4 className="text-xs font-bold text-white font-display leading-tight">VitrinePro</h4>

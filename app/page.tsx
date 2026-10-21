@@ -4,6 +4,7 @@
 import { useRouter } from "next/navigation";
 import { supabase } from "./lib/supabase";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useHomeRedirect } from "@/components/auth/useHomeRedirect";
 
 // Overlay widgets are non-critical — lazy-load them so they stay out of the initial bundle.
@@ -11,8 +12,12 @@ const ChatWidget = dynamic(() => import("./components/ChatWidget"), { ssr: false
 const RefPopup = dynamic(() => import("./components/RefPopup"), { ssr: false });
 const LeadCapturePopup = dynamic(() => import("./components/LeadCapturePopup"), { ssr: false });
 
-// Google Fonts
-import { Playfair_Display, DM_Sans } from "next/font/google";
+// Fontes: a página NÃO instancia fontes próprias (correção mobile
+// 21/10/2026). O layout (app/layout.tsx) já expõe --font-playfair e
+// --font-inter em <html>; o --font-dmsans daqui nunca foi referenciado
+// por nenhuma classe/CSS (font-sans resolve para Inter via @theme em
+// globals.css) e o Playfair local duplicava o do layout — os dois
+// woff2 extra eram peso morto medido no Lighthouse.
 import { BUSINESS_CHECKOUT_ENABLED, normalizePlan } from "@/lib/plans";
 
 // Landing components — nova landing dos mockups aprovados (21/10/2026).
@@ -32,16 +37,6 @@ import PlansMockup from "@/components/landing/PlansMockup";
 import FaqMockup from "@/components/landing/FaqMockup";
 import FinalCtaMockup from "@/components/landing/FinalCtaMockup";
 import FooterMockup from "@/components/landing/FooterMockup";
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-});
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dmsans",
-});
 
 export default function HomePage() {
   // Correção definitiva da navegação: utilizadores autenticados nunca
@@ -127,7 +122,7 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 w-auto object-contain opacity-80" />
+          <Image src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" width={800} height={216} priority className="h-10 w-auto object-contain opacity-80" />
           <div className="w-8 h-8 border-2 border-[#C8A96B]/30 border-t-[#C8A96B] rounded-full animate-spin" aria-label="A carregar" />
         </div>
       </div>
@@ -135,15 +130,27 @@ export default function HomePage() {
   }
 
   return (
-    <div className={`${playfair.variable} ${dmSans.variable} font-sans relative min-h-screen bg-[#070B14] text-[#F7F4EE] flex flex-col select-none selection:bg-[#C8A96B] selection:text-[#0A0D14] overflow-x-hidden`}>
+    <div className={`font-sans relative min-h-screen bg-[#070B14] text-[#F7F4EE] flex flex-col select-none selection:bg-[#C8A96B] selection:text-[#0A0D14] overflow-x-hidden`}>
 
       {/* Stripe-like Ambient Radial Mesh Gradients — restaurados da
           landing original (f142170) na Correção Visual de 21/10/2026:
-          os brilhos ambientes que o redesign tinha retirado. */}
-      <div className="absolute top-[-10%] left-[-15%] w-[80vw] h-[80vw] sm:w-[60vw] sm:h-[60vw] rounded-full bg-gradient-to-tr from-[#C8A96B]/5 to-[#0A1226]/40 blur-[130px] pointer-events-none z-0" />
-      <div className="absolute top-[20%] right-[-20%] w-[90vw] h-[90vw] sm:w-[70vw] sm:h-[70vw] rounded-full bg-gradient-to-br from-blue-900/10 to-[#0A1226]/50 blur-[160px] pointer-events-none z-0" />
-      <div className="absolute bottom-[15%] left-[-20%] w-[90vw] h-[90vw] sm:w-[60vw] sm:h-[60vw] rounded-full bg-gradient-to-tr from-[#C8A96B]/3 to-[#0F172A]/50 blur-[140px] pointer-events-none z-0" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-[#C8A96B]/5 to-transparent blur-[120px] pointer-events-none z-0" />
+          os brilhos ambientes que o redesign tinha retirado.
+          CORREÇÃO MOBILE (21/10/2026): os 4 glows vivem agora dentro
+          de um contentor decorativo absolute inset-0 overflow-hidden
+          que os recorta exatamente na caixa da página. Sem isto, o
+          glow bottom-[-10%] (=-10% da altura da página inteira)
+          estendia-se 515–707px para lá do fim do footer — a causa
+          provada do espaço vazio pós-footer no Safari/iOS (bissecção
+          no diagnóstico: escondê-lo removia −516px exatos a 390px).
+          As classes/posições de cada glow NÃO mudam: a parte visível
+          de cada brilho fica pixel-igual; só é recortada a parte que
+          caía fora da página e gerava scroll fantasma. */}
+      <div aria-hidden="true" className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-15%] w-[80vw] h-[80vw] sm:w-[60vw] sm:h-[60vw] rounded-full bg-gradient-to-tr from-[#C8A96B]/5 to-[#0A1226]/40 blur-[130px] pointer-events-none z-0" />
+        <div className="absolute top-[20%] right-[-20%] w-[90vw] h-[90vw] sm:w-[70vw] sm:h-[70vw] rounded-full bg-gradient-to-br from-blue-900/10 to-[#0A1226]/50 blur-[160px] pointer-events-none z-0" />
+        <div className="absolute bottom-[15%] left-[-20%] w-[90vw] h-[90vw] sm:w-[60vw] sm:h-[60vw] rounded-full bg-gradient-to-tr from-[#C8A96B]/3 to-[#0F172A]/50 blur-[140px] pointer-events-none z-0" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-[#C8A96B]/5 to-transparent blur-[120px] pointer-events-none z-0" />
+      </div>
 
       {/* Navbar (mockup) */}
       <NavMockup />
