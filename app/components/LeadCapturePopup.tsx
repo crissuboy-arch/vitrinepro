@@ -8,17 +8,10 @@ import { useAuth } from "../context/SupabaseAuthContext";
 const STORAGE_KEY = "vitrinepro_lead_v1";
 const DELAY_MS = 7000;
 
-const businessTypes = [
-  "Beleza e Estética",
-  "Restaurante / Alimentação",
-  "Serviços Domésticos",
-  "Moda e Vestuário",
-  "Saúde e Bem-estar",
-  "Educação e Cursos",
-  "Tecnologia e Digital",
-  "Comércio Local",
-  "Outro",
-];
+// LIMPEZA DE REPETIÇÕES (21/10/2026): a lista de tipos de negócio
+// que o formulário trazia foi removida — era uma 4.ª apresentação
+// de categorias na mesma página. O lead passa a ser gravado sem
+// tipo de negócio (a coluna continua a existir na tabela).
 
 export default function LeadCapturePopup() {
   const { user } = useAuth();
@@ -26,7 +19,6 @@ export default function LeadCapturePopup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [bizType, setBizType] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -53,7 +45,7 @@ export default function LeadCapturePopup() {
         name: name.trim(),
         email: email.trim().toLowerCase(),
         whatsapp: whatsapp.trim() || null,
-        business_type: bizType || null,
+        business_type: null,
         source: "popup_homepage",
       });
       setDone(true);
@@ -94,20 +86,14 @@ export default function LeadCapturePopup() {
           </div>
         ) : (
           <>
-            {/* Header */}
+            {/* Header — curto (limpeza de repetições 21/10/2026):
+                sem repetir a proposta da página nem o CTA principal. */}
             <div className="px-6 pt-6 pb-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xl">🚀</span>
-                <span className="text-[10px] font-bold text-[#C8A96B] uppercase tracking-widest bg-[#C8A96B]/10 px-2.5 py-1 rounded-full border border-[#C8A96B]/20">
-                  Grátis para começar
-                </span>
-              </div>
               <h3 className="text-white font-bold text-xl font-display leading-tight">
-                A sua vitrine digital<br />
-                <span className="text-[#C8A96B]">em 5 minutos</span>
+                Crie a sua <span className="text-[#C8A96B]">vitrine grátis</span>
               </h3>
               <p className="text-slate-400 text-xs mt-2 leading-relaxed">
-                A sua vitrine profissional com produtos, contactos e botão de WhatsApp — pronta para partilhar. Cadastre-se grátis agora.
+                Deixe os seus dados e entramos em contacto em breve.
               </p>
             </div>
 
@@ -139,17 +125,6 @@ export default function LeadCapturePopup() {
                 autoComplete="tel"
                 className="w-full px-4 py-2.5 bg-[#1E293B] border border-white/10 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-[#C8A96B]/60 transition-colors"
               />
-              <select
-                value={bizType}
-                onChange={(e) => setBizType(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#1E293B] border border-white/10 rounded-xl text-sm focus:outline-none focus:border-[#C8A96B]/60 transition-colors text-slate-300"
-              >
-                <option value="">Tipo de negócio...</option>
-                {businessTypes.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-
               <button
                 type="submit"
                 disabled={loading}
@@ -158,7 +133,7 @@ export default function LeadCapturePopup() {
                 {loading ? (
                   <span className="w-4 h-4 border-2 border-[#0F172A]/50 border-t-[#0F172A] rounded-full animate-spin" />
                 ) : (
-                  "Quero criar a minha vitrine grátis →"
+                  "Enviar pedido →"
                 )}
               </button>
 

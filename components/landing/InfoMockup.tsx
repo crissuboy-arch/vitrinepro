@@ -111,7 +111,9 @@ export function FeaturesMockup() {
 /* ── Como funciona ────────────────────────────────────── */
 
 const STEPS = [
-  { title: "Crie a conta", text: "Registo simplificado, sem cartão de crédito." },
+  // A menção ao cartão foi removida (limpeza de repetições 21/10/2026):
+  // a frase passa a viver num único sítio — a secção de Planos.
+  { title: "Crie a conta", text: "Registo simplificado." },
   { title: "Adicione o negócio", text: "Nome, categoria, contactos e horários." },
   { title: "Publique produtos e serviços", text: "Fotos, descrições e preços." },
   { title: "Partilhe a sua Montra", text: "Link, QR Code e redes sociais." },

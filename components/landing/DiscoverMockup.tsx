@@ -3,34 +3,20 @@
 /**
  * components/landing/DiscoverMockup.tsx
  *
- * Barra de pesquisa + categorias da nova landing (mockup aprovado).
+ * Barra de pesquisa da nova landing (mockup aprovado).
  * A pesquisa é REAL: usa o mesmo comportamento da DiscoverySearch
  * atual — submeter navega para /explorar?q=…, que filtra o catálogo
  * vivo de negócios/produtos. Sem texto, o botão leva ao /explorar
- * ("Perto de mim"). As categorias ligam à mesma pesquisa real por
- * termo (o /explorar lê o parâmetro q). Nada de pesquisa falsa.
+ * ("Perto de mim"). Nada de pesquisa falsa.
+ *
+ * LIMPEZA DE REPETIÇÕES (21/10/2026): a linha de chips de categorias
+ * que seguia a barra foi removida — as categorias passam a ser
+ * apresentadas UMA vez nesta zona, nos cartões de setor da secção
+ * "Negócios reais. Todos os setores." (SectorsMockup).
  */
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-const CHIPS: { icon: string; label: string; q?: string }[] = [
-  { icon: "🍴", label: "Restaurantes e Cafés", q: "restaurante" },
-  { icon: "✂", label: "Salões de Beleza", q: "salão de beleza" },
-  { icon: "💈", label: "Barbearias", q: "barbearia" },
-  { icon: "🛍", label: "Lojas e Comércio", q: "loja" },
-  { icon: "💼", label: "Serviços Profissionais", q: "serviços" },
-  { icon: "💚", label: "Saúde e Bem-estar", q: "saúde" },
-  { icon: "🏋", label: "Ginásios e Fitness", q: "ginásio" },
-  { icon: "✚", label: "Clínicas", q: "clínica" },
-  { icon: "🚗", label: "Automóvel", q: "automóvel" },
-  { icon: "🏠", label: "Casa e Construção", q: "construção" },
-  { icon: "🎓", label: "Explicadores", q: "explicadores" },
-  { icon: "🐾", label: "Animais", q: "animais" },
-  { icon: "💻", label: "Tecnologia", q: "tecnologia" },
-  { icon: "⋯", label: "Mais categorias" },
-];
 
 export default function DiscoverMockup() {
   const [query, setQuery] = useState("");
@@ -43,7 +29,7 @@ export default function DiscoverMockup() {
   };
 
   return (
-    <div id="descobrir" className="relative z-[3] pt-2.5 pb-[70px]">
+    <div id="descobrir" className="relative z-[3] pt-2.5 pb-10 lg:pb-14">
       <div className="max-w-[1320px] mx-auto px-5 lg:px-10">
         <form
           onSubmit={submit}
@@ -69,19 +55,6 @@ export default function DiscoverMockup() {
             <span className="sm:hidden">Perto</span>
           </button>
         </form>
-
-        <div className="flex lg:flex-wrap flex-nowrap lg:justify-center gap-2.5 lg:gap-3 mt-4 lg:mt-[26px] lg:max-w-[1180px] mx-auto overflow-x-auto lg:overflow-visible -mx-5 px-5 lg:mx-auto lg:px-0 pb-1.5 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {CHIPS.map((chip) => (
-            <Link
-              key={chip.label}
-              href={chip.q ? `/explorar?q=${encodeURIComponent(chip.q)}` : "/explorar"}
-              className="inline-flex items-center gap-2.5 whitespace-nowrap px-4 py-2.5 lg:px-5 lg:py-3 rounded-full border border-white/[0.16] bg-white/[0.03] text-[13px] lg:text-sm font-medium transition-colors hover:border-[#C8A96B] hover:text-[#E6CB8C]"
-            >
-              <span className="not-italic text-[#C8A96B]">{chip.icon}</span>
-              {chip.label}
-            </Link>
-          ))}
-        </div>
       </div>
     </div>
   );

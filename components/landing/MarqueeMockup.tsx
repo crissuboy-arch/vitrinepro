@@ -14,6 +14,13 @@
  * removidas de propósito no redesign — a landing atual não mostra
  * estatísticas inventadas. Só o efeito marquee (categorias, sem
  * números) é restaurado.
+ *
+ * LIMPEZA DE REPETIÇÕES (21/10/2026): este componente deixou de ser
+ * composto na página inicial (app/page.tsx) — era a 2.ª de TRÊS
+ * apresentações seguidas das categorias (chips → marquee → cartões).
+ * As categorias ficam apresentadas uma vez, nos cartões de setor.
+ * O código mantém-se no repo para eventual reutilização noutra zona;
+ * nada aqui é renderizado na home.
  */
 
 import { Marquee } from "@/components/ui/marquee";

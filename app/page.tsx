@@ -26,7 +26,6 @@ import { BUSINESS_CHECKOUT_ENABLED, normalizePlan } from "@/lib/plans";
 import NavMockup from "@/components/landing/NavMockup";
 import HeroMockup from "@/components/landing/HeroMockup";
 import DiscoverMockup from "@/components/landing/DiscoverMockup";
-import MarqueeMockup from "@/components/landing/MarqueeMockup";
 import SectorsMockup from "@/components/landing/SectorsMockup";
 import { ProblemMockup, FeaturesMockup, StepsMockup } from "@/components/landing/InfoMockup";
 import PlansMockup from "@/components/landing/PlansMockup";
@@ -153,12 +152,15 @@ export default function HomePage() {
         {/* 1ª dobra — hero com o GLOBO REAL da plataforma */}
         <HeroMockup />
 
-        {/* Pesquisa real + categorias */}
+        {/* Pesquisa real (a barra continua a pesquisar → /explorar?q=) */}
         <DiscoverMockup />
 
-        {/* Faixa marquee de categorias — efeito restaurado da landing
-            original (f142170, StatsSection) na Correção Visual */}
-        <MarqueeMockup />
+        {/* LIMPEZA DE REPETIÇÕES (21/10/2026): as categorias passam a
+            ser apresentadas UMA vez nesta zona — os cartões de setor
+            da secção seguinte. A faixa marquee de categorias e a linha
+            de chips que aqui estavam saem da composição (o código dos
+            componentes NÃO é apagado, só deixam de ser renderizados
+            aqui — mesmo padrão das secções antigas). */}
 
         {/* Negócios reais · Todos os setores (+ faixa de factos;
             demonstração do exemplo real Cantinho da Lu com o mockup
