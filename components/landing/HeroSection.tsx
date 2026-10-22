@@ -1,6 +1,6 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import type React from "react";
 import { HeroCarrossel } from "@/components/ui/hero-carrossel";
 import { WaveText } from "@/components/ui/wave-text";
 
@@ -10,21 +10,13 @@ const GlobeBackground = dynamic(
 );
 
 /**
- * PERF MOBILE: o globo Three.js (~863KB JS) é puramente decorativo.
- * Em mobile não é carregado de todo — o glow radial CSS (já existente)
- * mantém o visual. Sem perda de funcionalidade.
+ * GLOBO EM TODOS OS ECRÃS (ordem da Cristiane, 22/10/2026): o gate de
+ * largura que impedia o globo de montar em mobile (só ≥768px) foi
+ * removido — o globo é visível também no telemóvel. A performance continua
+ * guardada dentro do próprio componente: DPR limitado a 1.5, pausa do
+ * loop fora do viewport/separador oculto e frame estático com
+ * prefers-reduced-motion.
  */
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    setIsDesktop(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return isDesktop;
-}
 
 interface HeroSectionProps {
   onCadastrar: (e: React.MouseEvent) => void;
@@ -38,11 +30,10 @@ const MICROPROOFS = [
 ];
 
 export default function HeroSection({ onCadastrar }: HeroSectionProps) {
-  const isDesktop = useIsDesktop();
   return (
     <section className="relative pt-28 pb-20 md:pt-36 md:pb-28 overflow-hidden bg-[#0A0D14] border-b border-[#C9A96E]/20 z-10">
-      {/* Globe — decorative background, pointer-events none; desktop only (perf) */}
-      {isDesktop && <GlobeBackground />}
+      {/* Globe — decorative background, pointer-events none; todos os ecrãs */}
+      <GlobeBackground />
 
       {/* Radial gold glow behind globe */}
       <div style={{

@@ -17,13 +17,15 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (p: string) => readFileSync(join(__dirname, "..", p), "utf8");
 
-describe("mobile perf — Three.js só no desktop", () => {
-  it("HeroSection não renderiza o globo incondicionalmente", () => {
+describe("mobile perf — globo em todos os ecrãs (ordem da Cristiane, 22/10/2026)", () => {
+  it("HeroSection renderiza o globo incondicionalmente (sem gate de largura)", () => {
     const src = read("components/landing/HeroSection.tsx");
-    // O globo continua dynamic (ssr:false) mas só monta em desktop
-    assert.ok(src.includes("useIsDesktop"), "usa gate de desktop");
-    assert.match(src, /\{isDesktop && <GlobeBackground \/>/);
-    assert.doesNotMatch(src, /^\s*<GlobeBackground \/>\s*$/m);
+    // O globo continua dynamic (ssr:false) mas monta em qualquer largura:
+    // o gate min-width:768px (useIsDesktop) foi removido por ordem expressa
+    // da Cristiane — o globo tem de ser visível também no telemóvel.
+    assert.ok(!src.includes("useIsDesktop"), "sem gate de desktop");
+    assert.ok(!src.includes("min-width: 768px"), "sem matchMedia de largura");
+    assert.match(src, /<GlobeBackground \/>/);
   });
 });
 
