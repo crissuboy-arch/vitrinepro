@@ -580,6 +580,9 @@ export default function HomePage() {
           <p className="text-[10px] text-slate-700 pt-2">
             © 2026 VitrinePro · Portugal · Todos os direitos reservados
           </p>
+          <p className="text-[10px] text-slate-700 pt-1">
+            Desenvolvido por Ofensiva Criativa
+          </p>
         </div>
       </footer>
 
