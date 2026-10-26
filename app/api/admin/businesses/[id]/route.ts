@@ -9,6 +9,7 @@
  */
 import { NextResponse } from "next/server";
 import { requireAdmin, getServiceClient, adminLog } from "@/lib/admin-auth";
+import { togglePublishPatch } from "@/lib/published-at";
 
 export const runtime = "nodejs";
 
@@ -93,9 +94,38 @@ export async function PATCH(
       return NextResponse.json({ error: "Slug não pode ser vazio" }, { status: 400 });
     }
 
+    // Carimbo da primeira publicação (admin): se o PATCH publica, ler a
+    // linha atual e só carimbar na transição false → true com
+    // published_at ainda NULL (nunca sobrescrever; nunca carimbar ao
+    // despublicar). Se a leitura falhar, publica sem carimbo (o carimbo
+    // fica adiado para uma próxima transição) — nunca bloquear a ação.
+    const updateFields: Record<string, unknown> = {
+      ...patch,
+      updated_at: new Date().toISOString(),
+    };
+    if (patch.published === true) {
+      try {
+        const { data: current } = await svc
+          .from("businesses")
+          .select("published, published_at")
+          .eq("id", id)
+          .single();
+        if (current) {
+          const stamp = togglePublishPatch(
+            { published: current.published, published_at: current.published_at },
+            true,
+            new Date().toISOString()
+          );
+          if (stamp.published_at) updateFields.published_at = stamp.published_at;
+        }
+      } catch {
+        // Sem carimbo (ver comentário acima) — a publicação prossegue.
+      }
+    }
+
     const { data, error } = await svc
       .from("businesses")
-      .update({ ...patch, updated_at: new Date().toISOString() })
+      .update(updateFields)
       .eq("id", id)
       .select("id, slug, published")
       .single();

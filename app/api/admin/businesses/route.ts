@@ -109,6 +109,9 @@ export async function POST(request: Request) {
         category: body.category || null,
         description: body.description || null,
         published: body.published === true,
+        // Carimbo da primeira publicação: uma Montra criada já publicada
+        // nasceu publicada — essa É a sua primeira publicação.
+        ...(body.published === true ? { published_at: new Date().toISOString() } : {}),
       })
       .select("id, slug")
       .single();

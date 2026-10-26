@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/SupabaseAuthContext";
 import Image from "next/image";
 import Link from "next/link";
@@ -28,6 +28,13 @@ import SaveToCollection from "../components/SaveToCollection";
 import { splitExploreSlices } from "@/lib/explore-slices";
 import { buildFeedItems, distributeColumns, columnsForWidth, type FeedItem } from "@/lib/feed";
 import { FeedCard } from "../components/FeedCards";
+import ExploreNewcomerNotice from "../components/ExploreNewcomerNotice";
+import {
+  selectNewcomer,
+  loadSeenIds,
+  addSeenId,
+  saveSeenIds,
+} from "@/lib/newcomer-notice";
 import AskVitrine from "@/components/vitrine/AskVitrine";
 // A5 — "Preciso Hoje": disponibilidade honesta (camada pura, sem React).
 import {
@@ -111,6 +118,13 @@ export default function ExplorarPage() {
   const [selectedCity, setSelectedCity] = useState("Todas as Cidades");
   const [selectedCommunity, setSelectedCommunity] = useState("todas");
   const [realBusinesses, setRealBusinesses] = useState<any[]>([]);
+  // Notificação de novidade: ids já vistos/fechados (localStorage) + flag
+  // de leitura concluída (evita flash antes de carregar os vistos).
+  const [seenNewcomerIds, setSeenNewcomerIds] = useState<string[]>([]);
+  const [seenNewcomersReady, setSeenNewcomersReady] = useState(false);
+  // Uma notificação por carregamento da página: depois de descartada
+  // (X, auto-fechar ou clique), não surge outra na mesma sessão.
+  const [newcomerClosed, setNewcomerClosed] = useState(false);
   const [dbCategories, setDbCategories] = useState<any[]>([]);
   const [dbCities, setDbCities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,6 +151,34 @@ export default function ExplorarPage() {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Notificação de novidade: carrega os ids vistos após a montagem.
+  useEffect(() => {
+    if (!mounted) return;
+    if (typeof window !== "undefined" && window.localStorage) {
+      setSeenNewcomerIds(loadSeenIds(window.localStorage));
+    }
+    setSeenNewcomersReady(true);
+  }, [mounted]);
+
+  // Novidade a mostrar: a Montra publicada pela primeira vez mais recente
+  // (published_at ≤ 7 dias), ainda não vista — ou null (nada renderiza).
+  // Deriva dos dados reais que a página já carrega (published = true).
+  const newcomer = useMemo(() => {
+    if (!mounted || !seenNewcomersReady || newcomerClosed) return null;
+    return selectNewcomer(realBusinesses, seenNewcomerIds, Date.now());
+  }, [mounted, seenNewcomersReady, newcomerClosed, realBusinesses, seenNewcomerIds]);
+
+  const handleNewcomerDismissed = useCallback((id: string) => {
+    setSeenNewcomerIds((prev) => {
+      const next = addSeenId(prev, id);
+      if (typeof window !== "undefined" && window.localStorage) {
+        saveSeenIds(window.localStorage, next);
+      }
+      return next;
+    });
+    setNewcomerClosed(true);
   }, []);
 
   // A6.5 fix: resolve visibilidade do "Painel do Dono" com estado real.
@@ -205,7 +247,7 @@ export default function ExplorarPage() {
           supabase
             .from("businesses")
             .select(
-              "id, name, slug, description, category, city, country, logo_url, cover_url, rating_average, rating_count, owner_origin_country, opening_hours, service_today, latitude, longitude"
+              "id, name, slug, description, category, city, country, logo_url, cover_url, rating_average, rating_count, owner_origin_country, opening_hours, service_today, latitude, longitude, published_at"
             )
             .eq("published", true)
             .order("created_at", { ascending: false }),
@@ -796,6 +838,13 @@ export default function ExplorarPage() {
             Pesquise por categoria, cidade ou pela comunidade dos fundadores locais em Portugal.
           </p>
         </div>
+
+        {/* Notificação de novidade: Montra publicada pela primeira vez há
+            menos de 7 dias (dados reais; sem recentes, nada é renderizado).
+            Em fluxo, acima dos filtros — nunca cobre filtros ou botões. */}
+        {newcomer && (
+          <ExploreNewcomerNotice newcomer={newcomer} onDismissed={handleNewcomerDismissed} />
+        )}
 
         {/* A8 — Pergunte à Vitrine (IA de descoberta; busca tradicional preservada abaixo) */}
         <div className="max-w-2xl mx-auto">

@@ -15,6 +15,7 @@ import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/
 import { isProTier, isBusinessTier, isPaidTier, normalizePlan, BUSINESS_CHECKOUT_ENABLED } from "@/lib/plans";
 import { isPublishedBusiness, isOwnerOf } from "@/lib/visibility";
 import { getMissingPublishRequirements, missingPublishMessage } from "@/lib/publish-requirements";
+import { togglePublishPatch } from "@/lib/published-at";
 import { getSiteUrl } from "@/lib/site";
 import { buildVitrineUrl, buildVitrineQrSrc, buildShortLinkUrl } from "@/lib/vitrine-share";
 import { MONTRA_TABS, DEFAULT_MONTRA_TAB, isValidMontraTab } from "@/lib/montra-tabs";
@@ -712,13 +713,38 @@ function DashboardContent() {
       return;
     }
     try {
+      // Carimbo da primeira publicação: ler o estado atual na base para
+      // só carimbar na transição false → true com published_at ainda NULL
+      // (nunca sobrescrever; nunca carimbar ao despublicar). Se a leitura
+      // falhar, usa o estado da UI como fallback — a publicação não fica
+      // bloqueada por uma falha de leitura; o carimbo fica adiado para
+      // uma próxima transição (o campo continua NULL).
+      let current: { published?: boolean | null; published_at?: string | null } = {
+        published: business.published,
+        published_at: (business as any).published_at ?? null,
+      };
+      try {
+        const { data: row } = await supabase
+          .from("businesses")
+          .select("published, published_at")
+          .eq("id", business.id)
+          .single();
+        if (row) current = row;
+      } catch {
+        // Fallback para o estado da UI (ver comentário acima).
+      }
+      const patch = togglePublishPatch(current, targetStatus, new Date().toISOString());
       const { error } = await supabase
         .from("businesses")
-        .update({ published: targetStatus })
+        .update(patch)
         .eq("id", business.id);
 
       if (error) throw error;
-      setBusiness((prev: any) => ({ ...prev, published: targetStatus }));
+      setBusiness((prev: any) => ({
+        ...prev,
+        published: targetStatus,
+        ...(patch.published_at ? { published_at: patch.published_at } : {}),
+      }));
     } catch (err: any) {
       alert("Erro ao alterar visibilidade: " + err.message);
     }

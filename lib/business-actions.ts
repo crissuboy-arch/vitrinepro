@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from "@/app/lib/supabase";
 import { generateSlug } from "./utils";
+import { creationPublishStamp } from "./published-at";
 
 export interface BusinessInput {
   user_id: string;
@@ -24,6 +25,9 @@ export interface BusinessInput {
   logo_url?: string;
   cover_url?: string;
   published?: boolean;
+  // Carimbo da PRIMEIRA publicação (notificação /explorar): ver
+  // lib/published-at.ts. NULL = nunca publicada desde que o campo existe.
+  published_at?: string;
   is_published?: boolean;
   category_id?: string;
   city_id?: string;
@@ -94,6 +98,15 @@ export async function createBusiness(data: Partial<BusinessInput>): Promise<{ su
     // Remove is_published to avoid column-not-found errors on older DB schemas.
     // The column `published` is the authoritative field.
     delete (insertData as Record<string, unknown>).is_published;
+
+    // Carimbo da primeira publicação: um registo novo com published = true
+    // nasceu publicado — essa É a sua primeira publicação. Sem published,
+    // nasce NULL (nunca aparece como novidade até ser publicado).
+    // Só preenche se ainda não vier definido (nunca sobrescrever).
+    if (insertData.published === true && insertData.published_at == null) {
+      const stamp = creationPublishStamp(true, new Date().toISOString());
+      if (stamp) insertData.published_at = stamp;
+    }
 
     const { data: business, error } = await supabase
       .from("businesses")
