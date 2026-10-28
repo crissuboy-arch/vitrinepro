@@ -110,6 +110,13 @@ describe("Admin explore visibility — direct access is NOT filtered", () => {
   it("9. the published rule itself is untouched in lib/visibility.ts", () => {
     const vis = read("lib/visibility.ts");
     assert.match(vis, /b\?\.published === true/);
-    assert.doesNotMatch(vis, /show_in_explore/);
+    // A regra canónica NÃO mudou: o corpo de isPublishedBusiness continua a
+    // ser só `published === true`, sem show_in_explore. A descoberta pública
+    // vive num helper SEPARADO (isDiscoverableBusiness, aditado na missão
+    // Cantinho da Lu 2026-10-28) que compõe — nunca substitui — a regra.
+    const fn = vis.match(/export function isPublishedBusiness[\s\S]*?\n\}/);
+    assert.ok(fn, "isPublishedBusiness must still exist");
+    assert.doesNotMatch(fn[0], /show_in_explore/);
+    assert.match(vis, /export function isDiscoverableBusiness/);
   });
 });

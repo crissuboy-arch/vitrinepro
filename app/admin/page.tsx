@@ -21,6 +21,7 @@ interface Business {
   plan: string;
   published: boolean;
   show_in_explore?: boolean;
+  admin_pro_grant?: boolean;
   is_verified: boolean;
   rating_average: number;
   rating_count: number;
@@ -305,6 +306,12 @@ export default function AdminPage() {
   };
 
   const togglePublished = async (biz: Business) => {
+    // Correção Cantinho da Lu (2026-10-28): despublicar é destrutivo e era
+    // um clique sem confirmação — um toque acidental tirava uma Montra real
+    // do ar. Publicar continua a um clique (é a ação de restauro).
+    if (biz.published && !confirm(`Despublicar "${biz.name}"? O link público e o QR deixam de funcionar até republicar.`)) {
+      return;
+    }
     setActionLoading(biz.id);
     try {
       // ADMIN-1: via API administrativa (não anon key — RLS bloquearia terceiros).
@@ -332,15 +339,21 @@ export default function AdminPage() {
       // ADMIN-1: via API administrativa. NOTA: isto altera o campo `plan`
       // diretamente (uso interno/operacional). O Stripe continua sendo a fonte
       // do estado financeiro quando há assinatura real.
+      // Com Pro administrativo ativo, rebaixar para free é rejeitado pelo
+      // servidor (é preciso revogar a concessão primeiro) — mostra o motivo.
       const r = await fetch(`/api/admin/businesses/${biz.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan }),
       });
-      if (!r.ok) throw new Error("Falha ao atualizar plano");
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.error || "Falha ao atualizar plano");
+      }
       setBusinesses((prev) => prev.map((b) => b.id === biz.id ? { ...b, plan } : b));
     } catch (e) {
       console.error(e);
+      alert(e instanceof Error ? e.message : "Falha ao atualizar plano");
     } finally {
       setActionLoading(null);
     }
@@ -373,9 +386,46 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ show_in_explore: next }),
       });
-      if (!r.ok) throw new Error("Falha ao atualizar visibilidade");
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.error || "Falha ao atualizar visibilidade");
+      }
       setBusinesses((prev) => prev.map((b) => (b.id === biz.id ? { ...b, show_in_explore: next } : b)));
-    } catch (e) { console.error(e); } finally { setActionLoading(null); }
+    } catch (e) {
+      console.error(e);
+      alert(e instanceof Error ? e.message : "Falha ao atualizar visibilidade");
+    } finally { setActionLoading(null); }
+  };
+
+  // Pro administrativo (cortesia permanente, sem Stripe — correção Cantinho
+  // da Lu, 2026-10-28). Conceder sem plano explícito grava plan='pro' no
+  // servidor; nenhuma rotina Stripe o retira enquanto a concessão durar.
+  // Revogar NÃO muda o plano sozinho — a admin gere o plano explicitamente.
+  const toggleAdminPro = async (biz: Business) => {
+    const next = !biz.admin_pro_grant;
+    if (next) {
+      if (!confirm(`Conceder Pro administrativo a "${biz.name}"? Cortesia permanente, sem cobrança e sem assinatura Stripe. Nenhuma rotina Stripe poderá retirar este Pro enquanto a concessão estiver ativa.`)) return;
+    } else {
+      if (!confirm(`Revogar o Pro administrativo de "${biz.name}"? A concessão termina; o plano atual mantém-se até ser alterado explicitamente.`)) return;
+    }
+    setActionLoading(biz.id + "adminpro");
+    try {
+      const r = await fetch(`/api/admin/businesses/${biz.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ admin_pro_grant: next }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.error || "Falha ao atualizar concessão");
+      }
+      const j = await r.json().catch(() => ({}));
+      const updated = j.business || {};
+      setBusinesses((prev) => prev.map((b) => (b.id === biz.id ? { ...b, admin_pro_grant: next, plan: updated.plan || b.plan } : b)));
+    } catch (e) {
+      console.error(e);
+      alert(e instanceof Error ? e.message : "Falha ao atualizar concessão");
+    } finally { setActionLoading(null); }
   };
 
   const deleteBusiness = async (id: string) => {
@@ -889,6 +939,24 @@ export default function AdminPage() {
                               <option value="premium">Premium (legado)</option>
                               <option value="business">Business</option>
                             </select>
+                            <div>
+                              <button
+                                onClick={() => toggleAdminPro(biz)}
+                                disabled={actionLoading === biz.id + "adminpro"}
+                                title={
+                                  biz.admin_pro_grant
+                                    ? "Pro administrativo ATIVO (cortesia, sem Stripe, sem cobrança). Clique para revogar — o plano não muda sozinho."
+                                    : "Conceder Pro administrativo (cortesia permanente, sem Stripe, sem cobrança). Nenhuma rotina Stripe o retirará."
+                                }
+                                className={`mt-1 text-[11px] font-bold disabled:opacity-50 ${
+                                  biz.admin_pro_grant
+                                    ? "text-[#92400E] hover:text-red-700"
+                                    : "text-[#9CA3AF] hover:text-[#C8A96B]"
+                                }`}
+                              >
+                                {actionLoading === biz.id + "adminpro" ? "..." : biz.admin_pro_grant ? "🎖️ Pro admin" : "+ Pro admin"}
+                              </button>
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             <button

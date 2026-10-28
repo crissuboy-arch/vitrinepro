@@ -29,14 +29,15 @@ export async function GET(request: Request) {
 
   try {
     // Degradação graciosa pré-migration (doutrina de lib/visibility.ts):
-    // enquanto a coluna show_in_explore (migration 20261021000021) não for
-    // aplicada, a lista cai para o select legado e assume "visível".
+    // enquanto as colunas show_in_explore (migration 20261021000021) e
+    // admin_pro_grant (migration 20261028000022) não forem aplicadas, a
+    // lista cai para o select legado e assume "visível" / "sem concessão".
     const runQuery = (withVisibility: boolean) => {
       let query = svc
         .from("businesses")
         .select(
           withVisibility
-            ? "id, user_id, name, slug, city, category, published, show_in_explore, plan, created_at"
+            ? "id, user_id, name, slug, city, category, published, show_in_explore, admin_pro_grant, plan, created_at"
             : "id, user_id, name, slug, city, category, published, plan, created_at",
           { count: "exact" }
         )
@@ -57,9 +58,9 @@ export async function GET(request: Request) {
     };
 
     let { data, error, count } = await runQuery(true);
-    if (error && /show_in_explore|42703|column/i.test(String((error as any)?.message || error))) {
+    if (error && /show_in_explore|admin_pro_grant|42703|column/i.test(String((error as any)?.message || error))) {
       const retry = await runQuery(false);
-      data = (retry.data || []).map((b: any) => ({ ...b, show_in_explore: true }));
+      data = (retry.data || []).map((b: any) => ({ ...b, show_in_explore: true, admin_pro_grant: false }));
       error = retry.error;
       count = retry.count;
     }

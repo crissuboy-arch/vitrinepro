@@ -18,7 +18,7 @@
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { withVisibilityFallback } from "@/lib/visibility";
+import { withVisibilityFallback, isDiscoverableBusiness } from "@/lib/visibility";
 import {
   searchIntelligence,
   type VitrineIntent,
@@ -172,8 +172,9 @@ export async function POST(request: Request) {
         opening_hours: b.opening_hours, service_today: b.service_today,
       })),
       products: (prodRes.data || [])
-        // Pré-migration, businesses.show_in_explore é undefined = visível.
-        .filter((p: any) => p.businesses?.published && p.businesses?.show_in_explore !== false && (!p.product_id || (p.products?.is_visible && p.products?.show_in_explore)))
+        // Descoberta pública (lib/visibility.ts): pré-migration, um
+        // show_in_explore ausente conta como visível.
+        .filter((p: any) => isDiscoverableBusiness(p.businesses) && (!p.product_id || (p.products?.is_visible && p.products?.show_in_explore)))
         .map((p: any) => ({
           id: p.id, business_id: p.business_id, name: p.name, description: p.description,
           price: p.price, image_url: p.image_url,
@@ -183,8 +184,9 @@ export async function POST(request: Request) {
           business_lat: p.businesses.latitude, business_lng: p.businesses.longitude,
         })),
       posts: (postRes.data || [])
-        // Pré-migration, businesses.show_in_explore é undefined = visível.
-        .filter((p: any) => p.businesses?.published && p.businesses?.show_in_explore !== false && (!p.product_id || (p.products?.is_visible && p.products?.show_in_explore)))
+        // Descoberta pública (lib/visibility.ts): pré-migration, um
+        // show_in_explore ausente conta como visível.
+        .filter((p: any) => isDiscoverableBusiness(p.businesses) && (!p.product_id || (p.products?.is_visible && p.products?.show_in_explore)))
         .map((p: any) => ({
           id: p.id, business_id: p.business_id, type: p.type, title: p.title,
           content: p.content, image_url: p.image_url, price: p.price,
