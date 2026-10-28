@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { shouldSkipStripeDowngrade } from "@/lib/admin-pro";
 
 export const runtime = "nodejs";
 
@@ -56,8 +57,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Não existe subscrição ativa para cancelar." }, { status: 400 });
   }
 
-  // No Stripe subscription ID — plan was set manually, downgrade immediately
+  // Pro administrativo (correção Cantinho da Lu, 2026-10-28): lido em
+  // consulta separada para a rota continuar a funcionar pré-migration
+  // (a coluna ainda não existe → sem concessão → comportamento antigo).
+  const { data: grantRow, error: grantErr } = await supabase
+    .from("businesses")
+    .select("admin_pro_grant")
+    .eq("id", businessId)
+    .maybeSingle();
+  const adminGrant = !grantErr && shouldSkipStripeDowngrade(grantRow);
+
+  // No Stripe subscription ID — plan was set manually. ANTES: rebaixava
+  // imediatamente para free, o que apagava um Pro concedido pela admin
+  // (cortesia, sem subscrição). AGORA: com Pro administrativo, não há
+  // nada para cancelar e o Pro mantém-se.
   if (!business.stripe_subscription_id) {
+    if (adminGrant) {
+      return NextResponse.json({
+        success: true,
+        immediate: false,
+        cancel_at: null,
+        admin_grant_preserved: true,
+      });
+    }
     await supabase
       .from("businesses")
       .update({ plan: "free", subscription_cancel_at: null })
@@ -88,9 +110,23 @@ export async function POST(request: Request) {
   } catch (err: unknown) {
     console.error("[STRIPE CANCEL]", err instanceof Error ? err.message : err);
 
-    // Subscription no longer exists in Stripe — just downgrade
+    // Subscription no longer exists in Stripe — just downgrade, EXCETO com
+    // Pro administrativo (a concessão da admin nunca é retirada por rotina
+    // Stripe; limpam-se só os campos Stripe obsoletos).
     const stripeErr = err as { statusCode?: number; code?: string };
     if (stripeErr.statusCode === 404 || stripeErr.code === "resource_missing") {
+      if (adminGrant) {
+        await supabase
+          .from("businesses")
+          .update({ stripe_subscription_id: null, subscription_cancel_at: null })
+          .eq("id", businessId);
+        return NextResponse.json({
+          success: true,
+          immediate: false,
+          cancel_at: null,
+          admin_grant_preserved: true,
+        });
+      }
       await supabase
         .from("businesses")
         .update({ plan: "free", stripe_subscription_id: null, subscription_cancel_at: null })

@@ -551,6 +551,13 @@ function DashboardContent() {
 
       setShowCancelModal(false);
 
+      // Pro administrativo (cortesia da plataforma, sem assinatura): não há
+      // nada para cancelar e o plano mantém-se — nunca mostrar "Grátis".
+      if (data.admin_grant_preserved) {
+        setToast("O teu plano Pro foi concedido pela administração e não depende de uma assinatura — não há nada para cancelar e o Pro mantém-se.");
+        return;
+      }
+
       if (data.immediate) {
         setBusiness((prev: any) => ({ ...prev, plan: "free", subscription_cancel_at: null }));
         setToast("Assinatura cancelada. O teu plano foi alterado para Grátis.");
@@ -705,6 +712,11 @@ function DashboardContent() {
   const handleTogglePublish = async () => {
     if (!business) return;
     const targetStatus = !business.published;
+    // Correção Cantinho da Lu (2026-10-28): despublicar era um clique sem
+    // confirmação — um toque acidental tirava uma Montra real do ar.
+    if (!targetStatus && !confirm(`Despublicar "${business.name}"? O link público e o QR deixam de funcionar até republicar.`)) {
+      return;
+    }
     // Launch gate: publicar exige os requisitos mínimos (nome, categoria,
     // cidade, WhatsApp). A guarda aplica-se só à ação de publicar — nunca
     // despublica uma Montra existente. Ver lib/publish-requirements.

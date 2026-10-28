@@ -4,6 +4,7 @@
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
+import { withVisibilityFallback } from "@/lib/visibility";
 import { COMMUNITIES, getCommunityBySlug } from "@/lib/communities";
 import { isPaidTier } from "@/lib/plans";
 
@@ -37,12 +38,25 @@ export default function CommunityPage({ params }: { params: Promise<{ slug: stri
     if (!community) { setLoading(false); return; }
 
     const fetch = async () => {
-      const { data } = await supabase
-        .from("businesses")
-        .select("*")
-        .eq("published", true)
-        .ilike("owner_origin_country", `%${community.country}%`)
-        .order("created_at", { ascending: false });
+      // Descoberta pública: published AND show_in_explore, com fallback
+      // pré-migration (20261021000021): sem a coluna, comporta-se como antes.
+      const { data } = await withVisibilityFallback(
+        () =>
+          supabase
+            .from("businesses")
+            .select("*")
+            .eq("published", true)
+            .eq("show_in_explore", true)
+            .ilike("owner_origin_country", `%${community.country}%`)
+            .order("created_at", { ascending: false }),
+        () =>
+          supabase
+            .from("businesses")
+            .select("*")
+            .eq("published", true)
+            .ilike("owner_origin_country", `%${community.country}%`)
+            .order("created_at", { ascending: false })
+      );
 
       setBusinesses(data || []);
       setLoading(false);

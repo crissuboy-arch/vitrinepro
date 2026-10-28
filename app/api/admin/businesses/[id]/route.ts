@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin, getServiceClient, adminLog } from "@/lib/admin-auth";
 import { togglePublishPatch } from "@/lib/published-at";
+import { resolveAdminProPatch } from "@/lib/admin-pro";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,8 @@ const EDITABLE = [
   "instagram",
   "website",
   "published",
+  "show_in_explore",
+  "admin_pro_grant",
   "is_featured",
   "plan",
   "logo_url",
@@ -94,15 +97,44 @@ export async function PATCH(
       return NextResponse.json({ error: "Slug não pode ser vazio" }, { status: 400 });
     }
 
-    // Carimbo da primeira publicação (admin): se o PATCH publica, ler a
-    // linha atual e só carimbar na transição false → true com
-    // published_at ainda NULL (nunca sobrescrever; nunca carimbar ao
-    // despublicar). Se a leitura falhar, publica sem carimbo (o carimbo
-    // fica adiado para uma próxima transição) — nunca bloquear a ação.
+    // Pro administrativo (correção Cantinho da Lu, 2026-10-28): resolve a
+    // semântica da concessão com a linha atual (conceder sem plan → pro;
+    // rebaixar para free com concessão ativa → rejeitado sem revogar).
+    // Pré-migration a leitura da flag falha e a regra degrada-se para o
+    // comportamento antigo (sem concessão); o update da coluna falharia
+    // nesse caso, pelo que a concessão só é aceite pós-migration.
     const updateFields: Record<string, unknown> = {
       ...patch,
       updated_at: new Date().toISOString(),
     };
+    if ("admin_pro_grant" in patch || ("plan" in patch && patch.plan === "free")) {
+      try {
+        const { data: current } = await svc
+          .from("businesses")
+          .select("plan, admin_pro_grant")
+          .eq("id", id)
+          .single();
+        if (current) {
+          const resolved = resolveAdminProPatch(
+            { plan: current.plan, admin_pro_grant: current.admin_pro_grant },
+            {
+              admin_pro_grant:
+                "admin_pro_grant" in patch ? (patch.admin_pro_grant as boolean) : undefined,
+              plan: "plan" in patch ? String(patch.plan) : undefined,
+            },
+            new Date().toISOString()
+          );
+          if (resolved.error) {
+            return NextResponse.json({ error: resolved.error }, { status: 400 });
+          }
+          Object.assign(updateFields, resolved.apply);
+        }
+      } catch {
+        // Sem leitura da concessão (ex.: pré-migration) — prossegue com o
+        // patch pedido; a escrita da coluna falhará com erro explícito se
+        // a coluna não existir, em vez de fingir sucesso.
+      }
+    }
     if (patch.published === true) {
       try {
         const { data: current } = await svc
@@ -123,11 +155,19 @@ export async function PATCH(
       }
     }
 
+    // O select de retorno só inclui admin_pro_grant quando o PATCH a toca:
+    // pré-migration, incluí-la em qualquer PATCH quebraria todas as edições
+    // admin (a coluna ainda não existe). O PATCH de concessão pré-migration
+    // falha no próprio update, com erro explícito, em vez de fingir sucesso.
+    const returning =
+      "admin_pro_grant" in patch
+        ? "id, slug, published, plan, admin_pro_grant"
+        : "id, slug, published";
     const { data, error } = await svc
       .from("businesses")
       .update(updateFields)
       .eq("id", id)
-      .select("id, slug, published")
+      .select(returning)
       .single();
     if (error) throw error;
 

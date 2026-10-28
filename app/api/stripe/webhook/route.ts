@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { normalizePlan } from "@/lib/plans";
+import { shouldSkipStripeDowngrade } from "@/lib/admin-pro";
 
 // M12: only emit verbose logs outside production to avoid leaking IDs/PII in Vercel logs.
 const isProd = process.env.NODE_ENV === "production";
@@ -225,7 +226,10 @@ export async function POST(request: Request) {
         await markEventApplied(businessId, event.created);
       }
     } else if (event.type === "customer.subscription.deleted") {
-      // Period ended after cancel_at_period_end — downgrade to free and clear subscription data
+      // Period ended after cancel_at_period_end — downgrade to free and clear subscription data,
+      // EXCETO com Pro administrativo ativo (correção Cantinho da Lu, 2026-10-28):
+      // uma concessão da admin (cortesia, sem Stripe) NUNCA é retirada por
+      // rotina de sincronização. Nesse caso limpam-se só os campos Stripe.
       const subscription = event.data.object;
       const businessId = subscription.metadata?.businessId;
 
@@ -234,11 +238,24 @@ export async function POST(request: Request) {
         if (!(await shouldApplyEvent(businessId, event.created))) {
           return NextResponse.json({ received: true, stale: true });
         }
-        log(`[STRIPE WEBHOOK] Subscription deleted for business ${businessId} — downgrading to free`);
-        await supabase
+        const { data: current } = await supabase
           .from("businesses")
-          .update({ plan: "free", stripe_subscription_id: null, subscription_cancel_at: null, stripe_subscription_status: "canceled" })
-          .eq("id", businessId);
+          .select("plan, admin_pro_grant")
+          .eq("id", businessId)
+          .maybeSingle();
+        if (shouldSkipStripeDowngrade(current)) {
+          log(`[STRIPE WEBHOOK] Subscription deleted for business ${businessId} — Pro administrativo PRESERVADO (plano mantido)`);
+          await supabase
+            .from("businesses")
+            .update({ stripe_subscription_id: null, subscription_cancel_at: null, stripe_subscription_status: "canceled" })
+            .eq("id", businessId);
+        } else {
+          log(`[STRIPE WEBHOOK] Subscription deleted for business ${businessId} — downgrading to free`);
+          await supabase
+            .from("businesses")
+            .update({ plan: "free", stripe_subscription_id: null, subscription_cancel_at: null, stripe_subscription_status: "canceled" })
+            .eq("id", businessId);
+        }
         await markEventApplied(businessId, event.created);
       }
     }

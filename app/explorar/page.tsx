@@ -26,6 +26,7 @@ import dynamic from "next/dynamic";
 const NearbyMap = dynamic(() => import("../components/NearbyMap"), { ssr: false });
 import SaveToCollection from "../components/SaveToCollection";
 import { splitExploreSlices } from "@/lib/explore-slices";
+import { withVisibilityFallback } from "@/lib/visibility";
 import { buildFeedItems, distributeColumns, columnsForWidth, type FeedItem } from "@/lib/feed";
 import { FeedCard } from "../components/FeedCards";
 import ExploreNewcomerNotice from "../components/ExploreNewcomerNotice";
@@ -244,13 +245,29 @@ export default function ExplorarPage() {
     const loadData = async () => {
       try {
         const [bizRes, catsRes, citiesRes] = await Promise.all([
-          supabase
-            .from("businesses")
-            .select(
-              "id, name, slug, description, category, city, country, logo_url, cover_url, rating_average, rating_count, owner_origin_country, opening_hours, service_today, latitude, longitude, published_at"
-            )
-            .eq("published", true)
-            .order("created_at", { ascending: false }),
+          // Descoberta pública: published AND show_in_explore (controlo admin
+          // "Mostrar/Ocultar do Explorar"). Com fallback pré-migration
+          // (20261021000021): sem a coluna, comporta-se como antes.
+          // O select mantém o published_at do HEAD (notificação de novidade).
+          withVisibilityFallback(
+            () =>
+              supabase
+                .from("businesses")
+                .select(
+                  "id, name, slug, description, category, city, country, logo_url, cover_url, rating_average, rating_count, owner_origin_country, opening_hours, service_today, latitude, longitude, published_at"
+                )
+                .eq("published", true)
+                .eq("show_in_explore", true)
+                .order("created_at", { ascending: false }),
+            () =>
+              supabase
+                .from("businesses")
+                .select(
+                  "id, name, slug, description, category, city, country, logo_url, cover_url, rating_average, rating_count, owner_origin_country, opening_hours, service_today, latitude, longitude, published_at"
+                )
+                .eq("published", true)
+                .order("created_at", { ascending: false })
+          ),
           supabase.from("categories").select("id, name, icon").eq("is_active", true),
           supabase.from("cities").select("id, name, country").eq("is_active", true),
         ]);

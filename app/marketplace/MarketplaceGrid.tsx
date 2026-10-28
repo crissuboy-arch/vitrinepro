@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/app/lib/supabase";
 import { trackMarketplaceView } from "@/app/lib/analytics";
+import { withVisibilityFallback } from "@/lib/visibility";
 
 const PAGE_SIZE = 24;
 
@@ -29,27 +30,35 @@ interface MarketplaceGridProps {
 }
 
 async function fetchMoreProducts(categorySlug: string, offset: number) {
-  let query = supabase
-    .from("products")
-    .select(
-      "*, businesses!inner(id, name, slug, published, plan, logo_url, category_id, city, is_verified_store)"
-    )
-    .eq("businesses.published", true);
-
+  let catId: string | null = null;
   if (categorySlug && categorySlug !== "todas") {
     const { data: cat } = await supabase
       .from("categories")
       .select("id")
       .eq("slug", categorySlug)
       .maybeSingle();
-    if (cat) {
-      query = query.eq("businesses.category_id", cat.id);
-    }
+    if (cat) catId = cat.id;
   }
 
-  const { data, error } = await query
-    .order("order_index", { ascending: true })
-    .range(offset, offset + PAGE_SIZE);
+  // Descoberta pública: published AND show_in_explore, com fallback
+  // pré-migration (20261021000021): sem a coluna, comporta-se como antes.
+  const runQuery = (withExplore: boolean) => {
+    let query = supabase
+      .from("products")
+      .select(
+        "*, businesses!inner(id, name, slug, published, plan, logo_url, category_id, city, is_verified_store)"
+      )
+      .eq("businesses.published", true);
+    if (withExplore) query = query.eq("businesses.show_in_explore", true);
+    if (catId) query = query.eq("businesses.category_id", catId);
+    return query
+      .order("order_index", { ascending: true })
+      .range(offset, offset + PAGE_SIZE);
+  };
+  const { data, error } = await withVisibilityFallback(
+    () => runQuery(true),
+    () => runQuery(false)
+  );
 
   if (error) throw error;
   const rows = data || [];

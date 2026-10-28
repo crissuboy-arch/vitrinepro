@@ -32,6 +32,20 @@ export function isPublishedBusiness(b: Publishable | null | undefined): boolean 
   return b?.published === true;
 }
 
+export interface Discoverable extends Publishable {
+  show_in_explore?: boolean | null;
+}
+
+/**
+ * Descoberta pública (Explorar/pesquisa/rankings): publicada E visível.
+ * `show_in_explore` ausente (pré-migration 20261021000021) conta como
+ * visível — só `false` explícito oculta. "Ocultar do Explorar" NUNCA
+ * despublica: o link direto e o QR continuam a funcionar.
+ */
+export function isDiscoverableBusiness(b: Discoverable | null | undefined): boolean {
+  return b?.published === true && b?.show_in_explore !== false;
+}
+
 /**
  * Ownership predicate used when selecting which business to administer.
  * Never grant access on a missing business or a missing user id.
