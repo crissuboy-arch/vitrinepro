@@ -27,7 +27,13 @@ import {
   loadNovidadesState,
 } from "@/lib/novidades";
 import { buildBusinessUpdatePayload, isValidGoogleReviewUrl } from "@/lib/business-profile";
-import { uploadLogo, uploadCover, uploadGallery, uploadProductImage, uploadNovidadeImage } from "@/lib/supabase-storage";
+import { uploadLogo, uploadCover, uploadGallery, uploadProductImage, uploadNovidadeImage, uploadPromoVideo, uploadPromoThumbnail } from "@/lib/supabase-storage";
+import {
+  PROMO_VIDEO_BUTTON_DEFAULT_URL,
+  PROMO_VIDEO_BUTTON_DEFAULT_TEXT,
+  isValidPromoVideoUrl,
+  isValidPromoButtonUrl,
+} from "@/lib/promo-video";
 import { persistBusinessImageField } from "@/lib/business-images";
 import { assertFreshUploadOwnership } from "@/lib/storage-upload-guard";
 import { Sparkles, Lock, Copy, Check, ExternalLink } from "lucide-react";
@@ -166,6 +172,18 @@ function DashboardContent() {
   const [editHours, setEditHours] = useState<OpeningHour[]>([]);
   // A5 — "Atendo hoje" (tri-state: null = não informado).
   const [editServiceToday, setEditServiceToday] = useState<boolean | null>(null);
+
+  // Vídeo promocional (migration 20261028000023; colunas em falta = "").
+  // O URL do botão nasce pré-preenchido com a loja da marca (brief) e o
+  // texto com "📚 Conhecer os nossos livros" — ambos editáveis e só
+  // guardados quando a proprietária clica em "Guardar vídeo promocional".
+  const [editPromoVideoUrl, setEditPromoVideoUrl] = useState("");
+  const [editPromoThumbnailUrl, setEditPromoThumbnailUrl] = useState("");
+  const [editPromoButtonText, setEditPromoButtonText] = useState(PROMO_VIDEO_BUTTON_DEFAULT_TEXT);
+  const [editPromoButtonUrl, setEditPromoButtonUrl] = useState(PROMO_VIDEO_BUTTON_DEFAULT_URL);
+  const [uploadingPromoVideo, setUploadingPromoVideo] = useState(false);
+  const [uploadingPromoThumbnail, setUploadingPromoThumbnail] = useState(false);
+  const [savingPromo, setSavingPromo] = useState(false);
 
   const [savingBusiness, setSavingBusiness] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -383,6 +401,12 @@ function DashboardContent() {
       setEditWhatsapp(biz.whatsapp || "");
       // A10.4: coluna ainda pode não existir (migration pendente) — acesso defensivo.
       setEditGoogleReviewUrl((biz as any).google_review_url || "");
+      // Vídeo promocional: idem (migration 20261028000023 pendente = vazio).
+      // Botão nasce pré-preenchido (brief) quando ainda não há valor guardado.
+      setEditPromoVideoUrl((biz as any).promo_video_url || "");
+      setEditPromoThumbnailUrl((biz as any).promo_video_thumbnail_url || "");
+      setEditPromoButtonText((biz as any).promo_video_button_text || PROMO_VIDEO_BUTTON_DEFAULT_TEXT);
+      setEditPromoButtonUrl((biz as any).promo_video_button_url || PROMO_VIDEO_BUTTON_DEFAULT_URL);
       setEditPhone(biz.phone || "");
       setEditEmail(biz.email || "");
       setEditInstagram(biz.instagram || "");
@@ -917,6 +941,113 @@ function DashboardContent() {
       alert("Erro no upload da capa: " + err.message);
     } finally {
       setUploadingCover(false);
+    }
+  };
+
+  // Vídeo promocional — upload + guardar dedicado (separado de
+  // handleSaveBusiness de propósito: o URL do botão nasce pré-preenchido
+  // e só pode ser guardado quando a proprietária clica aqui explicitamente,
+  // nunca por arrasto ao guardar outros dados da Montra).
+  const handlePromoVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !business) return;
+    setUploadingPromoVideo(true);
+    try {
+      await assertCanUploadNow();
+      const url = await uploadPromoVideo(file, business.id);
+      setEditPromoVideoUrl(url);
+      setToast("Vídeo carregado. Clique em Guardar vídeo promocional para o mostrar na Montra.");
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      if (/promo_video|vitrine-videos/i.test(msg)) {
+        alert(
+          "Para carregar vídeos, aplique primeiro a migration " +
+            "20261028000023_businesses_promo_video.sql no Supabase SQL Editor " +
+            "(cria o bucket vitrine-videos). O vídeo não foi guardado."
+        );
+      } else {
+        alert("Erro no upload do vídeo: " + msg);
+      }
+    } finally {
+      setUploadingPromoVideo(false);
+    }
+  };
+
+  const handlePromoThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !business) return;
+    setUploadingPromoThumbnail(true);
+    try {
+      await assertCanUploadNow();
+      const url = await uploadPromoThumbnail(file, business.id);
+      setEditPromoThumbnailUrl(url);
+      setToast("Miniatura carregada. Clique em Guardar vídeo promocional para aplicar.");
+    } catch (err: any) {
+      alert("Erro no upload da miniatura: " + String(err?.message || err));
+    } finally {
+      setUploadingPromoThumbnail(false);
+    }
+  };
+
+  const handleSavePromoVideo = async () => {
+    if (!business) return;
+    const videoUrl = editPromoVideoUrl.trim();
+    const buttonUrl = editPromoButtonUrl.trim();
+    // Vídeo vazio = remover a secção: guarda tudo a null (a secção some
+    // da Montra pública). É o único caminho para apagar um vídeo publicado.
+    const removing = videoUrl === "";
+    if (!removing && !isValidPromoVideoUrl(videoUrl)) {
+      alert(
+        "O link do vídeo não é válido. Usa um link HTTPS que termine em .mp4, .webm ou .mov " +
+          "(o upload para a Montra já gera um link válido automaticamente)."
+      );
+      return;
+    }
+    if (buttonUrl !== "" && !isValidPromoButtonUrl(buttonUrl)) {
+      alert("O link do botão não é válido. Usa um link HTTPS completo (ex.: https://pequeno-mundo-magico.vercel.app/loja).");
+      return;
+    }
+    setSavingPromo(true);
+    try {
+      const { error } = await supabase
+        .from("businesses")
+        .update(
+          removing
+            ? {
+                promo_video_url: null,
+                promo_video_thumbnail_url: null,
+                promo_video_button_text: null,
+                promo_video_button_url: null,
+              }
+            : {
+                promo_video_url: videoUrl,
+                promo_video_thumbnail_url: editPromoThumbnailUrl.trim() || null,
+                promo_video_button_text: editPromoButtonText.trim() || null,
+                promo_video_button_url: buttonUrl || null,
+              }
+        )
+        .eq("id", business.id);
+      if (error) throw new Error(error.message);
+      const { data: updated } = await supabase.from("businesses").select("*").eq("id", business.id).single();
+      if (updated) setBusiness(updated);
+      setToast(
+        removing
+          ? "Vídeo promocional removido. A secção já não aparece na Montra pública."
+          : "Vídeo promocional guardado. A secção aparece na Montra pública."
+      );
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      if (/promo_video/i.test(msg)) {
+        alert(
+          "Para guardar o vídeo promocional, aplique primeiro a migration " +
+            "20261028000023_businesses_promo_video.sql no Supabase SQL Editor. " +
+            "Os restantes dados foram mantidos no formulário."
+        );
+      } else {
+        alert("Erro ao guardar o vídeo promocional: " + msg);
+      }
+    } finally {
+      setSavingPromo(false);
     }
   };
 
@@ -1996,6 +2127,144 @@ function DashboardContent() {
                 className="px-5 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded text-sm transition-colors disabled:opacity-50"
               >
                 {savingBusiness ? "A Guardar..." : "Guardar Alterações"}
+              </button>
+            </div>
+          </div>
+        )}
+        {/* Vídeo promocional — cartão próprio dentro da aba Informações, com
+            guardar dedicado (o URL do botão nasce pré-preenchido e só é
+            guardado por este botão, nunca por arrasto ao guardar outros dados). */}
+        {activeTab === "informacoes" && (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <div>
+              <h3 className="text-xl font-display font-semibold text-[#C8A96B]">🎬 Vídeo promocional</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Um vídeo vertical 9:16 na tua Montra pública, com um botão para a tua loja por baixo.
+                A secção só aparece na Montra quando guardares um vídeo aqui. A Montra continua
+                por publicar até decidires publicá-la.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Vídeo (vertical 9:16)</label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("promo-video-upload-input")?.click()}
+                    disabled={uploadingPromoVideo}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded text-sm transition-colors disabled:opacity-50"
+                  >
+                    {uploadingPromoVideo ? "A carregar..." : "Carregar vídeo"}
+                  </button>
+                  <input
+                    id="promo-video-upload-input"
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime"
+                    onChange={handlePromoVideoUpload}
+                    className="hidden"
+                  />
+                  <span className="text-[11px] text-gray-500">MP4, WEBM ou MOV, até 50 MB.</span>
+                </div>
+                <input
+                  type="url"
+                  value={editPromoVideoUrl}
+                  onChange={(e) => setEditPromoVideoUrl(e.target.value)}
+                  placeholder="Ou cola aqui o link de um vídeo https://… .mp4"
+                  className="mt-2 w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white placeholder:text-gray-600"
+                />
+                {editPromoVideoUrl && (
+                  <div className="mt-2 flex items-center gap-3">
+                    <span className="text-[11px] text-gray-400 break-all flex-1">{editPromoVideoUrl}</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditPromoVideoUrl("")}
+                      className="text-[11px] text-red-400 hover:text-red-300 shrink-0"
+                    >
+                      Remover vídeo
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">Miniatura (imagem bonita antes do Play)</label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("promo-thumbnail-upload-input")?.click()}
+                    disabled={uploadingPromoThumbnail}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded text-sm transition-colors disabled:opacity-50"
+                  >
+                    {uploadingPromoThumbnail ? "A carregar..." : "Carregar miniatura"}
+                  </button>
+                  <input
+                    id="promo-thumbnail-upload-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePromoThumbnailUpload}
+                    className="hidden"
+                  />
+                  {editPromoThumbnailUrl && (
+                    <>
+                      <img src={editPromoThumbnailUrl} alt="Miniatura do vídeo promocional" className="h-16 w-12 object-cover rounded border border-gray-800" />
+                      <button
+                        type="button"
+                        onClick={() => setEditPromoThumbnailUrl("")}
+                        className="text-[11px] text-red-400 hover:text-red-300"
+                      >
+                        Remover miniatura
+                      </button>
+                    </>
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  Sem miniatura, a Montra mostra um fundo bonito com o botão Play. A miniatura não entra na galeria.
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Texto do botão</label>
+                  <input
+                    type="text"
+                    value={editPromoButtonText}
+                    onChange={(e) => setEditPromoButtonText(e.target.value)}
+                    placeholder="📚 Conhecer os nossos livros"
+                    className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white placeholder:text-gray-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">Destino do botão (link da loja)</label>
+                  <input
+                    type="url"
+                    value={editPromoButtonUrl}
+                    onChange={(e) => setEditPromoButtonUrl(e.target.value)}
+                    placeholder="https://pequeno-mundo-magico.vercel.app/loja"
+                    className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white placeholder:text-gray-600"
+                  />
+                </div>
+              </div>
+
+              <p className="text-[11px] text-gray-500">
+                O vídeo nunca arranca sozinho nem com som: a visitante clica no Play. O ficheiro só
+                carrega depois do clique, para não pesar na Montra. O botão abre a loja numa nova aba
+                e só aparece quando o destino é um link HTTPS válido.
+              </p>
+              <p className="text-[11px] text-gray-500">
+                Se o carregamento de vídeo falhar, aplica primeiro a migration
+                20261028000023_businesses_promo_video.sql no Supabase SQL Editor (cria o bucket de vídeos).
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
+              <button
+                type="button"
+                onClick={handleSavePromoVideo}
+                disabled={savingPromo}
+                className="px-5 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] font-bold rounded text-sm transition-colors disabled:opacity-50"
+              >
+                {savingPromo ? "A Guardar..." : "Guardar vídeo promocional"}
               </button>
             </div>
           </div>

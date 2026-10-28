@@ -11,7 +11,8 @@ VALUES
   ('vitrine-gallery', 'vitrine-gallery', true, 5242880, ARRAY['image/png', 'image/jpeg', 'image/gif', 'image/webp']),
   ('vitrine-products', 'vitrine-products', true, 5242880, ARRAY['image/png', 'image/jpeg', 'image/gif', 'image/webp']),
   ('business-images', 'business-images', true, 5242880, ARRAY['image/png', 'image/jpeg', 'image/gif', 'image/webp']),
-  ('business-media', 'business-media', true, 5242880, ARRAY['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
+  ('business-media', 'business-media', true, 5242880, ARRAY['image/png', 'image/jpeg', 'image/gif', 'image/webp']),
+  ('vitrine-videos', 'vitrine-videos', true, 52428800, ARRAY['video/mp4', 'video/webm', 'video/quicktime'])
 ON CONFLICT (id) DO NOTHING;
 
 -- ==========================================
@@ -26,14 +27,14 @@ DROP POLICY IF EXISTS "Auth Delete Access" ON storage.objects;
 -- Allow public read access to all buckets
 CREATE POLICY "Public Read Access" ON storage.objects
   FOR SELECT USING (bucket_id IN (
-    'vitrine-logos', 'vitrine-covers', 'vitrine-gallery', 'vitrine-products', 'business-images', 'business-media'
+    'vitrine-logos', 'vitrine-covers', 'vitrine-gallery', 'vitrine-products', 'business-images', 'business-media', 'vitrine-videos'
   ));
 
 -- Allow authenticated users to upload/insert files
 CREATE POLICY "Auth Insert Access" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id IN (
-      'vitrine-logos', 'vitrine-covers', 'vitrine-gallery', 'vitrine-products', 'business-images', 'business-media'
+      'vitrine-logos', 'vitrine-covers', 'vitrine-gallery', 'vitrine-products', 'business-images', 'business-media', 'vitrine-videos'
     ) 
     AND auth.role() = 'authenticated'
   );
@@ -42,7 +43,7 @@ CREATE POLICY "Auth Insert Access" ON storage.objects
 CREATE POLICY "Auth Update Access" ON storage.objects
   FOR UPDATE USING (
     bucket_id IN (
-      'vitrine-logos', 'vitrine-covers', 'vitrine-gallery', 'vitrine-products', 'business-images', 'business-media'
+      'vitrine-logos', 'vitrine-covers', 'vitrine-gallery', 'vitrine-products', 'business-images', 'business-media', 'vitrine-videos'
     )
     AND auth.role() = 'authenticated'
   );
@@ -51,7 +52,7 @@ CREATE POLICY "Auth Update Access" ON storage.objects
 CREATE POLICY "Auth Delete Access" ON storage.objects
   FOR DELETE USING (
     bucket_id IN (
-      'vitrine-logos', 'vitrine-covers', 'vitrine-gallery', 'vitrine-products', 'business-images', 'business-media'
+      'vitrine-logos', 'vitrine-covers', 'vitrine-gallery', 'vitrine-products', 'business-images', 'business-media', 'vitrine-videos'
     )
     AND auth.role() = 'authenticated'
   );

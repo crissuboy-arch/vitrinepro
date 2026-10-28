@@ -11,10 +11,14 @@
  * security policy") para mensagem acionável em pt-BR.
  * A policy continua intacta — só a mensagem muda.
  */
-export function mapStorageUploadError(bucketName: string, rawMessage: string): Error {
+export function mapStorageUploadError(
+  bucketName: string,
+  rawMessage: string,
+  label: string = "imagens"
+): Error {
   if (/row.level security|rls|policy/i.test(rawMessage)) {
     return new Error(
-      `Sem permissão para enviar imagens (bucket ${bucketName}). ` +
+      `Sem permissão para enviar ${label} (bucket ${bucketName}). ` +
         `Isto costuma acontecer quando a sessão expirou ou iniciaste sessão com outra conta ` +
         `que não é a proprietária desta Montra. Faz logout, entra com a conta proprietária e tenta de novo.`
     );

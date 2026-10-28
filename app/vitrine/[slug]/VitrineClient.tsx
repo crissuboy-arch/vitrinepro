@@ -21,6 +21,8 @@ import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib
 import { pixelContact } from "@/app/lib/meta-pixel";
 import SocialBar from "../../components/SocialBar";
 import SaveToCollection from "../../components/SaveToCollection";
+import PromoVideoSection from "../../components/PromoVideoSection";
+import { normalizePromoVideoConfig, type PromoVideoConfig } from "@/lib/promo-video";
 
 interface OpeningHour {
   day: string;
@@ -73,6 +75,8 @@ interface Business {
   favorite_count?: number;
   share_count?: number;
   view_count?: number;
+  // Vídeo promocional (migration 20261028000023; ausente = secção escondida).
+  promoVideo?: PromoVideoConfig;
 }
 
 interface Product {
@@ -603,6 +607,9 @@ export default function VitrineClient({ slug }: { slug: string }) {
             favorite_count: data.favorite_count ?? 0,
             share_count:    data.share_count    ?? 0,
             view_count:     data.view_count     ?? 0,
+            // Vídeo promocional: normalização defensiva (colunas em falta
+            // pré-migration chegam como undefined → secção escondida).
+            promoVideo: normalizePromoVideoConfig(data as Record<string, unknown>),
           });
 
           if (productsRes.data) {
@@ -953,6 +960,9 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 {business.description || "Bem-vindo à nossa página profissional. Conecte-se connosco por um dos canais disponíveis."}
               </p>
             </div>
+
+            {/* Vídeo promocional (só renderiza quando configurado) */}
+            <PromoVideoSection promoVideo={business.promoVideo} />
 
             {/* Products Showcase */}
             {products.length > 0 && (
