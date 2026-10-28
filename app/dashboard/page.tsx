@@ -27,7 +27,7 @@ import {
   loadNovidadesState,
 } from "@/lib/novidades";
 import { buildBusinessUpdatePayload, isValidGoogleReviewUrl } from "@/lib/business-profile";
-import { uploadLogo, uploadCover, uploadGallery, uploadProductImage, uploadNovidadeImage, uploadPromoVideo, uploadPromoThumbnail } from "@/lib/supabase-storage";
+import { uploadLogo, uploadCover, uploadGallery, uploadProductImage, uploadNovidadeImage, uploadPromoVideoSigned, uploadPromoThumbnail } from "@/lib/supabase-storage";
 import {
   PROMO_VIDEO_BUTTON_DEFAULT_URL,
   PROMO_VIDEO_BUTTON_DEFAULT_TEXT,
@@ -954,7 +954,7 @@ function DashboardContent() {
     setUploadingPromoVideo(true);
     try {
       await assertCanUploadNow();
-      const url = await uploadPromoVideo(file, business.id);
+      const url = await uploadPromoVideoSigned(file, business.id);
       setEditPromoVideoUrl(url);
       setToast("Vídeo carregado. Clique em Guardar vídeo promocional para o mostrar na Montra.");
     } catch (err: any) {

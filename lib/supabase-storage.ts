@@ -116,6 +116,51 @@ export async function uploadPromoVideo(file: File, businessId: string): Promise<
 }
 
 /**
+ * Upload do vídeo promocional por URL assinada (rota servidor).
+ * O servidor verifica a sessão + propriedade da Montra e emite um token
+ * de uso único p/ um caminho exato; o ficheiro vai direto do browser p/
+ * o Supabase (sem passar pelo Vercel). Usado porque o upload direto é
+ * rejeitado pela RLS mesmo p/ a dona (ver app/api/promo-video/upload-url).
+ * Devolve a URL pública do ficheiro, como uploadPromoVideo.
+ */
+export async function uploadPromoVideoSigned(
+  file: File,
+  businessId: string
+): Promise<string> {
+  if (!ALLOWED_VIDEO_MIME_TYPES.includes(file.type)) {
+    throw new Error(
+      `Tipo de ficheiro não permitido. Usa vídeos MP4, WEBM ou MOV.`
+    );
+  }
+  if (file.size > MAX_VIDEO_FILE_SIZE) {
+    throw new Error(`Ficheiro demasiado grande. O limite é 50 MB.`);
+  }
+  const res = await fetch("/api/promo-video/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ businessId, fileType: file.type }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body?.path || !body?.token) {
+    throw new Error(
+      body?.error || `Não foi possível preparar o upload (HTTP ${res.status}).`
+    );
+  }
+  const { error: uploadError } = await supabase.storage
+    .from("vitrine-videos")
+    .uploadToSignedUrl(body.path, body.token, file, {
+      contentType: file.type,
+    });
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("vitrine-videos").getPublicUrl(body.path);
+  return publicUrl;
+}
+
+/**
  * Uploads a promo video thumbnail. Reutiliza o bucket 'vitrine-covers'
  * (imagem, 5 MB) e NÃO insere nada em `gallery_images` — a miniatura
  * é só a URL guardada na coluna promo_video_thumbnail_url, nunca aparece
