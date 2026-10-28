@@ -56,6 +56,8 @@ interface OpeningHour {
   open: string;
   close: string;
   closed: boolean;
+  /** Aberto 24 horas nesse dia (ausente = horário normal). */
+  is24h?: boolean;
 }
 
 interface Product {
@@ -1602,6 +1604,24 @@ function DashboardContent() {
     setEditHours(newHours);
   };
 
+  // 24h — "Fechado" e "24 horas" são mutuamente exclusivos por dia.
+  // Os valores open/close são PRESERVADOS (nunca apagados): ao desligar
+  // o 24h, o dia volta ao horário guardado. Nenhum horário existente é
+  // alterado por ativar/desativar o 24h.
+  const handleEditHoursFlag = (index: number, field: "closed" | "is24h", checked: boolean) => {
+    const newHours = [...editHours];
+    const other = field === "closed" ? "is24h" : "closed";
+    newHours[index] = { ...newHours[index], [field]: checked, [other]: false };
+    setEditHours(newHours);
+  };
+
+  // "24 horas todos os dias": ativa 24h nos 7 dias (e abre os dias que
+  // estavam fechados). Ao desativar, limpa o 24h em todos os dias e os
+  // horários guardados voltam a valer (nunca foram apagados).
+  const handleEditHoursAll24h = (checked: boolean) => {
+    setEditHours(editHours.map((row) => ({ ...row, is24h: checked, closed: checked ? false : row.closed })));
+  };
+
   return (
     <div className="min-h-screen bg-[#0F172A] text-white flex flex-col">
       {/* Header */}
@@ -2575,6 +2595,16 @@ function DashboardContent() {
               {/* Hours section in edit profile */}
               <div className="space-y-2 border-t border-gray-800 pt-4">
                 <label className="block text-xs font-medium text-gray-400">Horários de Funcionamento</label>
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={editHours.length > 0 && editHours.every((row) => row.is24h && !row.closed)}
+                    onChange={(e) => handleEditHoursAll24h(e.target.checked)}
+                    className="rounded text-[#C8A96B] bg-gray-900 border-gray-800"
+                  />
+                  <span className="font-medium">24 horas todos os dias</span>
+                  <span className="text-gray-500">Os horários guardados não são apagados.</span>
+                </label>
                 <div className="max-h-40 overflow-y-auto space-y-1 bg-[#0F172A] border border-gray-800 p-2 rounded">
                   {editHours.map((row, index) => (
                     <div key={row.day} className="flex flex-wrap items-center justify-between text-xs py-1 border-b border-gray-850 last:border-0 gap-2">
@@ -2584,7 +2614,7 @@ function DashboardContent() {
                           type="time"
                           value={row.open}
                           onChange={(e) => handleEditHoursChange(index, "open", e.target.value)}
-                          disabled={row.closed}
+                          disabled={row.closed || row.is24h}
                           className="bg-gray-900 border border-gray-800 text-white rounded px-1.5 py-0.5 disabled:opacity-30"
                         />
                         <span>-</span>
@@ -2592,7 +2622,7 @@ function DashboardContent() {
                           type="time"
                           value={row.close}
                           onChange={(e) => handleEditHoursChange(index, "close", e.target.value)}
-                          disabled={row.closed}
+                          disabled={row.closed || row.is24h}
                           className="bg-gray-900 border border-gray-800 text-white rounded px-1.5 py-0.5 disabled:opacity-30"
                         />
                       </div>
@@ -2600,10 +2630,19 @@ function DashboardContent() {
                         <input
                           type="checkbox"
                           checked={row.closed}
-                          onChange={(e) => handleEditHoursChange(index, "closed", e.target.checked)}
+                          onChange={(e) => handleEditHoursFlag(index, "closed", e.target.checked)}
                           className="rounded text-[#C8A96B] bg-gray-900 border-gray-800"
                         />
                         <span>Fechado</span>
+                      </label>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!row.is24h}
+                          onChange={(e) => handleEditHoursFlag(index, "is24h", e.target.checked)}
+                          className="rounded text-[#C8A96B] bg-gray-900 border-gray-800"
+                        />
+                        <span>24 horas</span>
                       </label>
                     </div>
                   ))}

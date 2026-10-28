@@ -17,6 +17,7 @@ import { claimExploreNavPresentation } from "@/lib/explore-nav";
 import { isPaidTier, planHasChatbot } from "@/lib/plans";
 import { CANONICAL_URL } from "@/lib/site";
 import { shouldRenderChannel, isValidGoogleReviewUrl } from "@/lib/business-profile";
+import { isOpen24hToday, isOpen24hAllWeek } from "@/lib/availability";
 import { trackVitrineView, trackWhatsAppClick, trackPhoneClick } from "@/app/lib/analytics";
 import { pixelContact } from "@/app/lib/meta-pixel";
 import SocialBar from "../../components/SocialBar";
@@ -29,6 +30,8 @@ interface OpeningHour {
   open: string;
   close: string;
   closed: boolean;
+  /** Aberto 24 horas nesse dia (ausente = horário normal). */
+  is24h?: boolean;
 }
 
 interface Business {
@@ -1256,7 +1259,15 @@ export default function VitrineClient({ slug }: { slug: string }) {
               <h3 className="text-lg font-bold text-white font-display border-b border-slate-800 pb-2">
                 Horário de Funcionamento
               </h3>
-              
+              {/* 24h — selo quando hoje é 24h ou a semana toda é 24h. */}
+              {(() => {
+                const hours = business.opening_hours || [];
+                if (!isOpen24hAllWeek(hours) && !isOpen24hToday(hours)) return null;
+                return (
+                  <p className="text-xs font-bold text-emerald-400">Aberto 24 horas</p>
+                );
+              })()}
+
               <div className="space-y-2">
                 {business.opening_hours && business.opening_hours.length > 0 ? (
                   business.opening_hours.map((oh) => (
@@ -1264,6 +1275,8 @@ export default function VitrineClient({ slug }: { slug: string }) {
                       <span className="text-slate-400 font-medium">{oh.day}</span>
                       {oh.closed ? (
                         <span className="text-red-400 font-semibold text-[10px] bg-red-400/10 px-2 py-0.5 rounded border border-red-400/10">Fechado</span>
+                      ) : oh.is24h ? (
+                        <span className="text-emerald-400 font-semibold text-[10px] bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/10">24 horas</span>
                       ) : (
                         <span className="text-slate-200 font-semibold">{oh.open} - {oh.close}</span>
                       )}

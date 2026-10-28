@@ -108,6 +108,12 @@ export interface OpeningHour {
   open: string;
   close: string;
   closed: boolean;
+  /**
+   * Aberto 24 horas nesse dia. OPCIONAL e ausente nos registos antigos:
+   * ausente = comportamento antigo (intervalo open–close). Nunca é
+   * inferido — só existe quando o dono o ativa no painel.
+   */
+  is24h?: boolean;
 }
 
 const TIMEZONE = "Europe/Lisbon";
@@ -172,9 +178,12 @@ function lisbonParts(now: Date): { weekday: number; minutes: number } {
  *
  * - array ausente/vazio/sem entradas válidas → UNKNOWN
  * - closed=true no dia → CLOSED (salvo spill-over da véspera, ver abaixo)
+ * - is24h=true no dia (e não fechado) → OPEN a qualquer hora do dia
  * - intervalo normal (open < close): aberto se open <= agora < close
  * - cruza meia-noite (close <= open): aberto se agora >= open OU agora < close;
  *   a madrugada (00:00–close) é coberta pelo intervalo que COMEÇOU na véspera
+ * - um dia 24h NÃO faz spill-over: cobre exatamente o seu próprio dia
+ *   (00:00–24:00); à 00:30 do dia seguinte já não vale
  * - sem evidência positiva → UNKNOWN (nunca assumir)
  */
 export function isOpenNow(hours: unknown, now: Date = new Date()): OpenState {
@@ -192,8 +201,9 @@ export function isOpenNow(hours: unknown, now: Date = new Date()): OpenState {
   }
 
   // 1) Spill-over: intervalo da véspera que cruza a meia-noite cobre a madrugada.
+  // Um dia 24h não cruza a meia-noite (é exatamente o seu dia) — nunca faz spill.
   const yesterday = byDay.get((weekday + 6) % 7);
-  if (yesterday && !yesterday.closed) {
+  if (yesterday && !yesterday.closed && !yesterday.is24h) {
     const o = parseTime(yesterday.open);
     const c = parseTime(yesterday.close);
     if (o !== null && c !== null && c <= o && minutes < c) return "OPEN";
@@ -203,6 +213,7 @@ export function isOpenNow(hours: unknown, now: Date = new Date()): OpenState {
   const today = byDay.get(weekday);
   if (!today) return "UNKNOWN";
   if (today.closed) return "CLOSED";
+  if (today.is24h) return "OPEN";
   const open = parseTime(today.open);
   const close = parseTime(today.close);
   if (open === null || close === null) return "UNKNOWN";
@@ -211,6 +222,42 @@ export function isOpenNow(hours: unknown, now: Date = new Date()): OpenState {
   }
   // Cruza a meia-noite.
   return minutes >= open || minutes < close ? "OPEN" : "CLOSED";
+}
+
+/** Entradas válidas indexadas por dia da semana (primeira entrada vence). */
+function entriesByDay(hours: unknown): Map<number, OpeningHour> {
+  const byDay = new Map<number, OpeningHour>();
+  if (!Array.isArray(hours)) return byDay;
+  for (const e of hours.filter(isValidEntry)) {
+    const idx = weekdayIndex(e.day);
+    if (idx !== null && !byDay.has(idx)) byDay.set(idx, e);
+  }
+  return byDay;
+}
+
+/**
+ * Hoje é dia de 24 horas? Em dados contraditórios (closed + is24h),
+ * fechado vence — a evidência negativa explícita nunca é ignorada.
+ */
+export function isOpen24hToday(hours: unknown, now: Date = new Date()): boolean {
+  const { weekday } = lisbonParts(now);
+  if (weekday < 0) return false;
+  const today = entriesByDay(hours).get(weekday);
+  return !!today && !today.closed && today.is24h === true;
+}
+
+/**
+ * Todos os 7 dias são 24 horas? Exige os 7 dias presentes e todos com
+ * is24h (sem assumir dias em falta) — só assim se pode afirmar o
+ * "Aberto 24 horas" permanente na Montra pública.
+ */
+export function isOpen24hAllWeek(hours: unknown): boolean {
+  const byDay = entriesByDay(hours);
+  if (byDay.size < 7) return false;
+  for (const e of byDay.values()) {
+    if (e.closed || e.is24h !== true) return false;
+  }
+  return true;
 }
 
 // ─── Badges (texto honesto, só com confirmação) ─────────────────────────────
