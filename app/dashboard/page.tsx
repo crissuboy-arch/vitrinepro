@@ -959,7 +959,11 @@ function DashboardContent() {
       setToast("Vídeo carregado. Clique em Guardar vídeo promocional para o mostrar na Montra.");
     } catch (err: any) {
       const msg = String(err?.message || err);
-      if (/promo_video|vitrine-videos/i.test(msg)) {
+      // Só "Bucket not found" prova que falta a migration: todos os outros
+      // erros de Storage já trazem o nome do bucket na mensagem e eram
+      // engolidos por esta condição (ex.: falta de permissão mostrava a
+      // mensagem da migration mesmo com o bucket criado).
+      if (/bucket not found/i.test(msg)) {
         alert(
           "Para carregar vídeos, aplique primeiro a migration " +
             "20261028000023_businesses_promo_video.sql no Supabase SQL Editor " +
