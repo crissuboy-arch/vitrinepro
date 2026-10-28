@@ -83,10 +83,51 @@ export async function uploadGallery(file: File, businessId: string): Promise<str
 }
 
 /**
- * Uploads product image to the 'vitrine-products' bucket.
+ * Uploads a product image to the 'vitrine-products' bucket por URL
+ * assinada (rota servidor). O upload direto é rejeitado pela RLS mesmo
+ * p/ a dona (o mesmo comportamento já provado no vídeo promocional), por
+ * isso o caminho direto foi removido: não existe mais função de upload
+ * direto de imagem de produto. O servidor verifica a sessão +
+ * propriedade da Montra e emite um token de uso único p/ um caminho
+ * exato; o ficheiro vai direto do browser p/ o Supabase (sem passar
+ * pelo Vercel). Devolve a URL pública do ficheiro, como o upload
+ * direto devolvia.
  */
-export async function uploadProductImage(file: File, businessId: string): Promise<string> {
-  return uploadFile("vitrine-products", file, businessId);
+export async function uploadProductImageSigned(
+  file: File,
+  businessId: string
+): Promise<string> {
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    throw new Error(
+      `Tipo de ficheiro não permitido. Usa imagens JPG, PNG, WEBP ou GIF.`
+    );
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(`Ficheiro demasiado grande. O limite é 5 MB.`);
+  }
+  const res = await fetch("/api/product-image/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ businessId, fileType: file.type }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body?.path || !body?.token) {
+    throw new Error(
+      body?.error || `Não foi possível preparar o upload (HTTP ${res.status}).`
+    );
+  }
+  const { error: uploadError } = await supabase.storage
+    .from("vitrine-products")
+    .uploadToSignedUrl(body.path, body.token, file, {
+      contentType: file.type,
+    });
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("vitrine-products").getPublicUrl(body.path);
+  return publicUrl;
 }
 
 /**

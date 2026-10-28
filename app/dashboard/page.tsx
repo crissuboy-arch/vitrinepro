@@ -27,7 +27,7 @@ import {
   loadNovidadesState,
 } from "@/lib/novidades";
 import { buildBusinessUpdatePayload, isValidGoogleReviewUrl } from "@/lib/business-profile";
-import { uploadLogo, uploadCover, uploadGallery, uploadProductImage, uploadNovidadeImage, uploadPromoVideoSigned, uploadPromoThumbnail } from "@/lib/supabase-storage";
+import { uploadLogo, uploadCover, uploadGallery, uploadProductImageSigned, uploadNovidadeImage, uploadPromoVideoSigned, uploadPromoThumbnail } from "@/lib/supabase-storage";
 import {
   PROMO_VIDEO_BUTTON_DEFAULT_URL,
   PROMO_VIDEO_BUTTON_DEFAULT_TEXT,
@@ -1155,7 +1155,7 @@ function DashboardContent() {
       await assertCanUploadNow();
       let imageUrl = "";
       if (prodFile) {
-        imageUrl = await uploadProductImage(prodFile, business.id);
+        imageUrl = await uploadProductImageSigned(prodFile, business.id);
       }
 
       const { data: newProduct, error } = await supabase
@@ -1238,7 +1238,7 @@ function DashboardContent() {
       await assertCanUploadNow();
       let imageUrl = editingProduct.image_url || "";
       if (editProdFile) {
-        imageUrl = await uploadProductImage(editProdFile, business.id);
+        imageUrl = await uploadProductImageSigned(editProdFile, business.id);
       }
       const dbUpdates = {
         name: editProdName,
