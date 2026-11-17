@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AccountMenu from "@/components/auth/AccountMenu";
 import CoverFramingEditor from "@/components/dashboard/CoverFramingEditor";
+import BusinessQuotesPanel from "@/components/quotes/BusinessQuotesPanel";
 import ProductFramingEditor from "@/components/dashboard/ProductFramingEditor";
 import { normalizeProductFraming, productImgStyle, ProductFraming } from "@/lib/product-framing";
 import { normalizeCoverFraming, coverImgStyle, CoverFraming } from "@/lib/cover-framing";
@@ -2624,6 +2625,14 @@ function DashboardContent() {
               )}
             </div>
           </div>
+        )}
+        {/* Fase 2 — PEDIDOS DE ORÇAMENTO (pedidos de clientes + interesses) */}
+        {activeTab === "pedidos" && business && (
+          <BusinessQuotesPanel
+            businessId={business.id}
+            businessCity={business.city || null}
+            businessCategory={business.category || null}
+          />
         )}
         {/* A3.10 — HORÁRIOS (reúso de editHours + handleEditHoursChange) */}
         {activeTab === "horarios" && (

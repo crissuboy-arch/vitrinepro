@@ -26,6 +26,12 @@ export const ALLOWED_EVENTS = [
   // Fase 1 — "Vitrine Flash": visualizações e cliques em promoções (per-business).
   "promotion_view",
   "promotion_click",
+  // Fase 2 — "Pedidos de Orçamento": interesse manifestado por uma empresa
+  // e contacto revelado após aceitação do consumidor (per-business).
+  // Inseridos pelas rotas /api/quotes/* com service role; registados aqui
+  // para a allowlist pública os reconhecer como eventos legítimos.
+  "quote_interest",
+  "quote_contact_revealed",
   // A9 — "Pergunte à Vitrine" / Local Intent (primeira camada do Local Intent Graph).
   // intent_search: { query (truncada 100), city?, result_count, zero: boolean }
   // NUNCA armazena prompt completo sensível — só o necessário para entender demanda.

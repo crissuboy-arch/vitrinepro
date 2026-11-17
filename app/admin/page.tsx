@@ -90,6 +90,18 @@ interface Lead {
   created_at: string;
 }
 
+// Fase 2 — pedido de orçamento tal como a moderação o vê (sem contactos).
+interface AdminQuote {
+  id: string;
+  category: string;
+  city: string;
+  title: string;
+  description: string;
+  status: "pending" | "approved" | "rejected" | "closed";
+  expires_at: string;
+  created_at: string;
+}
+
 interface Stats {
   totalBusinesses: number;
   publishedBusinesses: number;
@@ -120,7 +132,7 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<"overview" | "businesses" | "categories" | "cities" | "users" | "leads" | "handover">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "businesses" | "categories" | "cities" | "users" | "leads" | "quotes" | "handover">("overview");
 
   // Visão Geral (dados reais)
   const [overview, setOverview] = useState<AdminStats | null>(null);
@@ -154,6 +166,11 @@ export default function AdminPage() {
   // Leads state
   const [leads, setLeads] = useState<Lead[]>([]);
   const [leadSearch, setLeadSearch] = useState("");
+
+  // Fase 2 — Pedidos de Orçamento (moderação)
+  const [quotes, setQuotes] = useState<AdminQuote[]>([]);
+  const [quotesCounts, setQuotesCounts] = useState<{ pending: number; approved: number; rejected: number; closed: number; interests: number } | null>(null);
+  const [quoteActionLoading, setQuoteActionLoading] = useState<string | null>(null);
 
   // Category CRUD states
   const [catName, setCatName] = useState("");
@@ -226,7 +243,10 @@ export default function AdminPage() {
       const leadsPromise = fetch("/api/admin/leads?limit=500")
         .then((r) => (r.ok ? r.json() : { leads: [] }))
         .catch(() => ({ leads: [] }));
-      const [bizRes, reviewRes, catRes, citiesRes, usersRes, leadsRes] = await Promise.all([
+      const quotesPromise = fetch("/api/admin/quotes")
+        .then((r) => (r.ok ? r.json() : { ready: false, counts: null, quotes: [] }))
+        .catch(() => ({ ready: false, counts: null, quotes: [] }));
+      const [bizRes, reviewRes, catRes, citiesRes, usersRes, leadsRes, quotesRes] = await Promise.all([
         // ADMIN-1: businesses via API administrativa (service_role + ADMIN_EMAILS).
         // O anon key direto NÃO consegue editar businesses de terceiros (RLS owner-scoped).
         fetch("/api/admin/businesses?page=1")
@@ -245,6 +265,7 @@ export default function AdminPage() {
           .order("name", { ascending: true }),
         usersPromise,
         leadsPromise,
+        quotesPromise,
       ]);
 
       const bizList: Business[] = (bizRes as { businesses?: Business[] }).businesses || [];
@@ -253,6 +274,9 @@ export default function AdminPage() {
       setCities(citiesRes.data || []);
       setUsers((usersRes as { users?: UserProfile[] }).users || []);
       setLeads((leadsRes as { leads?: Lead[] }).leads || []);
+      const quotesData = quotesRes as { counts?: typeof quotesCounts; quotes?: AdminQuote[] };
+      setQuotes(quotesData.quotes || []);
+      setQuotesCounts(quotesData.counts || null);
 
       const reviews = reviewRes.data || [];
       setStats({
@@ -654,6 +678,23 @@ export default function AdminPage() {
 
   if (!user || !ADMIN_EMAILS.includes(user.email || "")) return null;
 
+  // Fase 2 — decisão de moderação de um pedido de orçamento.
+  const moderateQuote = async (id: string, status: "approved" | "rejected" | "closed") => {
+    setQuoteActionLoading(id + status);
+    try {
+      const res = await fetch(`/api/admin/quotes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) await loadData();
+    } catch {
+      // A lista mantém-se; o admin pode tentar novamente.
+    } finally {
+      setQuoteActionLoading(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#FAF7F2] font-sans">
       <header className="bg-[#0F172A] border-b border-[#1F2937]">
@@ -735,6 +776,16 @@ export default function AdminPage() {
             }`}
           >
             📩 Leads ({leads.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("quotes")}
+            className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
+              activeTab === "quotes"
+                ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
+                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+            }`}
+          >
+            🧾 Pedidos{quotesCounts ? ` (${quotesCounts.pending} pendentes)` : ""}
           </button>
           <button
             onClick={() => setActiveTab("handover")}
@@ -1666,6 +1717,105 @@ export default function AdminPage() {
 
         {/* ══════════ ENTREGAR MONTRA A CLIENTE ══════════ */}
         {activeTab === "handover" && <HandoverPanel />}
+
+        {/* ══════════ FASE 2 — PEDIDOS DE ORÇAMENTO (moderação) ══════════ */}
+        {activeTab === "quotes" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
+              <h2 className="text-base font-bold text-[#0F172A] font-display">
+                Pedidos de Orçamento — moderação
+              </h2>
+              <button onClick={loadData} className="px-3 py-2 bg-[#FAF7F2] border border-[#E5E7EB] rounded-lg text-xs text-[#1F2937] hover:bg-[#E5E7EB]">
+                Atualizar
+              </button>
+            </div>
+
+            {quotesCounts && (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  { label: "Pendentes", value: quotesCounts.pending, accent: "text-amber-600" },
+                  { label: "Aprovados", value: quotesCounts.approved, accent: "text-green-600" },
+                  { label: "Rejeitados", value: quotesCounts.rejected, accent: "text-red-500" },
+                  { label: "Fechados", value: quotesCounts.closed, accent: "text-slate-500" },
+                  { label: "Interesses de empresas", value: quotesCounts.interests, accent: "text-[#0F172A]" },
+                ].map((c) => (
+                  <div key={c.label} className="bg-white rounded-xl border border-[#E5E7EB] p-4 shadow-sm">
+                    <p className={`text-2xl font-bold font-display ${c.accent}`}>{c.value}</p>
+                    <p className="text-xs text-slate-500">{c.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!quotesCounts && quotes.length === 0 ? (
+              <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center text-slate-500 shadow-sm">
+                Os Pedidos de Orçamento ainda não estão ativos nesta base de dados
+                (migration 20261117000025 por aplicar) — ou não há pedidos de momento.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {[...quotes]
+                  .sort((a, b) => (a.status === "pending" ? 0 : 1) - (b.status === "pending" ? 0 : 1))
+                  .map((q) => (
+                    <div key={q.id} className="bg-white rounded-xl border border-[#E5E7EB] p-4 shadow-sm space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 bg-[#0F172A] text-white rounded text-[10px] font-bold uppercase">{q.category}</span>
+                        <span className="px-2 py-0.5 bg-[#FAF7F2] text-[#1F2937] rounded text-[10px] font-medium border border-[#E5E7EB]">📍 {q.city}</span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            q.status === "pending"
+                              ? "bg-amber-100 text-amber-700"
+                              : q.status === "approved"
+                                ? "bg-green-100 text-green-700"
+                                : q.status === "rejected"
+                                  ? "bg-red-100 text-red-600"
+                                  : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {q.status === "pending" ? "PENDENTE" : q.status === "approved" ? "APROVADO" : q.status === "rejected" ? "REJEITADO" : "FECHADO"}
+                        </span>
+                        <span className="text-[11px] text-[#9CA3AF] ml-auto">
+                          {new Date(q.created_at).toLocaleDateString("pt-PT")} · expira {new Date(q.expires_at).toLocaleDateString("pt-PT")}
+                        </span>
+                      </div>
+                      <p className="font-semibold text-[#0F172A]">{q.title}</p>
+                      <p className="text-sm text-slate-600 whitespace-pre-line">{q.description}</p>
+                      <p className="text-[11px] text-[#9CA3AF]">Contactos do consumidor: protegidos — a moderação não precisa deles (RGPD).</p>
+                      <div className="flex gap-2 flex-wrap pt-1">
+                        {q.status !== "approved" && (
+                          <button
+                            onClick={() => moderateQuote(q.id, "approved")}
+                            disabled={quoteActionLoading === q.id + "approved"}
+                            className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg disabled:opacity-50"
+                          >
+                            ✓ Aprovar e publicar
+                          </button>
+                        )}
+                        {q.status !== "rejected" && (
+                          <button
+                            onClick={() => moderateQuote(q.id, "rejected")}
+                            disabled={quoteActionLoading === q.id + "rejected"}
+                            className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg disabled:opacity-50"
+                          >
+                            ✕ Rejeitar
+                          </button>
+                        )}
+                        {(q.status === "approved" || q.status === "pending") && (
+                          <button
+                            onClick={() => moderateQuote(q.id, "closed")}
+                            disabled={quoteActionLoading === q.id + "closed"}
+                            className="px-3 py-1.5 border border-[#E5E7EB] text-slate-600 text-xs font-bold rounded-lg disabled:opacity-50"
+                          >
+                            Fechar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

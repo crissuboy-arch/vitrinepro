@@ -25,6 +25,8 @@ describe("analytics event allowlist", () => {
       "novidade_save",
       "promotion_view",
       "promotion_click",
+      "quote_interest",
+      "quote_contact_revealed",
       "intent_search",
       "intent_result_click",
       "intent_zero_result",

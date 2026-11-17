@@ -92,6 +92,22 @@ export default function PoliticaPrivacidadePage() {
             </div>
           </section>
 
+          {/* 2b. Pedidos de Orçamento (Fase 2) */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-display font-semibold text-[#0F172A]">Pedidos de Orçamento</h2>
+            <p className="text-sm text-[#1F2937] leading-relaxed">
+              Quem publica um pedido de orçamento sem conta fornece nome e pelo menos um contacto
+              (email ou telefone/WhatsApp), guardados separadamente do pedido e nunca mostrados
+              publicamente. O título, a descrição, a categoria e a cidade do pedido — sem dados
+              pessoais — só ficam visíveis depois de aprovados pela nossa equipa. O contacto só é
+              revelado a um profissional concreto se o titular aceitar expressamente o interesse
+              desse profissional, através do seu link privado de acompanhamento. O pedido expira
+              ao fim de 30 dias e o titular pode fechá-lo a qualquer momento nesse link; para
+              exercer os direitos de acesso, retificação ou apagamento antes disso, basta
+              contactar-nos pelos meios indicados nesta política.
+            </p>
+          </section>
+
           {/* 3. Base Legal */}
           <section className="space-y-3">
             <h2 className="text-lg font-display font-semibold text-[#0F172A]">3. Base Legal para o Tratamento</h2>
@@ -207,6 +223,7 @@ export default function PoliticaPrivacidadePage() {
                 { tipo: "Dados de pagamento e faturação", prazo: "10 anos (obrigação fiscal legal em Portugal)" },
                 { tipo: "Dados de analytics e logs", prazo: "12 meses" },
                 { tipo: "Dados de leads (formulários de contacto)", prazo: "12 meses a partir da data de submissão" },
+                { tipo: "Pedidos de orçamento (contactos do consumidor)", prazo: "Até 30 dias após a publicação do pedido; apagados com o pedido" },
               ].map(({ tipo, prazo }) => (
                 <div key={tipo} className="flex items-start justify-between gap-4 text-sm border-b border-[#E5E7EB] py-2 last:border-0">
                   <span className="text-[#0F172A] font-medium">{tipo}</span>
