@@ -10,6 +10,7 @@ import {
   getSessionUser,
   isMember,
   lastPostAt,
+  effectiveDisplayName,
   COMMUNITY_LIMITS,
   communitiesNotReadyResponse,
   isMissingTableError,
@@ -49,7 +50,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
     const { data, error } = await client
       .from("community_posts")
-      .insert({ community_id: community.id, author_id: user.id, author_name: user.displayName, content, image_url: imageUrl })
+      .insert({ community_id: community.id, author_id: user.id, author_name: await effectiveDisplayName(client, user), content, image_url: imageUrl })
       .select("id, author_name, content, image_url, is_pinned, created_at")
       .single();
     if (error) throw error;

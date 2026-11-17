@@ -4,7 +4,7 @@
  * Exige login + adesão. Emojis permitidos: ❤️ 👍 🎉
  */
 import { NextResponse } from "next/server";
-import { svc, getSessionUser, isMember, communitiesNotReadyResponse, isMissingTableError } from "@/lib/communities-social";
+import { svc, getSessionUser, isMember, communitiesNotReadyResponse, isMissingTableError, effectiveDisplayName, notify } from "@/lib/communities-social";
 
 const ALLOWED_EMOJIS = new Set(["❤️", "👍", "🎉"]);
 
@@ -26,7 +26,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     const { data: post } = await client
       .from("community_posts")
-      .select("id, community_id, status")
+      .select("id, community_id, author_id, status")
       .eq("id", id)
       .maybeSingle();
     if (!post || post.status !== "visible") {
@@ -48,6 +48,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     const { error } = await client.from("community_reactions").insert({ post_id: id, user_id: user.id, emoji: body.emoji });
     if (error) throw error;
+    const authorName = await effectiveDisplayName(client, user);
+    await notify(client, { recipientId: post.author_id as string, actor: { ...user, displayName: authorName }, type: "reaction", communityId: post.community_id as string, postId: id });
     return NextResponse.json({ reacted: true }, { status: 201 });
   } catch (err) {
     if (isMissingTableError(err)) return communitiesNotReadyResponse();

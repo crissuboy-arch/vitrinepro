@@ -210,3 +210,12 @@ export async function uploadPromoVideoSigned(
 export async function uploadPromoThumbnail(file: File, businessId: string): Promise<string> {
   return uploadFile("vitrine-covers", file, businessId);
 }
+
+/**
+ * Uploads a community image (avatar or post photo) to the
+ * 'community-media' bucket. Path prefix = the user's own id — the
+ * storage policy only allows writing under your own prefix.
+ */
+export async function uploadCommunityImage(file: File, userId: string): Promise<string> {
+  return uploadFile("community-media", file, userId, { errorLabel: "imagens da comunidade" });
+}

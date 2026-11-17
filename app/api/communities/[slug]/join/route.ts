@@ -23,11 +23,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ slug: 
   try {
     const r = await resolve(slug);
     if ("error" in r) return r.error;
+    const already = await isMember(r.client, r.community.id, r.user.id).catch(() => false);
     const { error } = await r.client
       .from("community_members")
       .insert({ community_id: r.community.id, user_id: r.user.id });
     if (error && (error as { code?: string }).code !== "23505") throw error;
-    return NextResponse.json({ ok: true, isMember: true }, { status: 201 });
+    return NextResponse.json({ ok: true, isMember: true, firstJoin: !already }, { status: 201 });
   } catch (err) {
     if (isMissingTableError(err)) return communitiesNotReadyResponse();
     return NextResponse.json({ error: "Não foi possível entrar na comunidade." }, { status: 500 });

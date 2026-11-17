@@ -13,6 +13,8 @@ import {
   communityCounts,
   communitiesNotReadyResponse,
   isMissingTableError,
+  getProfile,
+  getProfilesMap,
 } from "@/lib/communities-social";
 
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -27,7 +29,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     const q = new URL(req.url).searchParams.get("q")?.trim().toLowerCase() ?? "";
     let postsQuery = client
       .from("community_posts")
-      .select("id, author_name, content, image_url, is_pinned, created_at")
+      .select("id, author_id, author_name, content, image_url, is_pinned, edited_at, created_at")
       .eq("community_id", community.id)
       .eq("status", "visible")
       .order("is_pinned", { ascending: false })
@@ -65,14 +67,47 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
 
     const member = viewer ? await isMember(client, community.id, viewer.id) : false;
 
+    // Perfis públicos dos autores + prévia de membros (avatares).
+    const authorIds = [...new Set((posts ?? []).map((p) => p.author_id as string))];
+    const { data: memberRows } = await client
+      .from("community_members")
+      .select("user_id, joined_at")
+      .eq("community_id", community.id)
+      .order("joined_at", { ascending: false })
+      .limit(12);
+    const memberIds = (memberRows ?? []).map((m) => m.user_id as string);
+    const profiles = await getProfilesMap(client, [...authorIds, ...memberIds, ...(viewer ? [viewer.id] : [])]).catch(
+      () => new Map(),
+    );
+    const viewerProfile = viewer ? profiles.get(viewer.id) ?? null : null;
+    const membersPreview = memberIds.map((uid) => {
+      const prof = profiles.get(uid);
+      return { userId: uid, displayName: prof?.displayName ?? "Membro VitrinePro", avatarUrl: prof?.avatarUrl ?? null, city: prof?.city ?? null };
+    });
+
     return NextResponse.json({
       community: { ...community, counts },
-      viewer: viewer ? { loggedIn: true, isMember: member, displayName: viewer.displayName } : { loggedIn: false, isMember: false },
-      posts: (posts ?? []).map((p) => ({
-        ...p,
-        commentCount: commentCounts.get(p.id as string) ?? 0,
-        reactions: Object.fromEntries(reactionMap.get(p.id as string) ?? new Map()),
-      })),
+      viewer: viewer
+        ? {
+            loggedIn: true,
+            isMember: member,
+            userId: viewer.id,
+            displayName: viewerProfile?.displayName ?? viewer.displayName,
+            profile: viewerProfile,
+          }
+        : { loggedIn: false, isMember: false },
+      membersPreview,
+      posts: (posts ?? []).map((p) => {
+        const prof = profiles.get(p.author_id as string);
+        return {
+          ...p,
+          author_name: prof?.displayName ?? p.author_name,
+          author_avatar: prof?.avatarUrl ?? null,
+          author_city: prof?.city ?? null,
+          commentCount: commentCounts.get(p.id as string) ?? 0,
+          reactions: Object.fromEntries(reactionMap.get(p.id as string) ?? new Map()),
+        };
+      }),
     });
   } catch (err) {
     if (isMissingTableError(err)) return communitiesNotReadyResponse();
