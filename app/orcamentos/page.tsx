@@ -74,7 +74,7 @@ export default function OrcamentosPage() {
           <div className="text-center py-20 space-y-3">
             <p className="text-4xl">🛠️</p>
             <p className="text-[#F5F0E8] font-display font-semibold text-lg">Pedidos de orçamento a chegar</p>
-            <p className="text-sm text-gray-500 max-w-md mx-auto">
+            <p className="text-sm text-gray-400 max-w-md mx-auto">
               Estamos a ativar esta área. Entretanto, encontra negócios locais no{" "}
               <Link href="/explorar" className="text-[#C8A96B] hover:underline">Explorar</Link>.
             </p>
@@ -102,7 +102,7 @@ export default function OrcamentosPage() {
               <div className="text-center py-20 space-y-3">
                 <p className="text-4xl">🧾</p>
                 <p className="text-[#F5F0E8] font-display font-semibold text-lg">Ainda não há pedidos publicados</p>
-                <p className="text-sm text-gray-500 max-w-md mx-auto">
+                <p className="text-sm text-gray-400 max-w-md mx-auto">
                   Sê o primeiro:{" "}
                   <Link href="/pedir-orcamento" className="text-[#C8A96B] hover:underline">publica o teu pedido</Link>{" "}
                   e recebe respostas de profissionais da tua zona.
@@ -110,7 +110,7 @@ export default function OrcamentosPage() {
               </div>
             ) : (
               <>
-                <p className="text-xs text-gray-500 mt-8 mb-4">
+                <p className="text-xs text-gray-400 mt-8 mb-4">
                   {visible.length} {visible.length === 1 ? "pedido ativo" : "pedidos ativos"}
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -124,7 +124,7 @@ export default function OrcamentosPage() {
         )}
       </main>
       {/* Footer (mesmo padrão do /explorar e /promocoes) */}
-      <footer className="bg-[#050816] border-t border-white/5 py-12 mt-20 text-center text-slate-500 text-xs">
+      <footer className="bg-[#050816] border-t border-white/5 py-12 mt-20 text-center text-slate-400 text-xs">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-3">
           <Link href="/">
             <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-1" />

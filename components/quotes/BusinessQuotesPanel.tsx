@@ -113,9 +113,9 @@ export default function BusinessQuotesPanel({ businessId, businessCity, business
             {feedback && <p className="text-xs text-[#C8A96B] bg-[#C8A96B]/10 border border-[#C8A96B]/20 rounded-lg px-3 py-2">{feedback}</p>}
 
             {ready === null ? (
-              <p className="text-sm text-gray-500">A carregar pedidos…</p>
+              <p className="text-sm text-gray-400">A carregar pedidos…</p>
             ) : quotes.length === 0 ? (
-              <p className="text-sm text-gray-500 bg-[#0B1120] border border-gray-800 rounded-xl px-4 py-5 text-center">
+              <p className="text-sm text-gray-400 bg-[#0B1120] border border-gray-800 rounded-xl px-4 py-5 text-center">
                 Ainda não há pedidos aprovados com estes filtros. Alarga a cidade/categoria ou volta mais tarde.
               </p>
             ) : (
@@ -138,7 +138,7 @@ export default function BusinessQuotesPanel({ businessId, businessCity, business
                             rows={2}
                             maxLength={500}
                             placeholder="Mensagem curta para o cliente (opcional): prazos, experiência, próximo passo…"
-                            className="w-full px-3 py-2 bg-[#0B1120] border border-gray-700 rounded-lg text-sm text-white placeholder:text-gray-500 focus:border-[#C8A96B] outline-none"
+                            className="w-full px-3 py-2 bg-[#0B1120] border border-gray-700 rounded-lg text-sm text-white placeholder:text-gray-400 focus:border-[#C8A96B] outline-none"
                           />
                           <div className="flex gap-2">
                             <button onClick={() => sendInterest(q.id)} disabled={busy === q.id} className="px-4 py-2 bg-[#C8A96B] hover:bg-[#D4BB82] text-[#0F172A] text-xs font-bold rounded-lg transition-colors disabled:opacity-50">
@@ -171,7 +171,7 @@ export default function BusinessQuotesPanel({ businessId, businessCity, business
               <div key={i.id} className="bg-[#0B1120] border border-gray-800 rounded-xl p-4 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-[#F5F0E8]">{i.request.title}</span>
-                  <span className="text-[11px] text-gray-500">{i.request.city} · {i.request.category}</span>
+                  <span className="text-[11px] text-gray-400">{i.request.city} · {i.request.category}</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-white/5 border-gray-700 text-gray-300 ml-auto">
                     {QUOTE_INTEREST_LABELS[i.status]}
                   </span>
@@ -191,7 +191,7 @@ export default function BusinessQuotesPanel({ businessId, businessCity, business
                   </div>
                 )}
                 {i.status === "accepted" && !i.contact && (
-                  <p className="text-xs text-gray-500">Contacto aceite — a carregar dados…</p>
+                  <p className="text-xs text-gray-400">Contacto aceite — a carregar dados…</p>
                 )}
               </div>
             ))}

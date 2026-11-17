@@ -722,7 +722,7 @@ export default function AdminPage() {
             className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${
               activeTab === "overview"
                 ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
             }`}
           >
             📊 Visão Geral
@@ -732,7 +732,7 @@ export default function AdminPage() {
             className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
               activeTab === "businesses"
                 ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
             }`}
           >
             🏢 Negócios & Avaliações
@@ -742,7 +742,7 @@ export default function AdminPage() {
             className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
               activeTab === "categories"
                 ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
             }`}
           >
             📁 Categorias
@@ -752,7 +752,7 @@ export default function AdminPage() {
             className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
               activeTab === "cities"
                 ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
             }`}
           >
             🏙️ Cidades
@@ -762,7 +762,7 @@ export default function AdminPage() {
             className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
               activeTab === "users"
                 ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
             }`}
           >
             👥 Utilizadores
@@ -772,7 +772,7 @@ export default function AdminPage() {
             className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
               activeTab === "leads"
                 ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
             }`}
           >
             📩 Leads ({leads.length})
@@ -782,7 +782,7 @@ export default function AdminPage() {
             className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 ${
               activeTab === "quotes"
                 ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
             }`}
           >
             🧾 Pedidos{quotesCounts ? ` (${quotesCounts.pending} pendentes)` : ""}
@@ -792,7 +792,7 @@ export default function AdminPage() {
             className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${
               activeTab === "handover"
                 ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/50 rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
             }`}
           >
             🔑 Entregar
@@ -826,11 +826,11 @@ export default function AdminPage() {
                       <div key={s.label} className="bg-white rounded-xl border border-[#E5E7EB] p-5 shadow-sm">
                         <div className="text-3xl font-bold font-display text-[#0F172A] mb-1">{s.value}</div>
                         <div className="text-sm text-[#1F2937] font-medium">{s.label}</div>
-                        {s.hint && <div className="text-[11px] text-slate-400 mt-1">{s.hint}</div>}
+                        {s.hint && <div className="text-[11px] text-slate-500 mt-1">{s.hint}</div>}
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-slate-400 mt-3">
+                  <p className="text-xs text-slate-500 mt-3">
                     “Ativa” = fez login nos últimos {overview.activeWindowDays} dias (last_sign_in_at do Supabase Auth).
                     Admin ({overview.accounts.admins}) não precisa de assinatura Stripe — autorização da plataforma, não produto comercial.
                   </p>
@@ -864,7 +864,7 @@ export default function AdminPage() {
                       { label: "Outros", value: overview.businesses.plans.other },
                     ].map((s) => (
                       <div key={s.label} className="bg-white rounded-xl border border-[#E5E7EB] p-5 shadow-sm">
-                        <div className="text-3xl font-bold font-display text-[#C8A96B] mb-1">{s.value}</div>
+                        <div className="text-3xl font-bold font-display text-[#8A6F3E] mb-1">{s.value}</div>
                         <div className="text-sm text-[#1F2937] font-medium">{s.label}</div>
                       </div>
                     ))}
@@ -899,7 +899,7 @@ export default function AdminPage() {
               {[
                 { label: "Total de negócios", value: stats.totalBusinesses, color: "text-[#0F172A]" },
                 { label: "Publicados", value: stats.publishedBusinesses, color: "text-green-600" },
-                { label: "Total avaliações", value: stats.totalReviews, color: "text-[#C8A96B]" },
+                { label: "Total avaliações", value: stats.totalReviews, color: "text-[#8A6F3E]" },
                 { label: "Avaliações pendentes", value: stats.pendingReviews, color: "text-red-500" },
               ].map((s) => (
                 <div key={s.label} className="bg-white rounded-xl border border-[#E5E7EB] p-5 shadow-sm">
@@ -972,7 +972,7 @@ export default function AdminPage() {
                               )}
                               <div>
                                 <div className="font-semibold text-[#0F172A]">{biz.name}</div>
-                                <div className="text-[10px] text-[#9CA3AF] font-mono">{biz.id.slice(0, 8)}...</div>
+                                <div className="text-[10px] text-[#4B5563] font-mono">{biz.id.slice(0, 8)}...</div>
                               </div>
                             </div>
                           </td>
@@ -1002,7 +1002,7 @@ export default function AdminPage() {
                                 className={`mt-1 text-[11px] font-bold disabled:opacity-50 ${
                                   biz.admin_pro_grant
                                     ? "text-[#92400E] hover:text-red-700"
-                                    : "text-[#9CA3AF] hover:text-[#C8A96B]"
+                                    : "text-[#4B5563] hover:text-[#8A6F3E]"
                                 }`}
                               >
                                 {actionLoading === biz.id + "adminpro" ? "..." : biz.admin_pro_grant ? "🎖️ Pro admin" : "+ Pro admin"}
@@ -1030,21 +1030,21 @@ export default function AdminPage() {
                               className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                                 (biz as any).is_featured
                                   ? "bg-[#FEF3C7] text-[#92400E] hover:bg-red-100 hover:text-red-700"
-                                  : "bg-[#FAF7F2] text-[#9CA3AF] hover:bg-[#FEF3C7] hover:text-[#92400E]"
+                                  : "bg-[#FAF7F2] text-[#4B5563] hover:bg-[#FEF3C7] hover:text-[#92400E]"
                               } disabled:opacity-50`}
                             >
                               {actionLoading === biz.id + "featured" ? "..." : (biz as any).is_featured ? "⭐ Destacado" : "— Normal"}
                             </button>
                           </td>
                           <td className="px-4 py-3 text-[#1F2937]">{biz.view_count || 0}</td>
-                          <td className="px-4 py-3 text-[#9CA3AF] text-xs font-medium">
+                          <td className="px-4 py-3 text-[#4B5563] text-xs font-medium">
                             {new Date(biz.created_at).toLocaleDateString("pt-PT")}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <Link
                                 href={`/business/${biz.id}`}
-                                className="text-[#C8A96B] hover:underline text-xs font-bold"
+                                className="text-[#8A6F3E] hover:underline text-xs font-bold"
                                 target="_blank"
                               >
                                 Ver
@@ -1060,7 +1060,7 @@ export default function AdminPage() {
                                 className={`flex items-center gap-1 text-xs font-bold disabled:opacity-50 ${
                                   biz.show_in_explore === false
                                     ? "text-red-500 hover:text-red-700"
-                                    : "text-[#C8A96B] hover:text-[#A98B4F]"
+                                    : "text-[#8A6F3E] hover:text-[#6d5730]"
                                 }`}
                               >
                                 {actionLoading === biz.id + "explore" ? (
@@ -1097,7 +1097,7 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-              <div className="px-4 py-3.5 border-t border-[#E5E7EB] bg-[#FAF7F2] text-xs text-[#9CA3AF] font-medium">
+              <div className="px-4 py-3.5 border-t border-[#E5E7EB] bg-[#FAF7F2] text-xs text-[#4B5563] font-medium">
                 {filtered.length} negócio{filtered.length !== 1 ? "s" : ""} encontrado{filtered.length !== 1 ? "s" : ""}
               </div>
             </div>
@@ -1309,7 +1309,7 @@ export default function AdminPage() {
                       id="catIsActive"
                       checked={catIsActive}
                       onChange={(e) => setCatIsActive(e.target.checked)}
-                      className="rounded border-[#E5E7EB] text-[#C8A96B] focus:ring-[#C8A96B]"
+                      className="rounded border-[#E5E7EB] text-[#A88B4F] focus:ring-[#A88B4F]"
                     />
                     <label htmlFor="catIsActive" className="text-xs font-bold text-slate-700 uppercase cursor-pointer select-none">
                       Categoria Ativa para SEO
@@ -1461,7 +1461,7 @@ export default function AdminPage() {
                       id="cityIsActive"
                       checked={cityIsActive}
                       onChange={(e) => setCityIsActive(e.target.checked)}
-                      className="rounded border-[#E5E7EB] text-[#C8A96B] focus:ring-[#C8A96B]"
+                      className="rounded border-[#E5E7EB] text-[#A88B4F] focus:ring-[#A88B4F]"
                     />
                     <label htmlFor="cityIsActive" className="text-xs font-bold text-slate-700 uppercase cursor-pointer select-none">
                       Cidade Ativa para SEO
@@ -1561,8 +1561,8 @@ export default function AdminPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-slate-600">{u.businessCount}</td>
-                          <td className="px-4 py-3 text-[#9CA3AF] text-xs">{u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString("pt-PT") : "—"}</td>
-                          <td className="px-4 py-3 text-[#9CA3AF] text-xs">{u.created_at ? new Date(u.created_at).toLocaleDateString("pt-PT") : "—"}</td>
+                          <td className="px-4 py-3 text-[#4B5563] text-xs">{u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString("pt-PT") : "—"}</td>
+                          <td className="px-4 py-3 text-[#4B5563] text-xs">{u.created_at ? new Date(u.created_at).toLocaleDateString("pt-PT") : "—"}</td>
                         </tr>
                       ))
                     )}
@@ -1570,7 +1570,7 @@ export default function AdminPage() {
                 </table>
               </div>
               <div className="px-4 py-3.5 border-t border-[#E5E7EB] bg-[#FAF7F2] flex items-center justify-between">
-                <span className="text-xs text-[#9CA3AF] font-medium">
+                <span className="text-xs text-[#4B5563] font-medium">
                   Página {userPage} de {userTotalPages} · {userTotal} contas
                 </span>
                 <div className="flex gap-2">
@@ -1603,16 +1603,16 @@ export default function AdminPage() {
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <h3 className="font-display text-xl font-bold text-[#0F172A] break-all">{selectedUser.user.email || "—"}</h3>
-                          <p className="text-xs text-slate-400 font-mono mt-1">{selectedUser.user.id}</p>
+                          <p className="text-xs text-slate-500 font-mono mt-1">{selectedUser.user.id}</p>
                         </div>
-                        <button onClick={() => setSelectedUser(null)} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+                        <button onClick={() => setSelectedUser(null)} className="text-slate-500 hover:text-slate-700 text-2xl leading-none">×</button>
                       </div>
                       <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
-                        <div><span className="text-slate-400">Tipo:</span> <strong>{selectedUser.user.tipo}</strong></div>
-                        <div><span className="text-slate-400">Status:</span> <strong>{selectedUser.user.status}</strong></div>
-                        <div><span className="text-slate-400">Criada em:</span> {selectedUser.user.created_at ? new Date(selectedUser.user.created_at).toLocaleString("pt-PT") : "—"}</div>
-                        <div><span className="text-slate-400">Último login:</span> {selectedUser.user.last_sign_in_at ? new Date(selectedUser.user.last_sign_in_at).toLocaleString("pt-PT") : "—"}</div>
-                        <div><span className="text-slate-400">Montras:</span> <strong>{selectedUser.user.businessCount}</strong></div>
+                        <div><span className="text-slate-500">Tipo:</span> <strong>{selectedUser.user.tipo}</strong></div>
+                        <div><span className="text-slate-500">Status:</span> <strong>{selectedUser.user.status}</strong></div>
+                        <div><span className="text-slate-500">Criada em:</span> {selectedUser.user.created_at ? new Date(selectedUser.user.created_at).toLocaleString("pt-PT") : "—"}</div>
+                        <div><span className="text-slate-500">Último login:</span> {selectedUser.user.last_sign_in_at ? new Date(selectedUser.user.last_sign_in_at).toLocaleString("pt-PT") : "—"}</div>
+                        <div><span className="text-slate-500">Montras:</span> <strong>{selectedUser.user.businessCount}</strong></div>
                       </div>
                       {selectedUser.businesses.length > 0 && (
                         <>
@@ -1622,10 +1622,10 @@ export default function AdminPage() {
                               <div key={b.id} className="flex items-center justify-between border border-[#E5E7EB] rounded-lg px-3 py-2">
                                 <div>
                                   <div className="font-medium text-[#0F172A]">{b.name}</div>
-                                  <div className="text-xs text-slate-400">/{b.slug} · {b.city || "—"} · {b.published ? "publicada" : "não publicada"} · {b.plan || "free"}</div>
+                                  <div className="text-xs text-slate-500">/{b.slug} · {b.city || "—"} · {b.published ? "publicada" : "não publicada"} · {b.plan || "free"}</div>
                                 </div>
                                 <div className="flex gap-2">
-                                  <a href={`/vitrine/${b.slug}`} target="_blank" rel="noopener" className="text-xs text-[#C8A96B] hover:underline">Pública ↗</a>
+                                  <a href={`/vitrine/${b.slug}`} target="_blank" rel="noopener" className="text-xs text-[#8A6F3E] hover:underline">Pública ↗</a>
                                 </div>
                               </div>
                             ))}
@@ -1699,7 +1699,7 @@ export default function AdminPage() {
                           <td className="px-4 py-3">
                             <span className="px-2 py-0.5 bg-[#FAF7F2] text-[#1F2937] rounded text-[10px] font-medium">{l.source || "popup"}</span>
                           </td>
-                          <td className="px-4 py-3 text-[#9CA3AF] text-xs font-medium">
+                          <td className="px-4 py-3 text-[#4B5563] text-xs font-medium">
                             {new Date(l.created_at).toLocaleDateString("pt-PT")}
                           </td>
                         </tr>
@@ -1708,7 +1708,7 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-              <div className="px-4 py-3.5 border-t border-[#E5E7EB] bg-[#FAF7F2] text-xs text-[#9CA3AF] font-medium">
+              <div className="px-4 py-3.5 border-t border-[#E5E7EB] bg-[#FAF7F2] text-xs text-[#4B5563] font-medium">
                 {filteredLeads.length} lead{filteredLeads.length !== 1 ? "s" : ""} · Execute a migration 005_leads.sql no Supabase para activar a tabela
               </div>
             </div>
@@ -1774,13 +1774,13 @@ export default function AdminPage() {
                         >
                           {q.status === "pending" ? "PENDENTE" : q.status === "approved" ? "APROVADO" : q.status === "rejected" ? "REJEITADO" : "FECHADO"}
                         </span>
-                        <span className="text-[11px] text-[#9CA3AF] ml-auto">
+                        <span className="text-[11px] text-[#4B5563] ml-auto">
                           {new Date(q.created_at).toLocaleDateString("pt-PT")} · expira {new Date(q.expires_at).toLocaleDateString("pt-PT")}
                         </span>
                       </div>
                       <p className="font-semibold text-[#0F172A]">{q.title}</p>
                       <p className="text-sm text-slate-600 whitespace-pre-line">{q.description}</p>
-                      <p className="text-[11px] text-[#9CA3AF]">Contactos do consumidor: protegidos — a moderação não precisa deles (RGPD).</p>
+                      <p className="text-[11px] text-[#4B5563]">Contactos do consumidor: protegidos — a moderação não precisa deles (RGPD).</p>
                       <div className="flex gap-2 flex-wrap pt-1">
                         {q.status !== "approved" && (
                           <button
@@ -1859,11 +1859,11 @@ function ReviewsPanel() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-semibold text-[#0F172A] text-sm">{r.author_name}</span>
-              <span className="text-[#C8A96B] text-xs">{"★".repeat(r.rating)}</span>
-              <span className="text-xs text-[#9CA3AF] font-medium">em {r.businesses?.name || "—"}</span>
+              <span className="text-[#8A6F3E] text-xs">{"★".repeat(r.rating)}</span>
+              <span className="text-xs text-[#4B5563] font-medium">em {r.businesses?.name || "—"}</span>
             </div>
             {r.comment && <p className="text-[#1F2937] text-sm truncate leading-relaxed">{r.comment}</p>}
-            <span className="text-[10px] text-[#9CA3AF] font-semibold">{new Date(r.created_at).toLocaleDateString("pt-PT")}</span>
+            <span className="text-[10px] text-[#4B5563] font-semibold">{new Date(r.created_at).toLocaleDateString("pt-PT")}</span>
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <button onClick={() => approve(r.id)} className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-semibold shadow-sm">

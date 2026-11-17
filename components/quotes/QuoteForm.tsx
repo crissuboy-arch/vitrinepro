@@ -87,7 +87,7 @@ export default function QuoteForm() {
   }
 
   const inputClass =
-    "w-full px-3 py-2.5 bg-[#0B1120] border border-gray-700 rounded-lg text-sm text-white placeholder:text-gray-500 focus:border-[#C8A96B] outline-none";
+    "w-full px-3 py-2.5 bg-[#0B1120] border border-gray-700 rounded-lg text-sm text-white placeholder:text-gray-400 focus:border-[#C8A96B] outline-none";
   const labelClass = "block text-xs font-bold text-gray-300 mb-1.5";
 
   if (unavailable) {
@@ -173,11 +173,11 @@ export default function QuoteForm() {
       <div>
         <label className={labelClass} htmlFor="q-description">Descreve o pedido *</label>
         <textarea id="q-description" required minLength={20} maxLength={2000} rows={4} value={form.description} onChange={set("description")} placeholder="Detalhes úteis: o que é, quando precisas, tamanho/quantidade, preferências…" className={inputClass} />
-        <p className="text-[11px] text-gray-500 mt-1">Não incluas dados pessoais na descrição — ela fica visível para os profissionais depois da moderação.</p>
+        <p className="text-[11px] text-gray-400 mt-1">Não incluas dados pessoais na descrição — ela fica visível para os profissionais depois da moderação.</p>
       </div>
 
       <div className="border-t border-gray-800 pt-4 space-y-4">
-        <p className="text-xs font-bold text-gray-300">Os teus contactos <span className="font-normal text-gray-500">(nunca públicos — ver nota abaixo)</span></p>
+        <p className="text-xs font-bold text-gray-300">Os teus contactos <span className="font-normal text-gray-400">(nunca públicos — ver nota abaixo)</span></p>
         <div>
           <label className={labelClass} htmlFor="q-name">Nome *</label>
           <input id="q-name" required minLength={2} maxLength={80} value={form.name} onChange={set("name")} className={inputClass} autoComplete="name" />
@@ -192,7 +192,7 @@ export default function QuoteForm() {
             <input id="q-phone" type="tel" maxLength={20} value={form.phone} onChange={set("phone")} className={inputClass} autoComplete="tel" />
           </div>
         </div>
-        <p className="text-[11px] text-gray-500">Indica pelo menos um contacto. Ele só é mostrado a um profissional se aceitares o interesse dele na tua página de acompanhamento.</p>
+        <p className="text-[11px] text-gray-400">Indica pelo menos um contacto. Ele só é mostrado a um profissional se aceitares o interesse dele na tua página de acompanhamento.</p>
       </div>
 
       {/* Honeypot anti-spam: invisível para humanos. */}
@@ -222,7 +222,7 @@ export default function QuoteForm() {
       <button type="submit" disabled={submitting} className="w-full py-3 bg-[#C8A96B] hover:bg-[#D4BB82] disabled:opacity-50 text-[#0F172A] text-sm font-bold rounded-lg transition-colors">
         {submitting ? "A enviar…" : "Publicar pedido (grátis)"}
       </button>
-      <p className="text-[11px] text-gray-500 text-center">Sem conta e sem custos. O pedido só fica visível depois de aprovado pela nossa equipa.</p>
+      <p className="text-[11px] text-gray-400 text-center">Sem conta e sem custos. O pedido só fica visível depois de aprovado pela nossa equipa.</p>
     </form>
   );
 }

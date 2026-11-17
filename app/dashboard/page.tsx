@@ -678,7 +678,7 @@ function DashboardContent() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="font-display text-lg font-bold text-white truncate">{b.name}</h3>
-                    <p className="text-xs text-gray-500 mt-1">/vitrine/{b.slug}</p>
+                    <p className="text-xs text-gray-400 mt-1">/vitrine/{b.slug}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
@@ -1697,7 +1697,7 @@ function DashboardContent() {
             </div>
             <button
               onClick={() => setShowSuccessBanner(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
               aria-label="Fechar"
             >
               ✕
@@ -1856,7 +1856,7 @@ function DashboardContent() {
                     </span>
                   </div>
                   <p className="text-sm text-gray-400 line-clamp-2">{business?.description || "Sem descrição."}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-400">
                     Montra: <span className="text-[#C8A96B]">/vitrine/{business?.slug}</span>
                   </p>
                   <div className="flex flex-wrap gap-2 pt-2">
@@ -1923,7 +1923,7 @@ function DashboardContent() {
                   <span className="text-2xl">📅</span>
                   <div>
                     <h3 className="font-semibold text-[#C8A96B] text-sm">Calendário de Conteúdo</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">Planeie e organize as suas publicações</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Planeie e organize as suas publicações</p>
                   </div>
                 </div>
               </div>
@@ -1937,7 +1937,7 @@ function DashboardContent() {
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
             <div>
               <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Informações da Montra</h3>
-              <p className="text-xs text-gray-500 mt-1">Estes dados aparecem na tua Montra pública. O slug <span className="text-gray-300">/vitrine/{business?.slug}</span> não é editável.</p>
+              <p className="text-xs text-gray-400 mt-1">Estes dados aparecem na tua Montra pública. O slug <span className="text-gray-300">/vitrine/{business?.slug}</span> não é editável.</p>
             </div>
 
             {/* A3.7 — Identidade: logo + capa com preview */}
@@ -2168,7 +2168,7 @@ function DashboardContent() {
                   placeholder="https://g.page/.../review"
                   className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white placeholder:text-gray-600"
                 />
-                <p className="text-[11px] text-gray-500 mt-1">
+                <p className="text-[11px] text-gray-400 mt-1">
                   Cole o link do seu estabelecimento no Google para que os clientes possam deixar uma avaliação.
                 </p>
               </div>
@@ -2219,7 +2219,7 @@ function DashboardContent() {
                     onChange={handlePromoVideoUpload}
                     className="hidden"
                   />
-                  <span className="text-[11px] text-gray-500">MP4, WEBM ou MOV, até 50 MB.</span>
+                  <span className="text-[11px] text-gray-400">MP4, WEBM ou MOV, até 50 MB.</span>
                 </div>
                 <input
                   type="url"
@@ -2273,7 +2273,7 @@ function DashboardContent() {
                     </>
                   )}
                 </div>
-                <p className="text-[11px] text-gray-500 mt-1">
+                <p className="text-[11px] text-gray-400 mt-1">
                   Sem miniatura, a Montra mostra um fundo bonito com o botão Play. A miniatura não entra na galeria.
                 </p>
               </div>
@@ -2301,12 +2301,12 @@ function DashboardContent() {
                 </div>
               </div>
 
-              <p className="text-[11px] text-gray-500">
+              <p className="text-[11px] text-gray-400">
                 O vídeo nunca arranca sozinho nem com som: a visitante clica no Play. O ficheiro só
                 carrega depois do clique, para não pesar na Montra. O botão abre a loja numa nova aba
                 e só aparece quando o destino é um link HTTPS válido.
               </p>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-[11px] text-gray-400">
                 Se o carregamento de vídeo falhar, aplica primeiro a migration
                 20261028000023_businesses_promo_video.sql no Supabase SQL Editor (cria o bucket de vídeos).
               </p>
@@ -2345,7 +2345,7 @@ function DashboardContent() {
               {products.length === 0 ? (
                 <div className="text-center py-10 border border-dashed border-gray-800 rounded-xl bg-gray-950/20">
                   <span className="text-4xl">🛍️</span>
-                  <p className="text-sm text-gray-500 mt-2">Nenhum produto cadastrado até o momento.</p>
+                  <p className="text-sm text-gray-400 mt-2">Nenhum produto cadastrado até o momento.</p>
                 </div>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -2434,7 +2434,7 @@ function DashboardContent() {
                 const items = usingProductFallback ? fallbackItems : gallery;
                 if (items.length === 0) {
                   return (
-                    <div className="text-center py-6 text-xs text-gray-500">
+                    <div className="text-center py-6 text-xs text-gray-400">
                       Nenhuma imagem carregada na galeria.
                     </div>
                   );
@@ -2442,7 +2442,7 @@ function DashboardContent() {
                 return (
                   <>
                     {usingProductFallback && (
-                      <p className="text-[11px] text-gray-500">A mostrar imagens dos produtos. Para gerir fotos próprias, usa "+ Enviar".</p>
+                      <p className="text-[11px] text-gray-400">A mostrar imagens dos produtos. Para gerir fotos próprias, usa "+ Enviar".</p>
                     )}
                     <div className="grid grid-cols-3 gap-2">
                       {items.map((img) => (
@@ -2498,7 +2498,7 @@ function DashboardContent() {
               </div>
 
               {novidadesMode === "full" && business && (
-                <p className="text-[11px] text-gray-500 -mt-2">
+                <p className="text-[11px] text-gray-400 -mt-2">
                   🏷️ Promoções ativas:{" "}
                   <span className="text-[#C8A96B] font-bold">{countActivePromotions(novidades)}</span>
                   {" "}de {planMaxActivePromotions(business.plan)} no teu plano — aparecem na{" "}
@@ -2507,10 +2507,10 @@ function DashboardContent() {
               )}
 
               {novidadesMode === "idle" && (
-                <p className="text-xs text-gray-500">A preparar novidades…</p>
+                <p className="text-xs text-gray-400">A preparar novidades…</p>
               )}
               {novidadesMode === "loading" && (
-                <p className="text-xs text-gray-500">A carregar novidades…</p>
+                <p className="text-xs text-gray-400">A carregar novidades…</p>
               )}
               {novidadesMode === "legacy" && (
                 <p className="text-[11px] text-amber-400/90 bg-amber-950/30 border border-amber-900 rounded-lg px-3 py-2">
@@ -2520,7 +2520,7 @@ function DashboardContent() {
               )}
               {novidadesMode === "unavailable" && (
                 <div className="space-y-2">
-                  <p className="text-xs text-gray-500">As novidades estão indisponíveis de momento.</p>
+                  <p className="text-xs text-gray-400">As novidades estão indisponíveis de momento.</p>
                   {novidadesError && (
                     <p className="text-xs text-red-400">{novidadesError}</p>
                   )}
@@ -2537,7 +2537,7 @@ function DashboardContent() {
                 novidades.length === 0 ? (
                   <div className="text-center py-10 border border-dashed border-gray-800 rounded-xl bg-gray-950/20">
                     <span className="text-4xl">📰</span>
-                    <p className="text-sm text-gray-500 mt-2">Ainda não publicaste nenhuma novidade.</p>
+                    <p className="text-sm text-gray-400 mt-2">Ainda não publicaste nenhuma novidade.</p>
                   </div>
                 ) : (
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -2561,7 +2561,7 @@ function DashboardContent() {
                             </div>
                             <div className="flex flex-wrap items-center gap-2 mt-1">
                               {n.type === "promocao" && n.original_price !== null && n.original_price !== undefined && (
-                                <span className="text-gray-500 line-through text-xs">€{Number(n.original_price).toFixed(2)}</span>
+                                <span className="text-gray-400 line-through text-xs">€{Number(n.original_price).toFixed(2)}</span>
                               )}
                               {n.price !== null && n.price !== undefined && (
                                 <span className="text-[#C8A96B] font-bold text-xs">€{Number(n.price).toFixed(2)}</span>
@@ -2582,7 +2582,7 @@ function DashboardContent() {
                               )}
                             </div>
                             {novidadesMode === "full" && (n.starts_at || n.expires_at) && (
-                              <p className="text-[11px] text-gray-500 mt-1">
+                              <p className="text-[11px] text-gray-400 mt-1">
                                 {n.starts_at ? `De ${new Date(n.starts_at).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
                                 {n.starts_at && n.expires_at ? " " : ""}
                                 {n.expires_at ? `até ${new Date(n.expires_at).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
@@ -2659,7 +2659,7 @@ function DashboardContent() {
                     className="rounded text-[#C8A96B] bg-gray-900 border-gray-800"
                   />
                   <span className="font-medium">24 horas todos os dias</span>
-                  <span className="text-gray-500">Os horários guardados não são apagados.</span>
+                  <span className="text-gray-400">Os horários guardados não são apagados.</span>
                 </label>
                 <div className="max-h-40 overflow-y-auto space-y-1 bg-[#0F172A] border border-gray-800 p-2 rounded">
                   {editHours.map((row, index) => (
@@ -2728,11 +2728,11 @@ function DashboardContent() {
                 {[business?.address, cities.find((c) => c.id === business?.city_id)?.name, business?.country, business?.postal_code].filter(Boolean).join(" · ") || "Morada não definida."}
               </p>
               {(typeof business?.latitude === "number" && typeof business?.longitude === "number") ? (
-                <p className="text-[11px] text-gray-500">
+                <p className="text-[11px] text-gray-400">
                   📍 Coordenadas: {business.latitude.toFixed(5)}, {business.longitude.toFixed(5)} — a sua Montra aparece no "Perto de Mim".
                 </p>
               ) : (
-                <p className="text-[11px] text-gray-500">
+                <p className="text-[11px] text-gray-400">
                   Sem coordenadas: adicione a morada abaixo e localize automaticamente para aparecer no "Perto de Mim".
                 </p>
               )}
@@ -2799,7 +2799,7 @@ function DashboardContent() {
                   >
                     {geoLoading ? "A localizar…" : "📍 Localizar morada automaticamente"}
                   </button>
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-[11px] text-gray-400">
                     {editLatitude !== null && editLongitude !== null
                       ? `Coordenadas: ${editLatitude.toFixed(5)}, ${editLongitude.toFixed(5)}`
                       : "Sem coordenadas — a geocodificação preenche automaticamente."}
@@ -2869,7 +2869,7 @@ function DashboardContent() {
               {testimonials.length === 0 ? (
                 <div className="text-center py-10 border border-dashed border-gray-800 rounded-xl bg-gray-950/20">
                   <span className="text-4xl">⭐</span>
-                  <p className="text-sm text-gray-500 mt-2">Sem depoimentos de clientes ainda.</p>
+                  <p className="text-sm text-gray-400 mt-2">Sem depoimentos de clientes ainda.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -2924,14 +2924,14 @@ function DashboardContent() {
                   <span className="text-2xl">📄</span>
                   <div>
                     <h3 className="font-semibold text-[#C8A96B] text-sm">Catálogo Digital</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">Editor de catálogo profissional</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Editor de catálogo profissional</p>
                   </div>
                 </div>
                 {!isPaidTier(business?.plan) && (
                   <span className="text-[10px] font-bold text-[#0a0d14] bg-[#c9a96e] px-2 py-0.5 rounded-full">PRO</span>
                 )}
               </div>
-              <p className="text-xs text-gray-500 leading-relaxed mb-4">
+              <p className="text-xs text-gray-400 leading-relaxed mb-4">
                 Cria um catálogo elegante com capa, produtos e preços. Partilha online ou exporta em PDF.
               </p>
               <div className="flex items-center justify-between">
@@ -2949,7 +2949,7 @@ function DashboardContent() {
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h3 className="font-display font-semibold text-[#C8A96B]">Catálogo em PDF</h3>
-                <p className="text-xs text-gray-500 mt-1">Gera um PDF da tua Montra com os produtos atuais.</p>
+                <p className="text-xs text-gray-400 mt-1">Gera um PDF da tua Montra com os produtos atuais.</p>
               </div>
               <button
                 onClick={() => setShowCatalogModal(true)}
@@ -3087,7 +3087,7 @@ function DashboardContent() {
                     <input type="file" accept="image/*" onChange={handleProductImageSelect} className="hidden" />
                   </label>
                 </div>
-<p className="text-[11px] text-slate-500 mt-2">Formato recomendado: 1080 × 1350 px (4:5). Evite colocar textos, preços ou logótipos muito próximos das bordas.</p>
+<p className="text-[11px] text-slate-400 mt-2">Formato recomendado: 1080 × 1350 px (4:5). Evite colocar textos, preços ou logótipos muito próximos das bordas.</p>
               </div>
             </div>
 
@@ -3203,7 +3203,7 @@ function DashboardContent() {
                   />
                   <span>
                     <span className="block text-xs font-medium text-gray-200">Visível na Montra</span>
-                    <span className="block text-[11px] text-gray-500">Aparece no catálogo público da tua Montra.</span>
+                    <span className="block text-[11px] text-gray-400">Aparece no catálogo público da tua Montra.</span>
                   </span>
                 </label>
                 <label className={`flex items-start gap-3 ${!editProdVisible ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
@@ -3216,7 +3216,7 @@ function DashboardContent() {
                   />
                   <span>
                     <span className="block text-xs font-medium text-gray-200">Aparecer no Explorar</span>
-                    <span className="block text-[11px] text-gray-500">Distribuído no feed e na busca do Explorar. Só funciona se visível na Montra.</span>
+                    <span className="block text-[11px] text-gray-400">Distribuído no feed e na busca do Explorar. Só funciona se visível na Montra.</span>
                   </span>
                 </label>
               </div>
@@ -3255,7 +3255,7 @@ function DashboardContent() {
                     )}
                   </div>
                 </div>
-<p className="text-[11px] text-slate-500 mt-2">Formato recomendado: 1080 × 1350 px (4:5). Evite colocar textos, preços ou logótipos muito próximos das bordas.</p>
+<p className="text-[11px] text-slate-400 mt-2">Formato recomendado: 1080 × 1350 px (4:5). Evite colocar textos, preços ou logótipos muito próximos das bordas.</p>
               </div>
             </div>
 
@@ -3301,7 +3301,7 @@ function DashboardContent() {
 
             {/* Pré-visualização ao vivo (como aparece no Explorar) */}
             <div className="bg-[#0F172A] border border-gray-800 rounded-xl p-3">
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Pré-visualização</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pré-visualização</p>
               <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden max-w-[240px]">
                 {novPreview ? (
                   <div className="relative aspect-[4/3] bg-gray-950">
@@ -3319,7 +3319,7 @@ function DashboardContent() {
                 )}
                 <div className="p-3 space-y-1">
                   <p className="text-sm font-semibold text-white line-clamp-2">{novTitle || "Título da novidade"}</p>
-                  <p className="text-[11px] text-gray-500 truncate">{business?.name}</p>
+                  <p className="text-[11px] text-gray-400 truncate">{business?.name}</p>
                   {novPrice && (
                     <p className="text-sm font-bold text-[#C8A96B]">€{Number(novPrice).toFixed(2)}</p>
                   )}
@@ -3359,7 +3359,7 @@ function DashboardContent() {
                     <input type="file" accept="image/*" onChange={handleNovidadeImageSelect} className="hidden" />
                   </label>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-2">Recomendado: 4:5 — 1080 × 1350 px. JPG ou WEBP. Máx. 5 MB. Retrato, quadrada e paisagem são aceites. Evite textos, preços e logótipos muito próximos das bordas.</p>
+                <p className="text-[11px] text-slate-400 mt-2">Recomendado: 4:5 — 1080 × 1350 px. JPG ou WEBP. Máx. 5 MB. Retrato, quadrada e paisagem são aceites. Evite textos, preços e logótipos muito próximos das bordas.</p>
               </div>
 
               <div>
@@ -3413,7 +3413,7 @@ function DashboardContent() {
                         className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
                         placeholder="Ex: 19.90"
                       />
-                      <p className="text-[11px] text-gray-500 mt-1">
+                      <p className="text-[11px] text-gray-400 mt-1">
                         O Preço (€) acima é o preço promocional. Com os dois preços, a promoção aparece na Vitrine Flash com o desconto calculado.
                       </p>
                     </div>
@@ -3455,7 +3455,7 @@ function DashboardContent() {
                         />
                       </div>
                     </div>
-                    <p className="text-[11px] text-gray-500">Vazio = sem limite. Fora da validade, a novidade sai do Explorar automaticamente.</p>
+                    <p className="text-[11px] text-gray-400">Vazio = sem limite. Fora da validade, a novidade sai do Explorar automaticamente.</p>
                   </div>
 
                   <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg space-y-3">
@@ -3853,7 +3853,7 @@ function TriStateControl({
           </button>
         ))}
       </div>
-      {hint && <p className="text-[10px] text-gray-500 mt-1">{hint}</p>}
+      {hint && <p className="text-[10px] text-gray-400 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -3939,7 +3939,7 @@ function VitrineShareCard({ slug }: { slug: string }) {
               className="w-full h-full object-contain"
             />
           </div>
-          <span className="text-[10px] text-gray-500">QR Code</span>
+          <span className="text-[10px] text-gray-400">QR Code</span>
         </div>
       </div>
     </div>
@@ -4322,10 +4322,10 @@ function CatalogPdfModal({
             <span className="text-2xl">📄</span>
             <div>
               <h2 className="text-base font-bold text-white font-display">Gerar Catálogo PDF</h2>
-              <p className="text-[11px] text-gray-500">Estilo editorial premium para materiais de divulgação</p>
+              <p className="text-[11px] text-gray-400">Estilo editorial premium para materiais de divulgação</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors text-lg">✕</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors text-lg">✕</button>
         </div>
 
         {/* FREE PLAN GATE */}
@@ -4602,7 +4602,7 @@ function PlanSection({
                 </>
               )}
             </button>
-            <p className="text-[10px] text-gray-500 text-center leading-relaxed">
+            <p className="text-[10px] text-gray-400 text-center leading-relaxed">
               Chatbot IA · Analytics · Destaque · Catálogo PDF
             </p>
             {BUSINESS_CHECKOUT_ENABLED && (
@@ -4620,7 +4620,7 @@ function PlanSection({
                     </>
                   )}
                 </button>
-                <p className="text-[10px] text-gray-500 text-center leading-relaxed">
+                <p className="text-[10px] text-gray-400 text-center leading-relaxed">
                   Tudo do Pro · Link curto personalizado
                 </p>
               </>
@@ -4726,7 +4726,7 @@ function AnalyticsSection({
           📊 Estatísticas
         </h3>
         {!isPaid && (
-          <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-widest">
+          <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest">
             Disponível no Plano Pro
           </span>
         )}
@@ -4928,7 +4928,7 @@ function ShortLinkCard({ plan }: { plan: string }) {
 
           <div className="flex flex-col sm:flex-row items-stretch gap-2">
             <div className="flex-grow bg-slate-950 border border-slate-800 rounded-xl flex items-center px-3.5 focus-within:border-purple-600">
-              <span className="text-slate-500 text-xs sm:text-sm font-light select-none font-mono">
+              <span className="text-slate-400 text-xs sm:text-sm font-light select-none font-mono">
                 {typeof window !== "undefined" ? `${window.location.host}/v/` : "vitrinepro.digital/v/"}
               </span>
               <input
@@ -4948,7 +4948,7 @@ function ShortLinkCard({ plan }: { plan: string }) {
             </button>
           </div>
 
-          <p className="text-[10px] text-slate-500 font-light">
+          <p className="text-[10px] text-slate-400 font-light">
             Apenas letras minúsculas, números e hífens. Mínimo 3 e máximo 20 caracteres.
           </p>
 

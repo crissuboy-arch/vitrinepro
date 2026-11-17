@@ -30,7 +30,7 @@ export default function QuoteCard({ quote }: { quote: QuoteRequest }) {
       <h3 className="font-display font-semibold text-[#F5F0E8] leading-snug">{quote.title}</h3>
       <p className="text-sm text-[#A9B1C3] font-light leading-relaxed line-clamp-3">{quote.description}</p>
 
-      <p className="text-[11px] text-gray-500 mt-auto">
+      <p className="text-[11px] text-gray-400 mt-auto">
         Publicado {new Date(quote.created_at).toLocaleDateString("pt-PT")}
       </p>
     </article>

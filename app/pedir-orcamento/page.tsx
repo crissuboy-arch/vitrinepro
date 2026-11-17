@@ -57,7 +57,7 @@ export default function PedirOrcamentoPage() {
         <QuoteForm />
       </main>
       {/* Footer (mesmo padrão do /explorar e /promocoes) */}
-      <footer className="bg-[#050816] border-t border-white/5 py-12 mt-20 text-center text-slate-500 text-xs">
+      <footer className="bg-[#050816] border-t border-white/5 py-12 mt-20 text-center text-slate-400 text-xs">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-3">
           <Link href="/">
             <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-1" />

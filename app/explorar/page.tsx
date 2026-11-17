@@ -1008,7 +1008,7 @@ export default function ExplorarPage() {
               {/* Sort — Relevância (ranking atual) vs Mais perto */}
               {geoState === "granted" && (
                 <div className="flex items-center gap-1 ml-1 text-xs">
-                  <span className="text-slate-500 mr-1">Ordenar:</span>
+                  <span className="text-slate-400 mr-1">Ordenar:</span>
                   <button
                     onClick={() => setSortMode("relevance")}
                     className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
@@ -1034,7 +1034,7 @@ export default function ExplorarPage() {
             </div>
 
             {/* A4.13 — privacy notice */}
-            <p className="text-[11px] text-slate-500 leading-relaxed max-w-2xl">
+            <p className="text-[11px] text-slate-400 leading-relaxed max-w-2xl">
               Usamos a sua localização para mostrar negócios próximos. A sua
               localização exata não é publicada nem guardada — serve apenas
               para calcular distâncias nesta sessão.
@@ -1086,7 +1086,7 @@ export default function ExplorarPage() {
                 </button>
               )}
             </div>
-            <p className="text-[11px] text-slate-500 leading-relaxed max-w-2xl">
+            <p className="text-[11px] text-slate-400 leading-relaxed max-w-2xl">
               {needToday
                 ? "A mostrar negócios e produtos que podem atender hoje, com base em dados reais dos comerciantes. Sem informação de disponibilidade, mostramos o resultado sem selo — nunca inventamos."
                 : "Ative para ver quem pode atender ainda hoje: disponibilidade confirmada, negócio aberto agora e distância."}
@@ -1193,7 +1193,7 @@ export default function ExplorarPage() {
                 {/* Sentinela do carregamento progressivo (+24 por lote) */}
                 <div ref={sentinelRef} className="h-2" aria-hidden="true" />
                 {visibleCount < feedItems.length && (
-                  <p className="text-center text-xs text-slate-500">A carregar mais…</p>
+                  <p className="text-center text-xs text-slate-400">A carregar mais…</p>
                 )}
               </>
             ) : (
@@ -1223,7 +1223,7 @@ export default function ExplorarPage() {
               {regularSlice.length > 0 && (
                 <div className="space-y-4">
                   {featuredSlice.length > 0 && (
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                       Todos os Negócios
                     </p>
                   )}
@@ -1251,7 +1251,7 @@ export default function ExplorarPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#050816] border-t border-white/5 py-12 mt-20 text-center text-slate-500 text-xs">
+      <footer className="bg-[#050816] border-t border-white/5 py-12 mt-20 text-center text-slate-400 text-xs">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-3">
           <Link href="/">
             <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-1" />

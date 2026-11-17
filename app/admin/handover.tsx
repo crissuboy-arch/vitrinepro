@@ -48,7 +48,7 @@ const inputCls =
 const btnPrimary =
   "px-4 py-2 bg-[#0F172A] text-white text-sm rounded-lg hover:bg-[#1F2937] transition-colors font-semibold disabled:opacity-40 disabled:cursor-not-allowed";
 const btnGold =
-  "px-4 py-2 bg-[#C8A96B] text-white text-sm rounded-lg hover:bg-[#b8965a] transition-colors font-semibold disabled:opacity-40 disabled:cursor-not-allowed";
+  "px-4 py-2 bg-[#C8A96B] text-[#0F172A] text-sm rounded-lg hover:bg-[#b8965a] transition-colors font-semibold disabled:opacity-40 disabled:cursor-not-allowed";
 const cardCls = "bg-white rounded-xl border border-[#E5E7EB] p-5 shadow-sm";
 
 function StepTitle({ n, title }: { n: number; title: string }) {

@@ -115,7 +115,7 @@ export default function TrackingPanel({ token }: { token: string }) {
         </div>
         <h2 className="font-display font-semibold text-[#F5F0E8] text-xl leading-snug">{request.title}</h2>
         <p className="text-sm text-[#A9B1C3] font-light leading-relaxed whitespace-pre-line">{request.description}</p>
-        <p className="text-[11px] text-gray-500">
+        <p className="text-[11px] text-gray-400">
           Publicado a {new Date(request.created_at).toLocaleDateString("pt-PT")}
           {request.status === "approved" && <> · visível até {new Date(request.expires_at).toLocaleDateString("pt-PT")}</>}
         </p>
@@ -133,11 +133,11 @@ export default function TrackingPanel({ token }: { token: string }) {
 
       <div className="space-y-3">
         <h3 className="font-display font-semibold text-[#F5F0E8]">
-          Respostas de profissionais <span className="text-gray-500 text-sm font-sans font-normal">({interests.length})</span>
+          Respostas de profissionais <span className="text-gray-400 text-sm font-sans font-normal">({interests.length})</span>
         </h3>
         {error && <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">{error}</p>}
         {interests.length === 0 ? (
-          <p className="text-sm text-gray-500 bg-[#0F172A] border border-gray-800 rounded-2xl px-5 py-6 text-center">
+          <p className="text-sm text-gray-400 bg-[#0F172A] border border-gray-800 rounded-2xl px-5 py-6 text-center">
             Ainda não há respostas. Quando um profissional mostrar interesse, aparece aqui para aceitares ou recusares.
           </p>
         ) : (
