@@ -42,7 +42,7 @@ export function trackPhoneClick(businessId: string, businessName: string) {
 // /api/analytics (allowlist em lib/analytics-guard.ts), não para o gtag —
 // o payload exige business_id e é validado no servidor.
 function fireServer(
-  event: "novidade_view" | "novidade_click" | "novidade_save",
+  event: "novidade_view" | "novidade_click" | "novidade_save" | "promotion_view" | "promotion_click",
   businessId: string
 ) {
   try {
@@ -66,6 +66,15 @@ export function trackNovidadeClick(businessId: string) {
 
 export function trackNovidadeSave(businessId: string) {
   fireServer("novidade_save", businessId);
+}
+
+// Fase 1 — "Vitrine Flash": métricas das promoções (mesmo canal validado).
+export function trackPromotionView(businessId: string) {
+  fireServer("promotion_view", businessId);
+}
+
+export function trackPromotionClick(businessId: string) {
+  fireServer("promotion_click", businessId);
 }
 
 export {};

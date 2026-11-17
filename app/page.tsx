@@ -59,6 +59,7 @@ import VideoCtaSection from "@/components/landing/VideoCtaSection";
 import CatalogSection from "@/components/landing/CatalogSection";
 import CatalogFlipbook from "@/components/sections/CatalogFlipbook";
 import MarketplaceSection from "@/components/landing/MarketplaceSection";
+import PromotionsSection from "@/components/landing/PromotionsSection";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -510,6 +511,7 @@ export default function HomePage() {
       <ShowcaseSection />
       <CatalogFlipbook onCadastrar={handleCadastrarClick} />
       <MarketplaceSection />
+      <PromotionsSection />
       <VideoSection />
       <VideoCtaSection onCadastrar={handleCadastrarClick} />
       <ComparisonSection />

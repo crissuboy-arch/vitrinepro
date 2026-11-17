@@ -55,6 +55,8 @@ export interface NovidadeRow {
   content?: string | null;
   image_url?: string | null;
   price?: number | null;
+  /** Vitrine Flash: preço original (antes da promoção) — migration 20261117000024. */
+  original_price?: number | null;
   starts_at?: string | null;
   expires_at?: string | null;
   is_active?: boolean | null;
@@ -147,8 +149,12 @@ export function isMissingColumnError(message: unknown): boolean {
   );
 }
 
-/** Colunas do SELECT completo (migration aplicada). */
+/** Colunas do SELECT completo (migrations 20261006000013 + 20261117000024 aplicadas). */
 export const NOVIDADES_FULL_SELECT =
+  "id,business_id,type,title,content,image_url,price,original_price,starts_at,expires_at,is_active,product_id,cta_type,cta_target,created_at";
+
+/** Colunas do SELECT intermédio (só a migration 20261006000013 aplicada — sem Vitrine Flash). */
+export const NOVIDADES_MID_SELECT =
   "id,business_id,type,title,content,image_url,price,starts_at,expires_at,is_active,product_id,cta_type,cta_target,created_at";
 
 /** Colunas do SELECT legado (migration ainda NÃO aplicada). */
@@ -172,6 +178,12 @@ export interface NovidadesLoadResult {
   rows: Record<string, unknown>[];
   /** Mensagem legível quando mode === "unavailable"; null nos outros. */
   error: string | null;
+  /**
+   * Vitrine Flash: true quando a migration 20261117000024 está aplicada
+   * (coluna original_price legível). Em modo "full" sem Flash, as
+   * novidades funcionam como antes — só o preço original fica indisponível.
+   */
+  flashReady?: boolean;
 }
 
 /**
@@ -241,6 +253,7 @@ export async function loadNovidadesState(
       mode: "full",
       rows: (res.data as Record<string, unknown>[] | null) ?? [],
       error: null,
+      flashReady: true,
     };
   } catch (err) {
     if (!isMissingColumnError(err)) {
@@ -248,6 +261,27 @@ export async function loadNovidadesState(
         mode: "unavailable",
         rows: [],
         error: `Não foi possível carregar as novidades (${readableError(err)}).`,
+      };
+    }
+  }
+
+  // Intermédio: migration das novidades aplicada, Vitrine Flash ainda não.
+  // Tudo funciona como antes; só falta a coluna original_price.
+  try {
+    const mid = await run(NOVIDADES_MID_SELECT);
+    if (mid.error) throw mid.error;
+    return {
+      mode: "full",
+      rows: (mid.data as Record<string, unknown>[] | null) ?? [],
+      error: null,
+      flashReady: false,
+    };
+  } catch (midErr) {
+    if (!isMissingColumnError(midErr)) {
+      return {
+        mode: "unavailable",
+        rows: [],
+        error: `Não foi possível carregar as novidades (${readableError(midErr)}).`,
       };
     }
   }

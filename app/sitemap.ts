@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // SEO: /login e /register são páginas de autenticação (noindex) — fora do sitemap.
     { url: `${siteUrl}/pricing`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/explorar`, changeFrequency: "daily", priority: 0.9 },
+    { url: `${siteUrl}/promocoes`, changeFrequency: "daily", priority: 0.9 },
     { url: `${siteUrl}/plano-business`, changeFrequency: "weekly", priority: 0.9 },
   ];
 

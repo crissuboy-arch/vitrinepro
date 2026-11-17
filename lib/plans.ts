@@ -26,6 +26,8 @@ export interface PlanDefinition {
   priceLabel: string;
   chatbot: boolean;
   maxProducts: number | null; // null = unlimited
+  /** Vitrine Flash (Fase 1): promoções ativas em simultâneo (business_posts type='promocao'). */
+  maxActivePromotions: number;
   analytics: boolean;
   seo: boolean;
   customDomain: boolean;
@@ -41,6 +43,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     priceLabel: "€0",
     chatbot: false,
     maxProducts: 3,
+    maxActivePromotions: 1,
     analytics: false,
     seo: false,
     customDomain: false,
@@ -53,6 +56,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     priceLabel: "€12",
     chatbot: true,
     maxProducts: null,
+    maxActivePromotions: 5,
     analytics: true,
     seo: true,
     customDomain: true,
@@ -65,6 +69,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     priceLabel: "€29,90",
     chatbot: true,
     maxProducts: null,
+    maxActivePromotions: 20,
     analytics: true,
     seo: true,
     customDomain: true,
@@ -118,6 +123,17 @@ export function normalizePlan(plan: PlanInput | null | undefined): PlanId {
 /** Server-side entitlement check: may this plan use the AI chatbot? */
 export function planHasChatbot(plan: PlanInput | null | undefined): boolean {
   return PLANS[normalizePlan(plan)].chatbot;
+}
+
+/**
+ * Vitrine Flash (Fase 1): máximo de promoções ativas em simultâneo.
+ * Espelho da aplicação — o limite REAL é aplicado na base de dados pelo
+ * trigger da migration 20261117000024_promotions_flash.sql; este helper
+ * serve a UI (contador no dashboard) e verificações server-side.
+ * Decisão Cristiane 17/11/2026: Free 1 · Pro 5 · Business 20.
+ */
+export function planMaxActivePromotions(plan: PlanInput | null | undefined): number {
+  return PLANS[normalizePlan(plan)].maxActivePromotions;
 }
 
 /**

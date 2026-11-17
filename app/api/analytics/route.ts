@@ -14,7 +14,8 @@
  *
  * Public events (POST, no login):  page_view, whatsapp_click, product_view,
  *   business_result_click, product_result_click (A4 discovery),
- *   need_today_result_click (A5 "Preciso Hoje")
+ *   need_today_result_click (A5 "Preciso Hoje"),
+ *   promotion_view, promotion_click (Fase 1 "Vitrine Flash")
  * Private (GET, owner only):       aggregated metrics per business
  */
 
@@ -119,12 +120,14 @@ export async function GET(request: Request) {
         .eq("event_type", event)
         .gte("created_at", since);
 
-    const [todayRes, weekRes, monthRes, whatsappRes, productRes] = await Promise.all([
+    const [todayRes, weekRes, monthRes, whatsappRes, productRes, promoViewsRes, promoClicksRes] = await Promise.all([
       countFor("page_view", todayStart.toISOString()),
       countFor("page_view", weekStart.toISOString()),
       countFor("page_view", monthStart.toISOString()),
       countFor("whatsapp_click", monthStart.toISOString()),
       countFor("product_view", monthStart.toISOString()),
+      countFor("promotion_view", monthStart.toISOString()),
+      countFor("promotion_click", monthStart.toISOString()),
     ]);
 
     return NextResponse.json({
@@ -133,6 +136,8 @@ export async function GET(request: Request) {
       views_month: monthRes.count ?? 0,
       whatsapp_clicks: whatsappRes.count ?? 0,
       product_views: productRes.count ?? 0,
+      promotion_views: promoViewsRes.count ?? 0,
+      promotion_clicks: promoClicksRes.count ?? 0,
     });
   } catch {
     // Never leak internals on a private endpoint.

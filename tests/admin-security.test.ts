@@ -88,9 +88,12 @@ describe("TESTE G — RLS inalterada", () => {
     //   autorizado pela Cristiane em 2026-10-21, NÃO aplicada — entrega-se o ficheiro)
     // - 20261028000022 (Pro administrativo, autorizado pela Cristiane em
     //   2026-10-28 na missão de correção da Cantinho da Lu — entrega-se o ficheiro)
+    // - 20261117000024 (Fase 1 "Vitrine Flash": original_price + trigger de
+    //   limites de promoções, autorizado pela Cristiane em 2026-11-17 —
+    //   entrega-se o ficheiro, NÃO aplicada)
     const out = execSync("git status --porcelain supabase/migrations/", { encoding: "utf8" });
     const lines = out.trim().split("\n").filter(Boolean);
-    const allowed = ["PROPOSTA_", "20261007000016_", "20261007000017_", "20261007000018_", "20261007000019_", "20261021000021_", "20261028000022_"];
+    const allowed = ["PROPOSTA_", "20261007000016_", "20261007000017_", "20261007000018_", "20261007000019_", "20261021000021_", "20261028000022_", "20261117000024_"];
     const real = lines.filter((l) => !allowed.some((a) => l.includes(a)));
     assert.strictEqual(real.join("\n"), "", "sem migrations aplicadas nesta tarefa além das autorizadas A10.1");
   });

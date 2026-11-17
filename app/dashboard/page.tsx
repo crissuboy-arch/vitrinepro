@@ -12,7 +12,8 @@ import { normalizeCoverFraming, coverImgStyle, CoverFraming } from "@/lib/cover-
 import Image from "next/image";
 import { supabase } from "../lib/supabase";
 import { getMyBusinesses, getBusinessByIdForOwner, updateBusiness } from "@/lib/business-actions";
-import { isProTier, isBusinessTier, isPaidTier, normalizePlan, BUSINESS_CHECKOUT_ENABLED } from "@/lib/plans";
+import { isProTier, isBusinessTier, isPaidTier, normalizePlan, planMaxActivePromotions, BUSINESS_CHECKOUT_ENABLED } from "@/lib/plans";
+import { countActivePromotions, discountPercent } from "@/lib/promotions";
 import { isPublishedBusiness, isOwnerOf } from "@/lib/visibility";
 import { getMissingPublishRequirements, missingPublishMessage } from "@/lib/publish-requirements";
 import { togglePublishPatch } from "@/lib/published-at";
@@ -257,6 +258,8 @@ function DashboardContent() {
   const [novTitle, setNovTitle] = useState("");
   const [novContent, setNovContent] = useState("");
   const [novPrice, setNovPrice] = useState("");
+  const [novOriginalPrice, setNovOriginalPrice] = useState("");
+  const [novidadesFlashReady, setNovidadesFlashReady] = useState(false);
   const [novStartsAt, setNovStartsAt] = useState("");
   const [novExpiresAt, setNovExpiresAt] = useState("");
   const [novCtaType, setNovCtaType] = useState("none");
@@ -1433,6 +1436,7 @@ function DashboardContent() {
       setNovidades(result.rows);
       setNovidadesError(result.error);
       setNovidadesMode(result.mode);
+      setNovidadesFlashReady(result.flashReady === true);
     } catch (err: any) {
       // Defesa em profundidade: o helper nunca devia lançar, mas o
       // loading TEM de terminar sempre.
@@ -1449,6 +1453,7 @@ function DashboardContent() {
     setNovTitle("");
     setNovContent("");
     setNovPrice("");
+    setNovOriginalPrice("");
     setNovStartsAt("");
     setNovExpiresAt("");
     setNovCtaType("none");
@@ -1468,6 +1473,7 @@ function DashboardContent() {
     setNovTitle(n.title || "");
     setNovContent(n.content || "");
     setNovPrice(n.price !== null && n.price !== undefined ? String(n.price) : "");
+    setNovOriginalPrice(n.original_price !== null && n.original_price !== undefined ? String(n.original_price) : "");
     setNovStartsAt(n.starts_at ? toLocalInput(n.starts_at) : "");
     setNovExpiresAt(n.expires_at ? toLocalInput(n.expires_at) : "");
     setNovCtaType(n.cta_type || "none");
@@ -1501,6 +1507,15 @@ function DashboardContent() {
       alert("A data de início não pode ser posterior à data de fim.");
       return;
     }
+    if (
+      novType === "promocao" &&
+      novPrice &&
+      novOriginalPrice &&
+      parseFloat(novOriginalPrice) <= parseFloat(novPrice)
+    ) {
+      alert("Numa promoção, o preço original tem de ser maior do que o preço promocional.");
+      return;
+    }
     setSavingNovidade(true);
     try {
       await assertCanUploadNow();
@@ -1518,6 +1533,11 @@ function DashboardContent() {
       };
       if (full) {
         payload.price = novPrice ? parseFloat(novPrice) : null;
+        if (novidadesFlashReady) {
+          // Vitrine Flash: preço original só existe em promoções.
+          payload.original_price =
+            novType === "promocao" && novOriginalPrice ? parseFloat(novOriginalPrice) : null;
+        }
         payload.starts_at = novStartsAt ? new Date(novStartsAt).toISOString() : null;
         payload.expires_at = novExpiresAt ? new Date(novExpiresAt).toISOString() : null;
         payload.is_active = editingNovidade?.is_active ?? true;
@@ -1543,7 +1563,12 @@ function DashboardContent() {
       resetNovidadeForm();
     } catch (err: any) {
       const msg = String(err?.message || err);
-      if (isMissingColumnError(msg)) {
+      if (msg.includes("LIMITE_PROMOCOES_ATINGIDO")) {
+        alert(
+          "Limite de promoções ativas atingido para o teu plano. " +
+          "Desativa ou deixa expirar uma promoção atual antes de publicar outra."
+        );
+      } else if (isMissingColumnError(msg)) {
         alert(
           "Para publicar novidades com preço, validade e CTA, aplica primeiro a migration " +
           "20261006000013_business_posts_novidades.sql no Supabase SQL Editor."
@@ -1565,7 +1590,12 @@ function DashboardContent() {
       setToast(next ? "Novidade ativada." : "Novidade desativada.");
     } catch (err: any) {
       const msg = String(err?.message || err);
-      if (isMissingColumnError(msg)) {
+      if (msg.includes("LIMITE_PROMOCOES_ATINGIDO")) {
+        alert(
+          "Limite de promoções ativas atingido para o teu plano. " +
+          "Desativa ou deixa expirar uma promoção atual antes de ativar outra."
+        );
+      } else if (isMissingColumnError(msg)) {
         alert(
           "Para ativar/desativar novidades, aplica primeiro a migration " +
           "20261006000013_business_posts_novidades.sql no Supabase SQL Editor."
@@ -2452,7 +2482,7 @@ function DashboardContent() {
               <div className="flex items-center justify-between border-b border-gray-800 pb-4">
                 <div>
                   <h3 className="text-xl font-display font-semibold text-[#C8A96B]">Novidades na Vitrine</h3>
-                  <p className="text-xs text-gray-400">Publica promoções, eventos e avisos — aparecem no Explorar.</p>
+                  <p className="text-xs text-gray-400">Publica promoções, eventos e avisos — aparecem no Explorar e as promoções também na Vitrine Flash.</p>
                 </div>
                 {/* A10.5: o botão aparece em todos os modos exceto "loading" —
                     em "unavailable" a tentativa de guardar mostra o erro real. */}
@@ -2465,6 +2495,15 @@ function DashboardContent() {
                   </button>
                 )}
               </div>
+
+              {novidadesMode === "full" && business && (
+                <p className="text-[11px] text-gray-500 -mt-2">
+                  🏷️ Promoções ativas:{" "}
+                  <span className="text-[#C8A96B] font-bold">{countActivePromotions(novidades)}</span>
+                  {" "}de {planMaxActivePromotions(business.plan)} no teu plano — aparecem na{" "}
+                  <span className="text-[#C8A96B]">Vitrine Flash</span> (/promocoes) e na página inicial.
+                </p>
+              )}
 
               {novidadesMode === "idle" && (
                 <p className="text-xs text-gray-500">A preparar novidades…</p>
@@ -2520,8 +2559,16 @@ function DashboardContent() {
                               </span>
                             </div>
                             <div className="flex flex-wrap items-center gap-2 mt-1">
+                              {n.type === "promocao" && n.original_price !== null && n.original_price !== undefined && (
+                                <span className="text-gray-500 line-through text-xs">€{Number(n.original_price).toFixed(2)}</span>
+                              )}
                               {n.price !== null && n.price !== undefined && (
                                 <span className="text-[#C8A96B] font-bold text-xs">€{Number(n.price).toFixed(2)}</span>
+                              )}
+                              {n.type === "promocao" && discountPercent(n.original_price, n.price) !== null && (
+                                <span className="px-1.5 py-0.5 rounded bg-[#C8A96B] text-[#0F172A] text-[10px] font-black">
+                                  −{discountPercent(n.original_price, n.price)}%
+                                </span>
                               )}
                               {novidadesMode === "full" && (
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
@@ -3344,6 +3391,29 @@ function DashboardContent() {
                       placeholder="Ex: 12.90"
                     />
                   </div>
+
+                  {novType === "promocao" && novidadesFlashReady && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Preço original (€) — antes da promoção</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={novOriginalPrice}
+                        onChange={(e) => setNovOriginalPrice(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#0F172A] border border-gray-800 rounded text-sm text-white"
+                        placeholder="Ex: 19.90"
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        O Preço (€) acima é o preço promocional. Com os dois preços, a promoção aparece na Vitrine Flash com o desconto calculado.
+                      </p>
+                    </div>
+                  )}
+                  {novType === "promocao" && !novidadesFlashReady && (
+                    <p className="text-[11px] text-amber-400/90">
+                      Para mostrares o preço original e o desconto na Vitrine Flash, aplica a migration 20261117000024_promotions_flash.sql no Supabase SQL Editor.
+                    </p>
+                  )}
 
                   <div className="bg-[#0f172a] p-3 border border-gray-800 rounded-lg space-y-3">
                     <div className="flex items-center justify-between">
@@ -4610,6 +4680,8 @@ function AnalyticsSection({
     views_month: number;
     whatsapp_clicks: number;
     product_views: number;
+    promotion_views: number;
+    promotion_clicks: number;
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -4634,6 +4706,8 @@ function AnalyticsSection({
     { label: "Visitas esta semana", value: stats?.views_week ?? 0, icon: "📅" },
     { label: "Cliques no WhatsApp", value: stats?.whatsapp_clicks ?? 0, icon: "💬" },
     { label: "Visualizações de produtos", value: stats?.product_views ?? 0, icon: "📦" },
+    { label: "Visualizações de promoções", value: stats?.promotion_views ?? 0, icon: "🏷️" },
+    { label: "Cliques em promoções", value: stats?.promotion_clicks ?? 0, icon: "👆" },
   ];
 
   return (
@@ -4649,7 +4723,7 @@ function AnalyticsSection({
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {cards.map((card) => (
           <div
             key={card.label}

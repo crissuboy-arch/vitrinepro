@@ -23,6 +23,9 @@ export const ALLOWED_EVENTS = [
   "novidade_view",
   "novidade_click",
   "novidade_save",
+  // Fase 1 — "Vitrine Flash": visualizações e cliques em promoções (per-business).
+  "promotion_view",
+  "promotion_click",
   // A9 — "Pergunte à Vitrine" / Local Intent (primeira camada do Local Intent Graph).
   // intent_search: { query (truncada 100), city?, result_count, zero: boolean }
   // NUNCA armazena prompt completo sensível — só o necessário para entender demanda.

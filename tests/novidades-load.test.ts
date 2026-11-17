@@ -73,7 +73,9 @@ describe("A10.5 — loadNovidadesState", () => {
     const seen: string[] = [];
     const client = mockClient((columns: string) => {
       seen.push(columns);
-      if (columns === NOVIDADES_FULL_SELECT) {
+      // Sem a migration das novidades, TODOS os selects com "price"
+      // (full do Flash e intermédio) falham — só o legado passa.
+      if (columns.includes("price")) {
         return err("column business_posts.price does not exist", "42703");
       }
       return ok([{ id: "n1", title: "Antiga" }]);
