@@ -1,5 +1,6 @@
 import { safeJsonLd } from "@/lib/jsonld";
 import VitrineClient from "./VitrineClient";
+import PortalMontra from "@/components/vitrine/PortalMontra";
 import { supabase } from "../../lib/supabase";
 import {
   pickSocialImage,
@@ -245,6 +246,27 @@ export default async function VitrinePage({ params }: { params: Promise<{ slug: 
     } catch {
       // Non-critical — page still renders without schema
     }
+  }
+
+  // Montra multiloja/afiliados (Portal de Ofertas): template próprio,
+  // alimentado pelo feed do Portal. Antes da migration 20261117000029 a
+  // coluna business_kind não existe → a query falha e segue o fluxo normal.
+  let isPortalMontra = false;
+  if (slug !== "demo" && slug !== "exemplo") {
+    try {
+      const { data } = await supabase
+        .from("businesses")
+        .select("business_kind")
+        .eq("slug", slug)
+        .eq("published", true)
+        .maybeSingle();
+      isPortalMontra = (data as { business_kind?: string } | null)?.business_kind === "multiloja_afiliados";
+    } catch {
+      isPortalMontra = false;
+    }
+  }
+  if (isPortalMontra) {
+    return <PortalMontra slug={slug} />;
   }
 
   return (

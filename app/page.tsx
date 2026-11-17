@@ -8,6 +8,7 @@ import { supabase } from "./lib/supabase";
 import dynamic from "next/dynamic";
 import { useHomeRedirect } from "@/components/auth/useHomeRedirect";
 import { RadarHighlight, DailyTopicsSection } from "@/components/home/HomeDiscoverySections";
+import OfertasDestaque from "@/components/home/OfertasDestaque";
 
 // Overlay widgets are non-critical — lazy-load them so they stay out of the initial bundle.
 const ChatWidget = dynamic(() => import("./components/ChatWidget"), { ssr: false });
@@ -523,6 +524,9 @@ export default function HomePage() {
           testimonials as "Depoimentos Reais". Re-enable only with verified,
           real customer testimonials. */}
       <PlansSection onSelectPlan={handleSelectPlan} />
+
+      {/* Integração Portal de Ofertas: só renderiza com ofertas reais. */}
+      <OfertasDestaque />
 
       <section id="faq" className="py-24 md:py-32 bg-[#0A0D14] border-b border-white/5 relative z-10">
         <script
