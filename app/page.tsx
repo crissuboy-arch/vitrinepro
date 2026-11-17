@@ -562,7 +562,7 @@ export default function HomePage() {
 
       <FinalCTASection onCadastrar={handleCadastrarClick} />
 
-      <footer className="py-16 bg-[#030610] border-t border-white/5 text-slate-500 text-xs z-10">
+      <footer className="py-16 bg-[#030610] border-t border-white/5 text-slate-400 text-xs z-10">
         <div className="max-w-6xl mx-auto px-4 space-y-6 text-center">
           <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-12 mx-auto object-contain bg-transparent" />
           <p className="text-slate-400 font-light max-w-md mx-auto">
@@ -570,7 +570,7 @@ export default function HomePage() {
           </p>
 
           {/* Navigation links */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] text-slate-500">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] text-slate-400">
             <Link href="/businesses" className="hover:text-[#C8A96B] transition-colors">Marketplace</Link>
             <Link href="/pricing" className="hover:text-[#C8A96B] transition-colors">Planos</Link>
             <Link href="/explorar" className="hover:text-[#C8A96B] transition-colors">Explorar</Link>

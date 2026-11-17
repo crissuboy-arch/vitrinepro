@@ -150,7 +150,7 @@ export default function PromocoesPage() {
 
         {/* Resultados */}
         {promotions === null ? (
-          <p className="text-center text-sm text-gray-500 py-16">A carregar promoções…</p>
+          <p className="text-center text-sm text-gray-400 py-16">A carregar promoções…</p>
         ) : visible.length === 0 ? (
           <div className="text-center py-16 space-y-3">
             <span className="text-4xl">🏷️</span>
@@ -177,7 +177,7 @@ export default function PromocoesPage() {
           </div>
         ) : (
           <>
-            <p className="text-xs text-gray-500 mt-8 mb-4">
+            <p className="text-xs text-gray-400 mt-8 mb-4">
               {visible.length} {visible.length === 1 ? "promoção ativa" : "promoções ativas"}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -190,7 +190,7 @@ export default function PromocoesPage() {
       </main>
 
       {/* Footer (mesmo padrão do /explorar) */}
-      <footer className="bg-[#050816] border-t border-white/5 py-12 mt-20 text-center text-slate-500 text-xs">
+      <footer className="bg-[#050816] border-t border-white/5 py-12 mt-20 text-center text-slate-400 text-xs">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-3">
           <Link href="/">
             <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 mx-auto object-contain bg-transparent mb-1" />

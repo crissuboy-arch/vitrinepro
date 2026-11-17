@@ -802,7 +802,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 {/* Fechar */}
                 <button
                   onClick={closePopup}
-                  className="w-full py-2.5 text-slate-500 hover:text-slate-300 text-sm transition-colors"
+                  className="w-full py-2.5 text-slate-400 hover:text-slate-300 text-sm transition-colors"
                 >
                   Fechar
                 </button>
@@ -943,7 +943,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 <span className="text-slate-400">({business.reviewCount} avaliações)</span>
               </>
             ) : (
-              <span className="text-slate-500 italic text-[11px]">Sem avaliações</span>
+              <span className="text-slate-400 italic text-[11px]">Sem avaliações</span>
             )}
           </div>
         </div>
@@ -995,7 +995,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                         ) : (
                           <div className="text-slate-700 flex flex-col items-center gap-1">
                             <span className="text-5xl">📦</span>
-                            <span className="text-[10px] text-slate-500 font-semibold">Sem Imagem</span>
+                            <span className="text-[10px] text-slate-400 font-semibold">Sem Imagem</span>
                           </div>
                         )}
                       </div>
@@ -1283,7 +1283,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-slate-500 italic">Horário não configurado.</p>
+                  <p className="text-xs text-slate-400 italic">Horário não configurado.</p>
                 )}
               </div>
             </div>
@@ -1332,7 +1332,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
                 >
                   <span className="text-3xl">{community.icon}</span>
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Comunidade</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Comunidade</p>
                     <p className="text-white font-bold text-sm">{community.name}</p>
                     <p className="text-[10px] mt-0.5" style={{ color: community.color }}>Ver todos os negócios →</p>
                   </div>
@@ -1430,7 +1430,7 @@ export default function VitrineClient({ slug }: { slug: string }) {
       {/* Secção de montras similares removida: rota pública focada só neste estabelecimento. */}
 
       {/* Footer — sem navegação global: apenas atribuição discreta, sem links. */}
-      <footer className="bg-[#050B14] border-t border-slate-900 py-10 mt-16 text-center text-slate-500 text-xs">
+      <footer className="bg-[#050B14] border-t border-slate-900 py-10 mt-16 text-center text-slate-400 text-xs">
         <div className="max-w-5xl mx-auto px-4 flex flex-col items-center gap-3">
           <img src="/brand/logo-horizontal-transparent.png" alt="VitrinePro" className="h-10 object-contain bg-transparent" />
           <p className="text-slate-400" style={{ color: "#C8A96B", fontSize: "13px" }}>
@@ -1465,7 +1465,7 @@ const SocialLink = ({ href, label, icon, value }: { href: string; label: string;
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider leading-none mb-1">{label}</p>
+        <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider leading-none mb-1">{label}</p>
         <p className="text-xs font-medium truncate">{value}</p>
       </div>
     </a>
