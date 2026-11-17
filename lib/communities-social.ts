@@ -103,72 +103,13 @@ export async function lastPostAt(client: Svc, userId: string): Promise<Date | nu
 
 /* ── Rede social (030): perfis, notificações, respostas ───────────── */
 
-export interface CommunityProfile {
-  userId: string;
-  displayName: string;
-  avatarUrl: string | null;
-  bio: string | null;
-  city: string | null;
-}
-
-export const PROFILE_LIMITS = { displayName: 60, bio: 280, city: 60 };
-
-/** Valida/normaliza o input do perfil. Devolve erro ou o perfil limpo. */
-export function validateProfileInput(
-  body: Record<string, unknown>,
-  fallbackName: string,
-): { ok: true; value: { displayName: string; avatarUrl: string | null; bio: string | null; city: string | null } } | { ok: false; error: string } {
-  const clean = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
-  const displayName = clean(body.display_name, PROFILE_LIMITS.displayName) || fallbackName;
-  const bio = clean(body.bio, PROFILE_LIMITS.bio) || null;
-  const city = clean(body.city, PROFILE_LIMITS.city) || null;
-  let avatarUrl: string | null = null;
-  if (typeof body.avatar_url === "string" && body.avatar_url.trim()) {
-    const u = body.avatar_url.trim();
-    if (!/^https:\/\//.test(u) || u.length > 500) return { ok: false, error: "Fotografia inválida." };
-    avatarUrl = u;
-  }
-  return { ok: true, value: { displayName, avatarUrl, bio, city } };
-}
-
-export async function getProfile(client: Svc, userId: string): Promise<CommunityProfile | null> {
-  const { data, error } = await client
-    .from("community_profiles")
-    .select("user_id, display_name, avatar_url, bio, city")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) {
-    if (isMissingTableError(error)) return null;
-    throw error;
-  }
-  if (!data) return null;
-  return { userId: data.user_id, displayName: data.display_name, avatarUrl: data.avatar_url, bio: data.bio, city: data.city };
-}
-
-/** Perfis de vários utilizadores de uma vez (avatares do feed/membros). */
-export async function getProfilesMap(client: Svc, userIds: string[]): Promise<Map<string, CommunityProfile>> {
-  const map = new Map<string, CommunityProfile>();
-  const unique = [...new Set(userIds)].filter(Boolean);
-  if (unique.length === 0) return map;
-  const { data, error } = await client
-    .from("community_profiles")
-    .select("user_id, display_name, avatar_url, bio, city")
-    .in("user_id", unique);
-  if (error) {
-    if (isMissingTableError(error)) return map;
-    throw error;
-  }
-  for (const row of data ?? []) {
-    map.set(row.user_id, { userId: row.user_id, displayName: row.display_name, avatarUrl: row.avatar_url, bio: row.bio, city: row.city });
-  }
-  return map;
-}
-
-/** Nome público efetivo: perfil > metadados da conta. */
-export async function effectiveDisplayName(client: Svc, user: SessionUser): Promise<string> {
-  const profile = await getProfile(client, user.id).catch(() => null);
-  return profile?.displayName || user.displayName;
-}
+export {
+  PROFILE_LIMITS,
+  validateProfileInput,
+  buildCommentTree,
+  WELCOME_POST_CONTENT,
+} from "./communities-core";
+export type { CommentRow } from "./communities-core";
 
 export type NotificationType = "comment" | "reply" | "reaction";
 
@@ -192,32 +133,3 @@ export async function notify(
     // notificações nunca bloqueiam a ação principal
   }
 }
-
-export interface CommentRow {
-  id: string;
-  parent_id: string | null;
-  [key: string]: unknown;
-}
-
-/** Agrupa comentários: raízes com as suas respostas (1 nível). */
-export function buildCommentTree<T extends CommentRow>(comments: T[]): (T & { replies: T[] })[] {
-  const roots: (T & { replies: T[] })[] = [];
-  const byId = new Map<string, T & { replies: T[] }>();
-  for (const c of comments) {
-    const node = { ...c, replies: [] as T[] };
-    byId.set(c.id, node);
-    if (!c.parent_id) roots.push(node);
-  }
-  for (const c of comments) {
-    if (c.parent_id) {
-      const parent = byId.get(c.parent_id);
-      if (parent) parent.replies.push(c);
-      else roots.push({ ...c, replies: [] });
-    }
-  }
-  return roots;
-}
-
-/** Texto-padrão da publicação de boas-vindas fixada (admin). */
-export const WELCOME_POST_CONTENT =
-  "És novo por aqui? Apresenta-te! 👋\n\nConta-nos quem és, de que cidade és e o que fazes. Esta comunidade é um espaço para partilhar, ajudar e crescer em conjunto — a tua apresentação é o primeiro passo.";

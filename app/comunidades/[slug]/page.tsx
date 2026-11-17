@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { uploadCommunityImage } from "@/lib/supabase-storage";
-import { buildCommentTree } from "@/lib/communities-social";
+import { buildCommentTree } from "@/lib/communities-core";
 
 interface Community {
   id: string;
