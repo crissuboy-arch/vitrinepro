@@ -111,6 +111,53 @@ export {
 } from "./communities-core";
 export type { CommentRow } from "./communities-core";
 
+export interface CommunityProfile {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  city: string | null;
+}
+
+export async function getProfile(client: Svc, userId: string): Promise<CommunityProfile | null> {
+  const { data, error } = await client
+    .from("community_profiles")
+    .select("user_id, display_name, avatar_url, bio, city")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) {
+    if (isMissingTableError(error)) return null;
+    throw error;
+  }
+  if (!data) return null;
+  return { userId: data.user_id, displayName: data.display_name, avatarUrl: data.avatar_url, bio: data.bio, city: data.city };
+}
+
+/** Perfis de vários utilizadores de uma vez (avatares do feed/membros). */
+export async function getProfilesMap(client: Svc, userIds: string[]): Promise<Map<string, CommunityProfile>> {
+  const map = new Map<string, CommunityProfile>();
+  const unique = [...new Set(userIds)].filter(Boolean);
+  if (unique.length === 0) return map;
+  const { data, error } = await client
+    .from("community_profiles")
+    .select("user_id, display_name, avatar_url, bio, city")
+    .in("user_id", unique);
+  if (error) {
+    if (isMissingTableError(error)) return map;
+    throw error;
+  }
+  for (const row of data ?? []) {
+    map.set(row.user_id, { userId: row.user_id, displayName: row.display_name, avatarUrl: row.avatar_url, bio: row.bio, city: row.city });
+  }
+  return map;
+}
+
+/** Nome público efetivo: perfil > metadados da conta. */
+export async function effectiveDisplayName(client: Svc, user: SessionUser): Promise<string> {
+  const profile = await getProfile(client, user.id).catch(() => null);
+  return profile?.displayName || user.displayName;
+}
+
 export type NotificationType = "comment" | "reply" | "reaction";
 
 /** Cria uma notificação (best-effort; nunca notifica o próprio autor). */

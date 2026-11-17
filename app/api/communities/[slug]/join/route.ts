@@ -4,7 +4,7 @@
  * nacionalidade: qualquer conta pode entrar em qualquer comunidade.
  */
 import { NextResponse } from "next/server";
-import { svc, getCommunityBySlug, getSessionUser, communitiesNotReadyResponse, isMissingTableError } from "@/lib/communities-social";
+import { svc, getCommunityBySlug, getSessionUser, isMember, communitiesNotReadyResponse, isMissingTableError } from "@/lib/communities-social";
 
 async function resolve(slug: string) {
   const client = svc();

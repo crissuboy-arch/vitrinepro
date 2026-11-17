@@ -26,7 +26,6 @@ export function validateProfileInput(
 export interface CommentRow {
   id: string;
   parent_id: string | null;
-  [key: string]: unknown;
 }
 
 /** Agrupa comentários: raízes com as suas respostas (1 nível). */
