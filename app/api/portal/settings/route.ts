@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin, getServiceClient, adminLog } from "@/lib/admin-auth";
 import { getAuthenticatedUserId } from "@/lib/quotes-server";
 import { getPortalBusiness, getPortalSettings, isPortalTableMissing } from "@/lib/portal-server";
+import { fetchPortalFeed, portalCategories } from "@/lib/portal";
 
 export const runtime = "nodejs";
 
@@ -28,7 +29,20 @@ export async function GET(request: Request) {
   if (!auth.ok) return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   const { ready, settings } = await getPortalSettings();
   const business = await getPortalBusiness();
-  return NextResponse.json({ ready, settings, business });
+  const feed = await fetchPortalFeed();
+  return NextResponse.json({
+    ready,
+    settings,
+    business,
+    feed: {
+      ok: !feed.error,
+      error: feed.error,
+      categories: feed.error ? [] : portalCategories(feed.products),
+      products: feed.error
+        ? []
+        : feed.products.map((p) => ({ externalId: p.externalId, name: p.name, category: p.category, store: p.store.label, featured: p.featured })),
+    },
+  });
 }
 
 export async function PUT(request: Request) {

@@ -22,6 +22,9 @@ export const MONTRA_TABS: MontraTab[] = [
   { id: "localizacao", label: "Localização" },
   { id: "avaliacoes", label: "Avaliações" },
   { id: "catalogo", label: "Catálogo" },
+  // Integração Portal de Ofertas — só visível em montras multiloja/afiliados
+  // (a barra de tabs do dashboard filtra por business_kind).
+  { id: "portal", label: "🛒 Portal de Ofertas" },
   { id: "analytics", label: "Analytics" },
   { id: "plano", label: "Plano" },
 ];

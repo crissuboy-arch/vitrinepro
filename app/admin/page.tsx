@@ -12,6 +12,7 @@ import HandoverPanel from "./handover";
 import ManagersPanel from "@/components/admin/ManagersPanel";
 import CommunitiesPanel from "@/components/admin/CommunitiesPanel";
 import DailyTopicsPanel from "@/components/admin/DailyTopicsPanel";
+import PortalAdminPanel from "@/components/admin/PortalAdminPanel";
 
 // UI-only gate: hides admin controls in the browser.
 // Real authorization happens server-side (app/api/admin/* checks ADMIN_EMAILS).
@@ -829,6 +830,16 @@ export default function AdminPage() {
             }`}
           >
             📰 Assunto do Dia
+          </button>
+          <button
+            onClick={() => setActiveTab("portal")}
+            className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${
+              activeTab === "portal"
+                ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
+            }`}
+          >
+            🛒 Portal de Ofertas
           </button>
         </div>
 
@@ -1756,6 +1767,7 @@ export default function AdminPage() {
         {activeTab === "comunidades" && <CommunitiesPanel />}
 
         {activeTab === "assunto" && <DailyTopicsPanel />}
+        {activeTab === "portal" && <PortalAdminPanel />}
 
         {/* ══════════ FASE 2 — PEDIDOS DE ORÇAMENTO (moderação) ══════════ */}
         {activeTab === "quotes" && (

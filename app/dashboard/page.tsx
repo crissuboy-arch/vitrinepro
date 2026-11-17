@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AccountMenu from "@/components/auth/AccountMenu";
 import CoverFramingEditor from "@/components/dashboard/CoverFramingEditor";
+import PortalPanel from "@/components/dashboard/PortalPanel";
 import BusinessQuotesPanel from "@/components/quotes/BusinessQuotesPanel";
 import ProductFramingEditor from "@/components/dashboard/ProductFramingEditor";
 import { normalizeProductFraming, productImgStyle, ProductFraming } from "@/lib/product-framing";
@@ -1815,7 +1816,11 @@ function DashboardContent() {
         {/* A3.3/A3.17 — Gerenciar Montra: tab navigation */}
         <div className="sticky top-[69px] z-20 -mx-4 px-4 bg-[#0F172A]/95 backdrop-blur border-y border-gray-800">
           <div className="flex gap-1.5 overflow-x-auto py-3 max-w-7xl mx-auto">
-            {MONTRA_TABS.map((t) => (
+            {MONTRA_TABS.filter(
+              (t) =>
+                t.id !== "portal" ||
+                (business as unknown as { business_kind?: string } | null)?.business_kind === "multiloja_afiliados",
+            ).map((t) => (
               <button
                 key={t.id}
                 onClick={() => goTab(t.id)}
@@ -2626,6 +2631,12 @@ function DashboardContent() {
             </div>
           </div>
         )}
+        {/* Integração Portal de Ofertas — só montras multiloja/afiliados */}
+        {activeTab === "portal" &&
+          business &&
+          (business as unknown as { business_kind?: string }).business_kind === "multiloja_afiliados" && (
+            <PortalPanel />
+          )}
         {/* Fase 2 — PEDIDOS DE ORÇAMENTO (pedidos de clientes + interesses) */}
         {activeTab === "pedidos" && business && (
           <BusinessQuotesPanel
