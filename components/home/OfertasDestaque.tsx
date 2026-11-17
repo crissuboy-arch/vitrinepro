@@ -62,6 +62,26 @@ function eur(v: number) {
   return v.toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
 }
 
+/** Imagem com fallback: se a loja bloquear/falhar, mostra o placeholder. */
+function CardImage({ src, alt, accent }: { src: string | null; alt: string; accent: "orange" | "gold" }) {
+  const [ok, setOk] = useState(true);
+  if (src && ok) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={src} alt={alt} className="h-full w-full object-cover" loading="lazy" onError={() => setOk(false)} />
+    );
+  }
+  return (
+    <div
+      className={`flex h-full w-full items-center justify-center ${
+        accent === "orange" ? "bg-gradient-to-br from-zinc-800 to-black" : "bg-gradient-to-br from-[#103B78] to-black"
+      }`}
+    >
+      <span className={`text-3xl font-black ${accent === "orange" ? "text-orange-500" : "text-[#D4AF37]"}`}>%</span>
+    </div>
+  );
+}
+
 export default function OfertasDestaque() {
   const [items, setItems] = useState<Item[]>([]);
   const [portal, setPortal] = useState<{ businessId: string; businessSlug: string; portalUrl: string } | null>(null);
@@ -149,14 +169,7 @@ export default function OfertasDestaque() {
                 className="flex w-[240px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-zinc-900 ring-1 ring-white/10 md:w-[calc(25%-12px)]"
               >
                 <div className="relative aspect-[4/3] bg-zinc-800">
-                  {item.product.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.product.imageUrl} alt={item.product.name} className="h-full w-full object-cover" loading="lazy" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-black">
-                      <span className="text-3xl font-black text-orange-500">%</span>
-                    </div>
-                  )}
+                  <CardImage src={item.product.imageUrl} alt={item.product.name} accent="orange" />
                   {item.product.dealOfDay && (
                     <span className="absolute left-2 top-2 rounded-full bg-orange-500 px-2 py-0.5 text-[11px] font-bold text-black">
                       Oferta do dia
@@ -192,14 +205,7 @@ export default function OfertasDestaque() {
                 className="flex w-[240px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-zinc-900 ring-1 ring-white/10 md:w-[calc(25%-12px)]"
               >
                 <div className="relative aspect-[4/3] bg-zinc-800">
-                  {item.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" loading="lazy" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#103B78] to-black">
-                      <span className="text-3xl font-black text-[#D4AF37]">%</span>
-                    </div>
-                  )}
+                  <CardImage src={item.imageUrl} alt={item.title} accent="gold" />
                   {item.discount != null && (
                     <span className="absolute left-2 top-2 rounded-full bg-[#D4AF37] px-2 py-0.5 text-[11px] font-bold text-black">
                       −{item.discount}%

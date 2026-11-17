@@ -36,8 +36,6 @@ export interface HighlightPromo {
 const CAP = 12;
 
 export async function GET() {
-  const items: (HighlightPortal | HighlightPromo)[] = [];
-
   // --- Promoções Flash dos comerciantes (sempre elegíveis) ---
   let promos: HighlightPromo[] = [];
   const svc = getServiceClient();
@@ -85,7 +83,6 @@ export async function GET() {
     }
   }
 
-  const mixed = interleaveFair(portalItems, promos, CAP);
-  void items;
+  const mixed = interleaveFair<HighlightPortal | HighlightPromo>(portalItems, promos, CAP);
   return NextResponse.json({ ready: true, items: mixed, portal: portalMeta });
 }

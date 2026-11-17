@@ -136,7 +136,7 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<"overview" | "businesses" | "categories" | "cities" | "users" | "leads" | "quotes" | "handover" | "equipa" | "comunidades" | "assunto">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "businesses" | "categories" | "cities" | "users" | "leads" | "quotes" | "handover" | "equipa" | "comunidades" | "assunto" | "portal">("overview");
 
   // Visão Geral (dados reais)
   const [overview, setOverview] = useState<AdminStats | null>(null);

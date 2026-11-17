@@ -48,12 +48,13 @@ function fmtPrice(v: number, currency: string) {
 }
 
 function ProductCard({ p, businessId }: { p: PortalProduct; businessId: string }) {
+  const [imgOk, setImgOk] = useState(true);
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl bg-zinc-900 ring-1 ring-white/10">
       <div className="relative aspect-[4/3] bg-zinc-800">
-        {p.imageUrl ? (
+        {p.imageUrl && imgOk ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
+          <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" loading="lazy" onError={() => setImgOk(false)} />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-zinc-800 to-black px-4 text-center">
             <span className="text-3xl font-black text-orange-500">%</span>
