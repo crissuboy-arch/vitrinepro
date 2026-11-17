@@ -12,6 +12,9 @@ interface NavbarProps {
 }
 
 const NAV_LINKS = [
+  { href: "/radar", label: "Radar Local" },
+  { href: "/explorar", label: "Explorar" },
+  { href: "/comunidades", label: "Comunidades" },
   { href: "#solucao", label: "Funcionalidades" },
   { href: "#planos", label: "Planos" },
   { href: "#depoimentos", label: "Depoimentos" },

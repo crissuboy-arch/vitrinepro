@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "./lib/supabase";
 import dynamic from "next/dynamic";
 import { useHomeRedirect } from "@/components/auth/useHomeRedirect";
+import { RadarHighlight, DailyTopicsSection } from "@/components/home/HomeDiscoverySections";
 
 // Overlay widgets are non-critical — lazy-load them so they stay out of the initial bundle.
 const ChatWidget = dynamic(() => import("./components/ChatWidget"), { ssr: false });
@@ -415,6 +416,8 @@ export default function HomePage() {
       <DiscoverySearch />
       <StatsSection />
       <BusinessTypesSection />
+      <RadarHighlight />
+      <DailyTopicsSection />
 
       {/* SEÇÃO COMUNIDADES */}
       <section className="py-16 md:py-24 bg-[#090E1A] border-b border-white/5 relative z-10">

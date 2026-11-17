@@ -856,6 +856,32 @@ export default function ExplorarPage() {
           </p>
         </div>
 
+        {/* Hub de descoberta — acessos rápidos às áreas da plataforma.
+            Uma linha horizontal com scroll no telemóvel; sem menus
+            confusos nem excesso de botões. */}
+        <nav aria-label="Áreas da plataforma" className="flex gap-2 overflow-x-auto pb-1 -mt-4 justify-start md:justify-center">
+          {[
+            { href: "/explorar", label: "🏪 Explorar Negócios", active: true },
+            { href: "/radar", label: "📡 Radar Local", active: false },
+            { href: "/promocoes", label: "⚡ Promoções", active: false },
+            { href: "/orcamentos", label: "🧾 Pedidos de Orçamento", active: false },
+            { href: "/comunidades", label: "👥 Comunidades", active: false },
+            { href: "/radar", label: "📰 Assunto do Dia", active: false },
+          ].map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold border transition-colors ${
+                item.active
+                  ? "bg-[#C8A96B] text-[#0F172A] border-[#C8A96B]"
+                  : "bg-white/5 text-gray-200 border-white/10 hover:border-[#C8A96B]/60 hover:text-white"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
         {/* Notificação de novidade: Montra publicada pela primeira vez há
             menos de 7 dias (dados reais; sem recentes, nada é renderizado).
             Em fluxo, acima dos filtros — nunca cobre filtros ou botões. */}

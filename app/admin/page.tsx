@@ -10,6 +10,8 @@ import { supabase } from "../lib/supabase";
 import { isPaidTier } from "@/lib/plans";
 import HandoverPanel from "./handover";
 import ManagersPanel from "@/components/admin/ManagersPanel";
+import CommunitiesPanel from "@/components/admin/CommunitiesPanel";
+import DailyTopicsPanel from "@/components/admin/DailyTopicsPanel";
 
 // UI-only gate: hides admin controls in the browser.
 // Real authorization happens server-side (app/api/admin/* checks ADMIN_EMAILS).
@@ -133,7 +135,7 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<"overview" | "businesses" | "categories" | "cities" | "users" | "leads" | "quotes" | "handover" | "equipa">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "businesses" | "categories" | "cities" | "users" | "leads" | "quotes" | "handover" | "equipa" | "comunidades" | "assunto">("overview");
 
   // Visão Geral (dados reais)
   const [overview, setOverview] = useState<AdminStats | null>(null);
@@ -807,6 +809,26 @@ export default function AdminPage() {
             }`}
           >
             🤝 Equipa
+          </button>
+          <button
+            onClick={() => setActiveTab("comunidades")}
+            className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${
+              activeTab === "comunidades"
+                ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
+            }`}
+          >
+            👥 Comunidades
+          </button>
+          <button
+            onClick={() => setActiveTab("assunto")}
+            className={`px-5 py-3 font-display text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${
+              activeTab === "assunto"
+                ? "border-[#0F172A] text-[#0F172A] bg-white rounded-t-lg"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/50 rounded-t-lg"
+            }`}
+          >
+            📰 Assunto do Dia
           </button>
         </div>
 
@@ -1730,6 +1752,10 @@ export default function AdminPage() {
         {activeTab === "handover" && <HandoverPanel />}
 
         {activeTab === "equipa" && <ManagersPanel />}
+
+        {activeTab === "comunidades" && <CommunitiesPanel />}
+
+        {activeTab === "assunto" && <DailyTopicsPanel />}
 
         {/* ══════════ FASE 2 — PEDIDOS DE ORÇAMENTO (moderação) ══════════ */}
         {activeTab === "quotes" && (
