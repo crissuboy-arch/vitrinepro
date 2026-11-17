@@ -188,23 +188,38 @@ export default function CommunitiesPanel() {
                   /comunidades/{c.slug} · {c.counts.members} membros · {c.counts.posts} publicações · {c.is_active ? "ativa" : "inativa"}
                 </p>
               </div>
-              <button
-                onClick={() =>
-                  act(
-                    () =>
-                      fetch("/api/admin/communities", {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ id: c.id, is_active: !c.is_active }),
-                      }),
-                    c.is_active ? "Comunidade desativada." : "Comunidade ativada."
-                  )
-                }
-                disabled={busy}
-                className={`${btnGhost} ml-auto`}
-              >
-                {c.is_active ? "Desativar" : "Ativar"}
-              </button>
+              <span className="ml-auto flex gap-2">
+                <button
+                  onClick={() =>
+                    act(
+                      () => fetch(`/api/admin/communities/${c.slug}/welcome`, { method: "POST" }),
+                      "Publicação de boas-vindas fixada pronta."
+                    )
+                  }
+                  disabled={busy}
+                  className={btnGhost}
+                  title="Cria (se ainda não existir) a publicação fixada «És novo por aqui? Apresenta-te!»"
+                >
+                  📌 Boas-vindas
+                </button>
+                <button
+                  onClick={() =>
+                    act(
+                      () =>
+                        fetch("/api/admin/communities", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: c.id, is_active: !c.is_active }),
+                        }),
+                      c.is_active ? "Comunidade desativada." : "Comunidade ativada."
+                    )
+                  }
+                  disabled={busy}
+                  className={btnGhost}
+                >
+                  {c.is_active ? "Desativar" : "Ativar"}
+                </button>
+              </span>
             </div>
           ))}
         </div>
