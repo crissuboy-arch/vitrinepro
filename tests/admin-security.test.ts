@@ -94,9 +94,13 @@ describe("TESTE G — RLS inalterada", () => {
     // - 20261117000025 (Fase 2 "Pedidos de Orçamento": tabelas quote_*,
     //   autorizado pela Cristiane em 2026-11-17 — entrega-se o ficheiro,
     //   NÃO aplicada)
+    // - 20261117000026 (Missão "3 Melhorias", bloco 2 "Atena — Gestor de
+    //   Montras": montra_managers/business_managers/manager_api_keys/
+    //   manager_audit_log, autorizado pela Cristiane em 2026-11-17 —
+    //   entrega-se o ficheiro, NÃO aplicada)
     const out = execSync("git status --porcelain supabase/migrations/", { encoding: "utf8" });
     const lines = out.trim().split("\n").filter(Boolean);
-    const allowed = ["PROPOSTA_", "20261007000016_", "20261007000017_", "20261007000018_", "20261007000019_", "20261021000021_", "20261028000022_", "20261117000024_", "20261117000025_"];
+    const allowed = ["PROPOSTA_", "20261007000016_", "20261007000017_", "20261007000018_", "20261007000019_", "20261021000021_", "20261028000022_", "20261117000024_", "20261117000025_", "20261117000026_"];
     const real = lines.filter((l) => !allowed.some((a) => l.includes(a)));
     assert.strictEqual(real.join("\n"), "", "sem migrations aplicadas nesta tarefa além das autorizadas A10.1");
   });
