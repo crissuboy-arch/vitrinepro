@@ -82,7 +82,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     const viewerProfile = viewer ? profiles.get(viewer.id) ?? null : null;
     const membersPreview = memberIds.map((uid) => {
       const prof = profiles.get(uid);
-      return { userId: uid, displayName: prof?.displayName ?? "Membro VitrinePro", avatarUrl: prof?.avatarUrl ?? null, city: prof?.city ?? null };
+      return { userId: uid, displayName: prof?.displayName ?? "Membro VitrinePro", avatarUrl: prof?.avatarUrl ?? null, city: prof?.city ?? null, bio: prof?.bio ?? null };
     });
 
     return NextResponse.json({
@@ -104,6 +104,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
           author_name: prof?.displayName ?? p.author_name,
           author_avatar: prof?.avatarUrl ?? null,
           author_city: prof?.city ?? null,
+          author_bio: prof?.bio ?? null,
           commentCount: commentCounts.get(p.id as string) ?? 0,
           reactions: Object.fromEntries(reactionMap.get(p.id as string) ?? new Map()),
         };

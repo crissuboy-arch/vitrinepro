@@ -45,6 +45,7 @@ interface Post {
   author_name: string;
   author_avatar: string | null;
   author_city: string | null;
+  author_bio: string | null;
   content: string;
   image_url: string | null;
   is_pinned: boolean;
@@ -59,6 +60,7 @@ interface Comment {
   author_name: string;
   author_avatar: string | null;
   author_city: string | null;
+  author_bio: string | null;
   content: string;
   parent_id: string | null;
   edited_at: string | null;
@@ -78,6 +80,7 @@ interface MemberPreview {
   displayName: string;
   avatarUrl: string | null;
   city: string | null;
+  bio: string | null;
 }
 
 const EMOJIS = ["❤️", "👍", "🎉"];
@@ -604,7 +607,7 @@ export default function ComunidadePage() {
             return (
               <article key={post.id} id={`post-${post.id}`} className={`${card} p-5 space-y-3`}>
                 <div className="flex items-center gap-3">
-                  <button onClick={() => setViewProfile({ userId: post.author_id, displayName: post.author_name, avatarUrl: post.author_avatar, city: post.author_city })}>
+                  <button onClick={() => setViewProfile({ userId: post.author_id, displayName: post.author_name, avatarUrl: post.author_avatar, city: post.author_city, bio: post.author_bio })}>
                     <Avatar name={post.author_name} url={post.author_avatar} size={44} />
                   </button>
                   <div className="min-w-0 leading-tight">
@@ -688,7 +691,7 @@ export default function ComunidadePage() {
                         onEdit={() => setEditingComment({ id: c.id, postId: post.id, content: c.content })}
                         onDelete={() => void deleteComment(post.id, c.id)}
                         onReport={() => void report("comment", c.id)}
-                        onViewProfile={() => setViewProfile({ userId: c.author_id, displayName: c.author_name, avatarUrl: c.author_avatar, city: c.author_city })}
+                        onViewProfile={() => setViewProfile({ userId: c.author_id, displayName: c.author_name, avatarUrl: c.author_avatar, city: c.author_city, bio: c.author_bio })}
                         editingComment={editingComment}
                         setEditingComment={setEditingComment}
                         onSaveEdit={() => void saveEditComment()}
@@ -703,7 +706,7 @@ export default function ComunidadePage() {
                             onEdit={() => setEditingComment({ id: reply.id, postId: post.id, content: reply.content })}
                             onDelete={() => void deleteComment(post.id, reply.id)}
                             onReport={() => void report("comment", reply.id)}
-                            onViewProfile={() => setViewProfile({ userId: reply.author_id, displayName: reply.author_name, avatarUrl: reply.author_avatar, city: reply.author_city })}
+                            onViewProfile={() => setViewProfile({ userId: reply.author_id, displayName: reply.author_name, avatarUrl: reply.author_avatar, city: reply.author_city, bio: reply.author_bio })}
                             editingComment={editingComment}
                             setEditingComment={setEditingComment}
                             onSaveEdit={() => void saveEditComment()}

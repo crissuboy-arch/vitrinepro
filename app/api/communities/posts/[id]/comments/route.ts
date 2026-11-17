@@ -23,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({
       comments: (data ?? []).map((c) => {
         const prof = profiles.get(c.author_id as string);
-        return { ...c, author_avatar: prof?.avatarUrl ?? null, author_city: prof?.city ?? null, author_name: prof?.displayName ?? c.author_name };
+        return { ...c, author_avatar: prof?.avatarUrl ?? null, author_city: prof?.city ?? null, author_bio: prof?.bio ?? null, author_name: prof?.displayName ?? c.author_name };
       }),
     });
   } catch (err) {
